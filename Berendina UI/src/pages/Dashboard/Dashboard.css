@@ -1,0 +1,287 @@
+/* --- FULL SCREEN LAYOUT --- */
+.dashboard-content {
+  margin-left: 260px; /* Sidebar eke idata ida harinawa */
+  
+  /* Screen eke ithuru width eka sampurnayen gannawa */
+  width: calc(100vw - 260px); 
+  max-width: calc(100vw - 260px);
+  
+  padding: 30px 40px; /* Wate idak */
+  background-color: #f3f4f6;
+  min-height: 100vh;
+  box-sizing: border-box;
+  overflow-x: hidden; /* Pahalin scroll bar enna denne na */
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 35px;
+}
+
+.dashboard-header h1 {
+  font-size: 32px; /* Title loku kala */
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.dashboard-header p {
+  color: #6b7280;
+  margin: 5px 0 0;
+  font-size: 16px;
+}
+
+.date-display {
+  background: white;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #374151;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* --- CARDS GRID (FULL WIDTH) --- */
+.stats-grid {
+  display: grid;
+  /* Cards 4k samana pramanayen screen eka purama yanna */
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 25px;
+  margin-bottom: 35px;
+  width: 100%; /* Aniwaren 100% width */
+}
+
+.stat-card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: transform 0.2s;
+  min-width: 0; /* Flexbox issue ekak nisa meka dannawa */
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  flex-shrink: 0;
+}
+
+/* Colors */
+.stat-card.orange .stat-icon { background: #fff7ed; color: #ea580c; }
+.stat-card.blue .stat-icon { background: #eff6ff; color: #2563eb; }
+.stat-card.green .stat-icon { background: #f0fdf4; color: #16a34a; }
+.stat-card.purple .stat-icon { background: #faf5ff; color: #9333ea; }
+
+.stat-info {
+  flex: 1;
+  overflow: hidden; /* Text eliyata pannenathi wenna */
+}
+
+.stat-info h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 36px; /* Numbers loku kala */
+  font-weight: 800;
+  color: #111827;
+  margin: 5px 0;
+}
+
+.stat-meta {
+  font-size: 13px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+/* --- MAIN GRID (Charts & Lists) --- */
+.main-grid {
+  display: grid;
+  /* Left side 70%, Right side 30% */
+  grid-template-columns: 2.5fr 1fr; 
+  gap: 25px;
+  width: 100%;
+}
+
+.charts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  width: 100%; /* Chart eka box eka purama yanna */
+  box-sizing: border-box;
+}
+
+.chart-header h3 {
+  margin: 0 0 25px 0;
+  color: #374151;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Side Panel (Right) */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  height: 100%; /* Height eka chart ekata samana wenna */
+  min-height: 400px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #111827;
+  font-weight: 700;
+}
+
+.badge {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Approval List */
+.approval-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.approval-item {
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.approval-item:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  transform: translateX(4px);
+}
+
+.user-details-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.avatar-placeholder {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.user-text h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.user-text p {
+  margin: 2px 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.role-badge {
+  display: inline-block;
+  background: #e5e7eb;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #4b5563;
+  margin-top: 4px;
+}
+
+.approve-btn {
+  width: 100%;
+  padding: 10px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.approve-btn:hover {
+  background: #059669;
+}
+
+/* MEDIA QUERIES (Small Laptops) */
+@media (max-width: 1366px) {
+  .dashboard-content {
+    padding: 20px 25px; /* Podi screen walata padding adu karanawa */
+  }
+  .stats-grid {
+    gap: 15px;
+  }
+  .stat-card {
+    padding: 20px;
+  }
+  .stat-value {
+    font-size: 28px;
+  }
+}

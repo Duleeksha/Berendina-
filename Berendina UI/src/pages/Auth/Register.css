@@ -1,0 +1,60 @@
+/* --- New Officer Section Styles --- */
+.officer-section {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 5px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 6px;
+  display: block;
+  font-weight: 500;
+}
+
+/* Vehicle Box Styling */
+.vehicle-details-box {
+  background: #ffffff;
+  padding: 10px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+/* Checkbox Styling */
+.checkbox-group {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.checkbox-item input {
+  accent-color: #3b82f6; /* Checkbox color eka Blue karanawa */
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}

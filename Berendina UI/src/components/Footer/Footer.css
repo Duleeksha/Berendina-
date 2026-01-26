@@ -1,0 +1,32 @@
+/* Footer Component Styles */
+
+.footer {
+  background-color: var(--sidebar-bg);
+  color: white;
+  padding: var(--space-lg) var(--space-xl);
+  text-align: center;
+  border-top: 1px solid var(--border-dark);
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #cbd5e1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .footer {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .footer-content p {
+    font-size: 12px;
+  }
+}

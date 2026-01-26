@@ -1,0 +1,77 @@
+/* Ensure the page takes up the full height and centers content */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: #ffffff; /* Pure white background */
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif; /* Clean professional font */
+}
+
+.login-card {
+  width: 100%;
+  max-width: 450px; /* Matching the width in your Login.jpg */
+  text-align: center;
+  padding: 20px;
+}
+
+.logo-img {
+  width: 120px;
+  height: auto;
+  margin-bottom: 25px;
+}
+
+.company-name {
+  font-size: 28px;
+  color: #333333;
+  margin-bottom: 50px;
+  font-weight: 400;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #888888;
+  margin-bottom: 15px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.input-field {
+  width: 100%;
+  padding: 14px 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 16px;
+  background-color: #ffffff; /* Ensures inputs aren't dark */
+  color: #000000;
+  box-sizing: border-box; /* Prevents input from overflowing */
+}
+
+.input-field::placeholder {
+  color: #9ca3af;
+}
+
+/* The exact Blue from your Login.jpg */
+.signin-button {
+  background-color: #2b6df1;
+  color: white;
+  padding: 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 10px;
+}
+
+.signin-button:hover {
+  background-color: #1e56cc;
+}
