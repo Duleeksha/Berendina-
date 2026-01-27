@@ -1,6 +1,7 @@
-require('dotenv').config();
+import 'dotenv/config';
 
-const { Pool } = require("pg");
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -26,4 +27,4 @@ pool.on('error', (err, client) => {
 });
 
 // Me pool eka anith files walata use karanna puluwan wenna export karanawa
-module.exports = pool;
+export default pool;

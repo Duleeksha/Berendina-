@@ -1,13 +1,14 @@
-const express = require("express");
-const cors = require("cors");
-const pool = require("../Backend/db"); // DB Connection eka (Test route eka sadaha)
-const authRoutes = require("../Backend/Routes/authenticationRoutes"); // Api hadapu Register/Login routes
+import express from 'express';
+import cors from 'cors';
+ // DB Connection eka (Test route eka sadaha)
+import authRoutes from './Routes/authenticationRoutes.js'; // Api hadapu Register/Login routes
+import pool from './db.js';
 
 const app = express();
 
 // React (Frontend) run wenne Port 3000 wala nisa, api Backend eka 5000 walata gamu.
 // Nathnam "Port already in use" kiyala error enna puluwan.
-const port = 5000; 
+const port = 5000;
 
 // Middleware
 app.use(cors());

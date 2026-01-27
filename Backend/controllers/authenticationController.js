@@ -1,6 +1,6 @@
-const pool = require('../db');
-const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
+import pool from '../db.js';
+import bcrypt from 'bcrypt';
+import nodemailer from 'nodemailer';
 
 // --- EMAIL CONFIGURATION (NODEMAILER) ---
 const transporter = nodemailer.createTransport({
@@ -233,7 +233,7 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { 
+export { 
     registerUser, 
     loginUser, 
     getPendingUsers, 

@@ -1,7 +1,5 @@
-const express = require('express');
-const router = express.Router();
-
-const { 
+import express from 'express';
+import { 
     registerUser, 
     loginUser, 
     getPendingUsers, 
@@ -9,7 +7,9 @@ const {
     sendOTP,       // NEW Import
     verifyOTP,     // NEW Import
     resetPassword  // NEW Import
-} = require('../controllers/authenticationController');
+} from '../controllers/authenticationController.js';
+
+const router = express.Router();
 
 // Existing Routes
 router.post('/register', registerUser);
@@ -22,4 +22,4 @@ router.post('/send-otp', sendOTP);
 router.post('/verify-otp', verifyOTP);
 router.post('/reset-password', resetPassword);
 
-module.exports = router;
+export default router;
