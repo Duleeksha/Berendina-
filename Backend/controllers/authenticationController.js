@@ -29,9 +29,7 @@ const registerUser = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
     let initialStatus = 'Pending';
-    if (role === 'admin') {
-        initialStatus = 'Active';
-    }
+    
 
     const languagesString = languages && Array.isArray(languages) ? languages.join(', ') : null;
 
@@ -61,24 +59,30 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
+  console.log('Login attempt:', { email, password: password ? '***' : undefined }); // Log for debugging
+
   try {
     const userResult = await pool.query('SELECT * FROM user_table WHERE email = $1', [email]);
 
     if (userResult.rows.length === 0) {
+      console.log('User not found for email:', email);
       return res.status(400).json({ message: 'Invalid Email or Password' });
     }
 
     const user = userResult.rows[0];
 
     if (user.status === 'Pending') {
+        console.log('User pending approval:', email);
         return res.status(403).json({ message: 'Your account is pending Admin approval.' });
     }
 
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
+      console.log('Invalid password for email:', email);
       return res.status(400).json({ message: 'Invalid Email or Password' });
     }
 
+    console.log('Login successful for:', email);
     res.json({
       message: 'Login Successful',
       user: {
@@ -92,7 +96,7 @@ const loginUser = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err.message);
+    console.error('Login error:', err.message);
     res.status(500).json({ message: 'Server Error' });
   }
 };

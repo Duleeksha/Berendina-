@@ -1,22 +1,16 @@
-/* Field Visits Page Styles */
-
-.field-visits-layout {
-  display: flex;
+/* --- FULL WIDTH LAYOUT SETUP --- */
+.field-visits-page-content {
+  margin-left: 260px; /* Sidebar space */
+  width: calc(100vw - 260px);
+  max-width: calc(100vw - 260px);
+  padding: 30px 40px;
+  background-color: #f3f4f6;
   min-height: 100vh;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-.visits-content {
-  flex: 1;
-  padding: 30px;
-  background-color: var(--bg-light);
-  transition: margin-left var(--transition-normal);
-  margin-left: 280px;
-}
-
-.visits-content.sidebar-closed {
-  margin-left: 80px;
-}
-
+/* Header Styling */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -26,79 +20,101 @@
 
 .page-header h1 {
   font-size: 32px;
-  font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 8px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
 }
 
 .page-header p {
-  color: var(--text-gray);
+  color: #6b7280;
+  margin: 5px 0 0;
   font-size: 16px;
 }
 
+/* View Controls */
 .view-controls {
   display: flex;
   gap: 10px;
+  background: white;
+  padding: 5px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .view-btn {
-  padding: 8px 16px;
-  background-color: white;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  padding: 8px 20px;
+  background-color: transparent;
+  border: none;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
-  color: var(--text-dark);
+  font-weight: 600;
+  color: #6b7280;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s;
 }
 
 .view-btn.active {
-  background-color: var(--primary-blue);
-  color: white;
-  border-color: var(--primary-blue);
+  background-color: #eff6ff; /* Light Blue */
+  color: #2563eb; /* Primary Blue */
 }
 
-.view-btn:hover {
-  border-color: var(--primary-blue);
+.view-btn:hover:not(.active) {
+  background-color: #f3f4f6;
+  color: #111827;
 }
 
+/* Layout Grid */
 .calendar-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 2fr 1fr; /* Calendar is wider (2 parts), Timeline is smaller (1 part) */
+  gap: 25px;
+  width: 100%;
 }
 
-.calendar,
-.timeline {
+/* Common Card Style (White Box) */
+.content-card {
   background: white;
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
 }
 
-.calendar h3,
-.timeline h3 {
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-section h3,
+.timeline-section h3 {
   font-size: 18px;
-  font-weight: 600;
-  color: var(--text-dark);
-  margin-bottom: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 20px 0;
 }
 
+.badge-gray {
+    font-size: 12px;
+    background: #f3f4f6;
+    padding: 4px 10px;
+    border-radius: 15px;
+    color: #4b5563;
+    font-weight: 600;
+}
+
+/* Calendar Styles */
 .calendar-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   font-weight: 600;
-  color: var(--text-gray);
-  font-size: 12px;
+  color: #9ca3af;
+  font-size: 13px;
   text-align: center;
-}
-
-.calendar-header div {
-  padding: 10px;
+  text-transform: uppercase;
 }
 
 .calendar-grid {
@@ -110,36 +126,35 @@
 
 .calendar-day,
 .empty-day {
-  aspect-ratio: 1;
+  aspect-ratio: 1; /* Makes it square */
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   font-size: 14px;
-  color: var(--text-gray);
-  background-color: var(--bg-light);
+  color: #4b5563;
+  background-color: #f9fafb;
   cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.calendar-day {
-  color: var(--text-dark);
+  transition: all 0.2s;
   font-weight: 500;
 }
 
-.calendar-day.has-visit {
-  background: linear-gradient(135deg, var(--primary-blue), #0ea5e9);
-  color: white;
-  font-weight: 600;
+.calendar-day:hover:not(.has-visit) {
+  background-color: #e5e7eb;
 }
 
-.calendar-day:hover:not(.has-visit) {
-  background-color: var(--border-light);
+.calendar-day.has-visit {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
 }
 
 .calendar-legend {
   display: flex;
   gap: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .legend-item {
@@ -147,81 +162,114 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--text-gray);
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  background-color: var(--border-light);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
 }
 
 .legend-dot.has-visit {
-  background: linear-gradient(135deg, var(--primary-blue), #0ea5e9);
+  background-color: #2563eb;
 }
 
-/* Timeline */
+/* Timeline Styles */
 .timeline-items {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0; 
 }
 
 .timeline-item {
   display: flex;
   gap: 15px;
-  padding: 15px;
-  background-color: var(--bg-light);
-  border-radius: var(--radius-md);
-  border-left: 3px solid var(--primary-blue);
+  padding-bottom: 25px;
+  position: relative;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
 }
 
 .timeline-date {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--primary-blue);
-  min-width: 100px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+  min-width: 80px;
+  text-align: right;
+  padding-top: 2px;
+}
+
+.timeline-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    min-width: 20px;
+}
+
+/* Line connecting dots */
+.timeline-item:not(:last-child) .timeline-line::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    bottom: -20px;
+    width: 2px;
+    background-color: #e5e7eb;
+    z-index: 0;
 }
 
 .timeline-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: var(--primary-blue);
-  margin-top: 3px;
+  background-color: #3b82f6;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px #bfdbfe; /* Outer ring */
+  z-index: 1;
 }
 
 .timeline-details {
   flex: 1;
+  background: #f9fafb;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #f3f4f6;
+  transition: transform 0.2s;
+}
+
+.timeline-details:hover {
+    background: #fff;
+    border-color: #bfdbfe;
+    transform: translateX(5px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .visit-beneficiary-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-dark);
-  margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
 }
 
-.visit-location {
-  font-size: 13px;
-  color: var(--text-gray);
+.visit-location, .visit-time {
+  font-size: 12px;
+  color: #6b7280;
   margin-bottom: 4px;
-}
-
-.visit-time {
-  font-size: 13px;
-  color: var(--text-gray);
-  margin-bottom: 8px;
 }
 
 .visit-status {
   display: inline-block;
   font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 4px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
   text-transform: capitalize;
+  margin-top: 8px;
 }
 
 .visit-status.scheduled {
@@ -230,30 +278,16 @@
 }
 
 .visit-status.pending {
-  background-color: #fef08a;
-  color: #713f12;
+  background-color: #fef9c3;
+  color: #854d0e;
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
-  .visits-content {
-    padding: 20px;
+@media (max-width: 1366px) {
+  .field-visits-page-content {
+    padding: 20px 25px;
   }
-
   .calendar-container {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .visits-content {
-    margin-left: 80px;
-    padding: 15px;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+    grid-template-columns: 1fr; /* Stack on smaller laptops */
   }
 }

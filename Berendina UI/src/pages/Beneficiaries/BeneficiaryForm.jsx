@@ -7,23 +7,49 @@ const BeneficiaryForm = () => {
   const { id } = useParams(); // Edit karanawa nam ID eka ganna
   const isEditMode = !!id;
 
-  // Form State
+  // Form State (Updated with new fields)
   const [formData, setFormData] = useState({
+    // 1. Personal Info
     name: '',
+    nic: '',
+    dob: '',
+    gender: '',
+    
+    // 2. Contact & Location
     contact: '',
+    address: '',
+    district: '',
+    dsDivision: '',
+
+    // 3. Socio-Economic
+    maritalStatus: '',
+    familyMembers: '',
+    monthlyIncome: '',
+    occupation: '',
+
+    // 4. Project Details
     project: '',
     status: 'active',
     progress: 0
   });
 
-  // Edit mode nam data purawanna (Mock Data Example)
+  // Edit mode nam data purawanna (Mock Data Example Updated)
   useEffect(() => {
     if (isEditMode) {
-      // API call ekak karala data ganna thana
       console.log("Fetching data for ID:", id);
       setFormData({
         name: 'John Doe',
-        contact: '+256 701 234 567',
+        nic: '199012345678',
+        dob: '1990-05-15',
+        gender: 'Male',
+        contact: '+94 77 123 4567',
+        address: 'No 123, Temple Road, Gampaha',
+        district: 'Gampaha',
+        dsDivision: 'Mahara',
+        maritalStatus: 'Married',
+        familyMembers: '4',
+        monthlyIncome: '45000',
+        occupation: 'Farmer',
         project: 'Education Initiative',
         status: 'active',
         progress: 75
@@ -63,6 +89,7 @@ const BeneficiaryForm = () => {
       <div className="form-card">
         <form onSubmit={handleSubmit}>
           
+          {/* SECTION 1: Personal Information */}
           <div className="form-section">
             <h3>Personal Information</h3>
             <div className="form-row">
@@ -79,7 +106,51 @@ const BeneficiaryForm = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Contact Number</label>
+                <label>National ID (NIC)</label>
+                <input 
+                  type="text" 
+                  name="nic"
+                  className="modern-input"
+                  placeholder="Ex: 199012345678"
+                  value={formData.nic} 
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Date of Birth</label>
+                <input 
+                  type="date" 
+                  name="dob"
+                  className="modern-input"
+                  value={formData.dob} 
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label>Gender</label>
+                <select 
+                  name="gender" 
+                  className="modern-select"
+                  value={formData.gender} 
+                  onChange={handleChange}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 2: Contact & Location */}
+          <div className="form-section">
+            <h3>Contact & Location</h3>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Mobile Number</label>
                 <input 
                   type="text" 
                   name="contact"
@@ -90,11 +161,111 @@ const BeneficiaryForm = () => {
                   required 
                 />
               </div>
+              <div className="form-group">
+                <label>District</label>
+                <select 
+                  name="district" 
+                  className="modern-select"
+                  value={formData.district} 
+                  onChange={handleChange}
+                >
+                  <option value="">Select District</option>
+                  <option value="Colombo">Colombo</option>
+                  <option value="Gampaha">Gampaha</option>
+                  <option value="Kalutara">Kalutara</option>
+                  <option value="Kandy">Kandy</option>
+                  <option value="Galle">Galle</option>
+                  <option value="Matara">Matara</option>
+                  {/* Thawa districts methana add karanna puluwan */}
+                </select>
+              </div>
+            </div>
+            <div className="form-row">
+                <div className="form-group">
+                    <label>DS Division</label>
+                    <input 
+                      type="text" 
+                      name="dsDivision" 
+                      className="modern-input"
+                      placeholder="Ex: Mahara"
+                      value={formData.dsDivision}
+                      onChange={handleChange}
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Residential Address</label>
+                    <input 
+                      type="text" 
+                      name="address"
+                      className="modern-input"
+                      placeholder="House No, Street, City"
+                      value={formData.address} 
+                      onChange={handleChange}
+                    />
+                </div>
             </div>
           </div>
 
+          {/* SECTION 3: Socio-Economic Details */}
           <div className="form-section">
-            <h3>Project Details</h3>
+            <h3>Socio-Economic Details</h3>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Marital Status</label>
+                <select 
+                  name="maritalStatus" 
+                  className="modern-select"
+                  value={formData.maritalStatus} 
+                  onChange={handleChange}
+                >
+                  <option value="">Select Status</option>
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                  <option value="Widowed">Widowed</option>
+                  <option value="Divorced">Divorced</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Family Members Count</label>
+                <input 
+                  type="number" 
+                  name="familyMembers"
+                  className="modern-input"
+                  placeholder="Ex: 4"
+                  value={formData.familyMembers} 
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Monthly Household Income (LKR)</label>
+                <input 
+                  type="number" 
+                  name="monthlyIncome"
+                  className="modern-input"
+                  placeholder="Ex: 45000"
+                  value={formData.monthlyIncome} 
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label>Occupation</label>
+                <input 
+                  type="text" 
+                  name="occupation"
+                  className="modern-input"
+                  placeholder="Ex: Farmer, Laborer"
+                  value={formData.occupation} 
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: Project Details */}
+          <div className="form-section">
+            <h3>Project Assignment</h3>
             <div className="form-row">
               <div className="form-group">
                 <label>Assigned Project</label>
@@ -128,7 +299,7 @@ const BeneficiaryForm = () => {
 
             <div className="form-row">
                <div className="form-group full-width">
-                  <label>Progress ({formData.progress}%)</label>
+                  <label>Project Progress ({formData.progress}%)</label>
                   <input 
                     type="range" 
                     name="progress" 
