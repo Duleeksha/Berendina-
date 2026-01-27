@@ -3,27 +3,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 import logo from '../../assets/berendina-logo.png'; 
 
-const Sidebar = ({ currentUser }) => { 
+const Sidebar = ({ currentUser, onLogout }) => { 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // User Role eka gannawa (default to 'officer' if not found)
-  const userRole = currentUser?.role || 'officer';
-  const userName = currentUser?.firstName || 'User';
+  // --- FIX START ---
+  // currentUser prop eka miss wunoth, localStorage eken data gannawa.
+  // Me nisa tab maru weddi 'Admin' kiyana eka nathi wenne na.
+  const storedUser = JSON.parse(localStorage.getItem('user'));
+  const effectiveUser = currentUser || storedUser;
+  // --- FIX END ---
 
-  // --- MEKA THAMA ALUTH UPDATE EKA (LOGOUT LOGIC) ---
-  const handleLogout = () => {
-    // 1. Browser eke save wela thiyana Data makana eka
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    // 2. Login page ekata redirect karana eka
-    navigate('/'); 
-    
-    // Optional: Page eka refresh karanawa (auth state clear karanna)
-    window.location.reload();
-  };
-  // --------------------------------------------------
+  const userRole = effectiveUser?.role || 'officer';
+  const userName = effectiveUser?.firstName || 'User';
 
   // Menu Items Define Karanawa
   const allMenuItems = [
@@ -31,7 +23,7 @@ const Sidebar = ({ currentUser }) => {
       id: 1, 
       icon: '🏠', 
       label: 'Dashboard', 
-      path: userRole === 'admin' ? '/admin-dashboard' : '/officer-dashboard',
+      path: '/dashboard',
       roles: ['admin', 'officer'] 
     },
     { 
@@ -60,12 +52,20 @@ const Sidebar = ({ currentUser }) => {
       icon: '📋', 
       label: 'Reports', 
       path: '/report-generator',
-      roles: ['admin'] 
+      roles: ['admin'] // Reports penne Admin ta witharai
     },
   ];
 
   // Role eka anuwa filter karanawa
   const filteredMenu = allMenuItems.filter(item => item.roles.includes(userRole));
+
+  // Active Button eka hoyana function eka
+  const isActive = (item) => {
+    if (item.label === 'Dashboard') {
+        return location.pathname === '/admin-dashboard' || location.pathname === '/officer-dashboard';
+    }
+    return location.pathname === item.path;
+  };
 
   return (
     <aside className="sidebar">
@@ -81,7 +81,7 @@ const Sidebar = ({ currentUser }) => {
         {filteredMenu.map(item => (
           <button
             key={item.id}
-            className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+            className={`nav-item ${isActive(item) ? 'active' : ''}`}
             onClick={() => navigate(item.path)}
           >
             <span className="nav-icon">{item.icon}</span>
@@ -100,13 +100,7 @@ const Sidebar = ({ currentUser }) => {
             <p className="user-role" style={{textTransform: 'capitalize'}}>{userRole}</p>
           </div>
         </div>
-        
-        {/* --- UPDATE KARAPU BUTTON EKA --- */}
-        <button 
-            className="logout-btn" 
-            onClick={handleLogout} 
-            title="Logout"
-        >
+        <button className="logout-btn" onClick={onLogout} title="Logout">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>

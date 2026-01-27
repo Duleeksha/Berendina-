@@ -92,7 +92,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">💰</div>
           <div className="stat-info">
             <h3>Resources Value</h3>
-            <div className="stat-value">$45k</div>
+            <div className="stat-value">Rs.45k</div>
             <span className="stat-meta">Distributed YTD</span>
           </div>
         </div>

@@ -7,10 +7,10 @@ import './theme.css';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 
-// Dashboards (Dan Capital walin import karanawa - Files rename kala nisa)
-// Capital A saha Capital O thiyennama oni
+// Dashboards
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
 import OfficerDashboard from './pages/Dashboard/OfficerDashboard';
+
 // Other Pages
 import Beneficiaries from './pages/Beneficiaries/Beneficiaries';
 import BeneficiaryForm from './pages/Beneficiaries/BeneficiaryForm';
@@ -23,6 +23,12 @@ import Sidebar from './components/Sidebar/Sidebar';
 
 // Layout Component
 const DashboardLayout = ({ handleLogout, currentUser }) => {
+  // Security Check: User kenek nathi nam Login ekata yawanna.
+  // Me nisa sidebar eka 'User' widihata pennana eka nawathinawa.
+  if (!currentUser) {
+     return <Navigate to="/login" replace />;
+  }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar onLogout={handleLogout} currentUser={currentUser} />
@@ -70,7 +76,6 @@ function App() {
         <Route element={<DashboardLayout handleLogout={handleLogout} currentUser={currentUser} />}>
           
           {/* Admin Dashboard */}
-          {/* Files rename kala nisa dan methana awulak wenne na */}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           
           {/* Officer Dashboard */}
