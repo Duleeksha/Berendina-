@@ -1,48 +1,82 @@
-/* Beneficiary Form Page Styles */
-
-.beneficiary-form-layout {
-  display: flex;
+/* --- FULL WIDTH FORM LAYOUT --- */
+.form-page-content {
+  margin-left: 260px; /* Sidebar space */
+  width: calc(100vw - 260px);
+  padding: 30px 40px;
+  background-color: #f3f4f6;
   min-height: 100vh;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-.form-content {
-  flex: 1;
-  padding: 30px;
-  background-color: var(--bg-light);
-  transition: margin-left var(--transition-normal);
-  margin-left: 280px;
+/* Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
 }
 
-.form-content.sidebar-closed {
-  margin-left: 80px;
+.page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
 }
 
-.beneficiary-form {
+.page-header p {
+  color: #6b7280;
+  margin: 5px 0 0;
+}
+
+/* Back Button */
+.back-btn {
   background: white;
-  border-radius: var(--radius-lg);
-  padding: 30px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light);
-  max-width: 900px;
+  border: 1px solid #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #4b5563;
+  transition: all 0.2s;
 }
 
+.back-btn:hover {
+  background: #f9fafb;
+  color: #111827;
+}
+
+/* Form Card */
+.form-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  max-width: 900px; /* Godak diga nowenna limit karanawa */
+}
+
+/* Form Sections */
 .form-section {
   margin-bottom: 30px;
 }
 
 .form-section h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-dark);
+  font-size: 16px;
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 2px solid #f3f4f6;
+  padding-bottom: 10px;
   margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
+/* Grid System */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 25px;
   margin-bottom: 20px;
 }
 
@@ -51,86 +85,73 @@
   flex-direction: column;
 }
 
+.form-group.full-width {
+  grid-column: span 2;
+}
+
 .form-group label {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-dark);
+  color: #111827;
   margin-bottom: 8px;
 }
 
-.form-group input,
-.form-group select {
-  padding: 10px 15px;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+/* Inputs (Reusing Modern Styles) */
+.modern-input, .modern-select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
   font-size: 14px;
-  background-color: white;
-  color: var(--text-dark);
-  transition: all var(--transition-fast);
+  background-color: #f9fafb;
+  transition: all 0.2s;
+  box-sizing: border-box; /* Padding nisa loku wena eka nawaththanna */
 }
 
-.form-group input:focus,
-.form-group select:focus {
+.modern-input:focus, .modern-select:focus {
   outline: none;
-  border-color: var(--primary-blue);
+  border-color: #2563eb;
+  background-color: white;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+/* Range Input */
+.range-input {
+  width: 100%;
+  cursor: pointer;
+}
+
+/* Buttons */
 .form-actions {
   display: flex;
   gap: 15px;
   margin-top: 30px;
   padding-top: 20px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid #e5e7eb;
+  justify-content: flex-end;
 }
 
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: var(--radius-md);
+.cancel-btn {
+  padding: 12px 24px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 14px;
+  color: #4b5563;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
-.btn-primary {
-  background: var(--primary-blue);
+.save-btn {
+  padding: 12px 24px;
+  background: #2563eb;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
   color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
-.btn-primary:hover {
-  background: var(--primary-dark-blue);
-}
-
-.btn-secondary {
-  background-color: var(--bg-light);
-  color: var(--text-dark);
-  border: 1px solid var(--border-light);
-}
-
-.btn-secondary:hover {
-  background-color: var(--border-light);
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .form-content {
-    padding: 20px;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .form-content {
-    margin-left: 80px;
-    padding: 15px;
-  }
-
-  .beneficiary-form {
-    padding: 20px;
-  }
+.save-btn:hover {
+  background: #1d4ed8;
 }

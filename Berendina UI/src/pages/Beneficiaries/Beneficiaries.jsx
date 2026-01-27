@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../../components/Sidebar/Sidebar';
 import './Beneficiaries.css';
 
 const Beneficiaries = () => {
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Sidebar state eka ayin kala (Mokada App.jsx eken eka handle wenawa)
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -23,29 +22,36 @@ const Beneficiaries = () => {
     .filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="beneficiaries-layout">
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-      <main className={`beneficiaries-content ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-        <div className="page-header">
-          <div>
-            <h1>Beneficiaries</h1>
-            <p>Manage and track all beneficiaries in your programs</p>
-          </div>
-          <button className="btn btn-primary" onClick={() => navigate('/beneficiary-form')}>
-            + Add Beneficiary
-          </button>
+    // Dashboard eke layout class ekama use karanawa consistency ekata
+    <div className="beneficiaries-page-content">
+      
+      {/* Header Section */}
+      <div className="page-header">
+        <div>
+          <h1>Beneficiaries</h1>
+          <p>Manage and track all beneficiaries in your programs</p>
         </div>
+        <button className="add-btn" onClick={() => navigate('/beneficiary-form')}>
+          + Add Beneficiary
+        </button>
+      </div>
 
-        <div className="filters">
-          <input
-            type="text"
-            placeholder="Search beneficiaries..."
-            className="search-input"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Main Card Container */}
+      <div className="content-card">
+        {/* Filters Bar */}
+        <div className="filters-bar">
+          <div className="search-wrapper">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search beneficiaries..."
+              className="modern-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
           <select
-            className="filter-select"
+            className="modern-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -56,8 +62,9 @@ const Beneficiaries = () => {
           </select>
         </div>
 
-        <div className="table-container">
-          <table className="data-table">
+        {/* Table */}
+        <div className="table-responsive">
+          <table className="modern-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -71,19 +78,30 @@ const Beneficiaries = () => {
             <tbody>
               {filteredBeneficiaries.map(beneficiary => (
                 <tr key={beneficiary.id}>
-                  <td>{beneficiary.name}</td>
-                  <td>{beneficiary.contact}</td>
+                  <td className="font-medium">{beneficiary.name}</td>
+                  <td className="text-gray">{beneficiary.contact}</td>
                   <td>{beneficiary.project}</td>
                   <td>
-                    <span className={`badge ${beneficiary.status}`}>{beneficiary.status}</span>
+                    <span className={`status-pill ${beneficiary.status}`}>
+                      {beneficiary.status}
+                    </span>
                   </td>
                   <td>
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${beneficiary.progress}%` }}></div>
+                    <div className="progress-wrapper">
+                      <div className="progress-track">
+                        <div 
+                          className="progress-bar-fill" 
+                          style={{ width: `${beneficiary.progress}%` }}
+                        ></div>
+                      </div>
+                      <span className="progress-text">{beneficiary.progress}%</span>
                     </div>
                   </td>
                   <td>
-                    <button className="btn-icon" onClick={() => navigate(`/beneficiary-form/${beneficiary.id}`)}>
+                    <button 
+                      className="action-btn" 
+                      onClick={() => navigate(`/beneficiary-form/${beneficiary.id}`)}
+                    >
                       Edit
                     </button>
                   </td>
@@ -92,7 +110,7 @@ const Beneficiaries = () => {
             </tbody>
           </table>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
