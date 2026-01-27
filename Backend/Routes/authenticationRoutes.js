@@ -1,24 +1,25 @@
 const express = require('express');
 const router = express.Router();
 
-// Controller eken hariyatama function nam import karanna oni
 const { 
     registerUser, 
     loginUser, 
     getPendingUsers, 
-    approveUser 
+    approveUser,
+    sendOTP,       // NEW Import
+    verifyOTP,     // NEW Import
+    resetPassword  // NEW Import
 } = require('../controllers/authenticationController');
 
-// 1. Register Route
+// Existing Routes
 router.post('/register', registerUser);
-
-// 2. Login Route
 router.post('/login', loginUser);
-
-// 3. Pending Users Route (Admin Dashboard ekata)
 router.get('/pending-users', getPendingUsers);
-
-// 4. Approve Route
 router.put('/approve', approveUser);
+
+// --- NEW FORGOT PASSWORD ROUTES ---
+router.post('/send-otp', sendOTP);
+router.post('/verify-otp', verifyOTP);
+router.post('/reset-password', resetPassword);
 
 module.exports = router;
