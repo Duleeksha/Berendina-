@@ -258,3 +258,33 @@
 .dot.active {
   background-color: var(--primary-blue);
 }
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-gray);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.password-toggle-icon:hover {
+  color: var(--primary-blue);
+}
+
+/* Password field ekata dakkunu paththen ida thiyanna (Icon eka wadinne nathi wenna) */
+.input-field.password {
+  padding-right: 40px; 
+}

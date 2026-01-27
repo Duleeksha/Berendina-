@@ -4,6 +4,15 @@ import axios from 'axios';
 import './Login.css';
 import logo from '../../assets/berendina-logo.png'; 
 
+// SVG Icons for Eye (Show) and Eye-Off (Hide)
+const EyeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+);
+
+const EyeOffIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+);
+
 const Login = ({ onLogin }) => { 
   const navigate = useNavigate();
   
@@ -13,9 +22,14 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false); 
 
-  // --- NEW STATE: Forgot Password Modal ---
+  // --- NEW STATE: Password Visibility Toggles ---
+  const [showLoginPassword, setShowLoginPassword] = useState(false); // Login Page
+  const [showNewPassword, setShowNewPassword] = useState(false);     // Reset Modal
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Reset Modal
+
+  // --- Forgot Password Modal State ---
   const [showModal, setShowModal] = useState(false);
-  const [resetStep, setResetStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
+  const [resetStep, setResetStep] = useState(1); 
   const [resetEmail, setResetEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -56,18 +70,13 @@ const Login = ({ onLogin }) => {
     }
   };
 
-  // --- NEW: Reset Password Logic Functions (REAL API CALLS) ---
-
-  // 1. Send OTP
+  // --- Reset Password Logic Functions ---
   const handleSendOTP = async (e) => {
     e.preventDefault();
     setModalLoading(true);
     setModalError('');
-    
     try {
-        const response = await axios.post('http://localhost:5000/api/auth/send-otp', {
-            email: resetEmail
-        });
+        const response = await axios.post('http://localhost:5000/api/auth/send-otp', { email: resetEmail });
         alert(response.data.message); 
         setResetStep(2); 
     } catch (err) {
@@ -78,16 +87,14 @@ const Login = ({ onLogin }) => {
     }
   };
 
-  // 2. Verify OTP
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
     setModalLoading(true);
     setModalError('');
-
     try {
         const response = await axios.post('http://localhost:5000/api/auth/verify-otp', {
             email: resetEmail,
-            otp: otp.trim() // Changed: Added trim() to remove extra spaces
+            otp: otp.trim()
         });
         setResetStep(3); 
     } catch (err) {
@@ -98,18 +105,14 @@ const Login = ({ onLogin }) => {
     }
   };
 
-  // 3. Reset Password
   const handleResetPassword = async (e) => {
     e.preventDefault();
-
     if (newPassword !== confirmPassword) {
         setModalError("Passwords do not match");
         return;
     }
-
     setModalLoading(true);
     setModalError('');
-    
     try {
         const response = await axios.post('http://localhost:5000/api/auth/reset-password', {
             email: resetEmail,
@@ -133,6 +136,8 @@ const Login = ({ onLogin }) => {
     setNewPassword('');
     setConfirmPassword('');
     setModalError('');
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
   };
 
   return (
@@ -159,15 +164,25 @@ const Login = ({ onLogin }) => {
           </div>
           
           <div className="form-group">
-            <input
-              type="password"
-              placeholder="Password"
-              className="input-field"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(''); }}
-              required
-            />
-            {/* UPDATED: Button instead of Link to trigger Modal */}
+            {/* --- UPDATED: Password Field with Eye Icon --- */}
+            <div className="password-input-wrapper">
+                <input
+                  type={showLoginPassword ? "text" : "password"} // Dynamic Type
+                  placeholder="Password"
+                  className="input-field password" // Add 'password' class for padding
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  required
+                />
+                <button 
+                  type="button" 
+                  className="password-toggle-icon"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                >
+                  {showLoginPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+            </div>
+            
             <button 
                 type="button" 
                 className="forgot-password-link" 
@@ -188,7 +203,7 @@ const Login = ({ onLogin }) => {
         </div>
       </div>
 
-      {/* --- NEW: Forgot Password Modal --- */}
+      {/* --- FORGOT PASSWORD MODAL --- */}
       {showModal && (
         <div className="modal-overlay">
             <div className="modal-content">
@@ -202,7 +217,6 @@ const Login = ({ onLogin }) => {
                 </div>
 
                 <div className="modal-body">
-                    {/* Progress Dots */}
                     <div className="step-dots">
                         <span className={`dot ${resetStep >= 1 ? 'active' : ''}`}></span>
                         <span className={`dot ${resetStep >= 2 ? 'active' : ''}`}></span>
@@ -257,28 +271,49 @@ const Login = ({ onLogin }) => {
                         </form>
                     )}
 
-                    {/* STEP 3: New Password */}
+                    {/* STEP 3: New Password (UPDATED with Eye Icons) */}
                     {resetStep === 3 && (
                         <form onSubmit={handleResetPassword}>
                             <p>Create a new strong password for your account.</p>
-                            <input 
-                                type="password" 
-                                className="input-field" 
-                                placeholder="New Password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                required
-                                style={{marginBottom: '15px'}}
-                            />
-                             <input 
-                                type="password" 
-                                className="input-field" 
-                                placeholder="Confirm Password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                                style={{marginBottom: '20px'}}
-                            />
+                            
+                            {/* New Password Field */}
+                            <div className="password-input-wrapper" style={{marginBottom: '15px'}}>
+                                <input 
+                                    type={showNewPassword ? "text" : "password"}
+                                    className="input-field password" 
+                                    placeholder="New Password"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    required
+                                />
+                                <button 
+                                  type="button" 
+                                  className="password-toggle-icon"
+                                  onClick={() => setShowNewPassword(!showNewPassword)}
+                                >
+                                  {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                </button>
+                            </div>
+
+                            {/* Confirm Password Field */}
+                            <div className="password-input-wrapper" style={{marginBottom: '20px'}}>
+                                <input 
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    className="input-field password" 
+                                    placeholder="Confirm Password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
+                                />
+                                <button 
+                                  type="button" 
+                                  className="password-toggle-icon"
+                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                >
+                                  {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                </button>
+                            </div>
+
                             <button type="submit" className="signin-button" disabled={modalLoading}>
                                 {modalLoading ? 'Resetting...' : 'Reset Password'}
                             </button>
