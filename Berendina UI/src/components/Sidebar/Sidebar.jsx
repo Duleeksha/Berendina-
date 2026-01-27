@@ -8,8 +8,6 @@ const Sidebar = ({ currentUser, onLogout }) => {
   const location = useLocation();
 
   // --- FIX START ---
-  // currentUser prop eka miss wunoth, localStorage eken data gannawa.
-  // Me nisa tab maru weddi 'Admin' kiyana eka nathi wenne na.
   const storedUser = JSON.parse(localStorage.getItem('user'));
   const effectiveUser = currentUser || storedUser;
   // --- FIX END ---
@@ -47,8 +45,17 @@ const Sidebar = ({ currentUser, onLogout }) => {
       path: '/resources',
       roles: ['admin', 'officer'] 
     },
+    // --- NEW TAB ADDED HERE (Only for Admin) ---
     { 
       id: 5, 
+      icon: '👮', 
+      label: 'Field Officers', 
+      path: '/field-officers', 
+      roles: ['admin'] // Penne Adminlata witharai
+    },
+    // -------------------------------------------
+    { 
+      id: 6, // ID eka 5 sita 6 kala
       icon: '📋', 
       label: 'Reports', 
       path: '/report-generator',

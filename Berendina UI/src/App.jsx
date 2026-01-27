@@ -16,6 +16,7 @@ import Beneficiaries from './pages/Beneficiaries/Beneficiaries';
 import BeneficiaryForm from './pages/Beneficiaries/BeneficiaryForm';
 import FieldVisits from './pages/FieldVisits/FieldVisits';
 import Resources from './pages/Resources/Resources';
+import FieldOfficers from './pages/Fieldofficers/FieldOfficers'; // NEW IMPORT
 import ReportGenerator from './pages/ReportGenerator/ReportGenerator';
 
 // Components
@@ -23,8 +24,6 @@ import Sidebar from './components/Sidebar/Sidebar';
 
 // Layout Component
 const DashboardLayout = ({ handleLogout, currentUser }) => {
-  // Security Check: User kenek nathi nam Login ekata yawanna.
-  // Me nisa sidebar eka 'User' widihata pennana eka nawathinawa.
   if (!currentUser) {
      return <Navigate to="/login" replace />;
   }
@@ -87,6 +86,9 @@ function App() {
           <Route path="/beneficiary-form/:id" element={<BeneficiaryForm />} />
           <Route path="/field-visits" element={<FieldVisits />} />
           <Route path="/resources" element={<Resources />} />
+          
+          {/* NEW ROUTE: Field Officers (Admin Only) */}
+          <Route path="/field-officers" element={<FieldOfficers />} />
           
           {/* Admin Only Route */}
           <Route path="/report-generator" element={<ReportGenerator />} />
