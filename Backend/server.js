@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
  // DB Connection eka (Test route eka sadaha)
 import authRoutes from './Routes/authenticationRoutes.js'; // Api hadapu Register/Login routes
-import pool from './db.js';
+import pool from '../Backend/db.js';
 
 const app = express();
 

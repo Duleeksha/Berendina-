@@ -36,7 +36,10 @@ const Register = () => {
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     if (!formData.role) newErrors.role = 'Please select a role';
     if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-    if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    
+    // --- UPDATED: Password minimum length 8 ---
+    if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
+    
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     
     // Officer specific validation (Optional)

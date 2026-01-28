@@ -7,7 +7,7 @@ const BeneficiaryForm = () => {
   const { id } = useParams(); // Edit karanawa nam ID eka ganna
   const isEditMode = !!id;
 
-  // Form State (Updated with new fields)
+  // Form State
   const [formData, setFormData] = useState({
     // 1. Personal Info
     name: '',
@@ -33,27 +33,120 @@ const BeneficiaryForm = () => {
     progress: 0
   });
 
-  // Edit mode nam data purawanna (Mock Data Example Updated)
+  // Edit mode nam data purawanna (Mock Data Example Updated to Match List)
   useEffect(() => {
     if (isEditMode) {
       console.log("Fetching data for ID:", id);
-      setFormData({
-        name: 'John Doe',
-        nic: '199012345678',
-        dob: '1990-05-15',
-        gender: 'Male',
-        contact: '+94 77 123 4567',
-        address: 'No 123, Temple Road, Gampaha',
-        district: 'Gampaha',
-        dsDivision: 'Mahara',
-        maritalStatus: 'Married',
-        familyMembers: '4',
-        monthlyIncome: '45000',
-        occupation: 'Farmer',
-        project: 'Education Initiative',
-        status: 'active',
-        progress: 75
-      });
+
+      // MOCK DATA: List eke thiyana nam walata galapena widihata haduwa
+      const mockDatabase = {
+        '1': {
+            name: 'Kamal Perera',
+            nic: '198512345678',
+            dob: '1985-05-15',
+            gender: 'Male',
+            contact: '+94 71 234 5678',
+            address: 'No 123, Temple Road, Gampaha',
+            district: 'Gampaha',
+            dsDivision: 'Mahara',
+            maritalStatus: 'Married',
+            familyMembers: '4',
+            monthlyIncome: '45000',
+            occupation: 'Farmer',
+            project: 'Education Initiative',
+            status: 'active',
+            progress: 75
+        },
+        '2': {
+            name: 'Nimali Silva',
+            nic: '199056789123',
+            dob: '1990-08-20',
+            gender: 'Female',
+            contact: '+94 77 345 6789',
+            address: 'No 45, Main Street, Colombo',
+            district: 'Colombo',
+            dsDivision: 'Kaduwela',
+            maritalStatus: 'Married',
+            familyMembers: '3',
+            monthlyIncome: '55000',
+            occupation: 'Teacher',
+            project: 'Health Program',
+            status: 'active',
+            progress: 60
+        },
+        '3': {
+            name: 'Ruwan Bandara',
+            nic: '198845678901',
+            dob: '1988-02-10',
+            gender: 'Male',
+            contact: '+94 76 456 7890',
+            address: 'No 89, Beach Road, Kalutara',
+            district: 'Kalutara',
+            dsDivision: 'Panadura',
+            maritalStatus: 'Single',
+            familyMembers: '2',
+            monthlyIncome: '30000',
+            occupation: 'Fisherman',
+            project: 'Economic Empowerment',
+            status: 'inactive',
+            progress: 40
+        },
+        '4': {
+            name: 'Kumari Jayawardena',
+            nic: '199212345678',
+            dob: '1992-11-05',
+            gender: 'Female',
+            contact: '+94 70 567 8901',
+            address: 'No 12, Hill Street, Kandy',
+            district: 'Kandy',
+            dsDivision: 'Gangawata Korale',
+            maritalStatus: 'Widowed',
+            familyMembers: '3',
+            monthlyIncome: '25000',
+            occupation: 'Self-Employed',
+            project: 'Education Initiative',
+            status: 'active',
+            progress: 85
+        },
+        '5': {
+            name: 'Chaminda Rajapaksa',
+            nic: '198078901234',
+            dob: '1980-04-25',
+            gender: 'Male',
+            contact: '+94 75 678 9012',
+            address: 'No 67, Galle Road, Galle',
+            district: 'Galle',
+            dsDivision: 'Hikkaduwa',
+            maritalStatus: 'Married',
+            familyMembers: '5',
+            monthlyIncome: '40000',
+            occupation: 'Driver',
+            project: 'Water & Sanitation',
+            status: 'pending',
+            progress: 30
+        },
+        '6': {
+            name: 'Dilani Fernando',
+            nic: '199534567890',
+            dob: '1995-09-12',
+            gender: 'Female',
+            contact: '+94 78 789 0123',
+            address: 'No 33, Matara Road, Matara',
+            district: 'Matara',
+            dsDivision: 'Weligama',
+            maritalStatus: 'Single',
+            familyMembers: '4',
+            monthlyIncome: '35000',
+            occupation: 'Nurse',
+            project: 'Health Program',
+            status: 'active',
+            progress: 70
+        }
+      };
+
+      // ID ekata adala data eka gannawa, nathnam default ekak denawa
+      const selectedBeneficiary = mockDatabase[id] || mockDatabase['1'];
+      setFormData(selectedBeneficiary);
     }
   }, [isEditMode, id]);
 
@@ -176,7 +269,6 @@ const BeneficiaryForm = () => {
                   <option value="Kandy">Kandy</option>
                   <option value="Galle">Galle</option>
                   <option value="Matara">Matara</option>
-                  {/* Thawa districts methana add karanna puluwan */}
                 </select>
               </div>
             </div>

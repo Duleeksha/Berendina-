@@ -9,12 +9,12 @@ const Beneficiaries = () => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const beneficiaries = [
-    { id: 1, name: 'John Doe', contact: '+256 701 234 567', project: 'Education Initiative', status: 'active', progress: 75 },
-    { id: 2, name: 'Jane Smith', contact: '+256 702 345 678', project: 'Health Program', status: 'active', progress: 60 },
-    { id: 3, name: 'Robert Johnson', contact: '+256 703 456 789', project: 'Economic Empowerment', status: 'inactive', progress: 40 },
-    { id: 4, name: 'Maria Garcia', contact: '+256 704 567 890', project: 'Education Initiative', status: 'active', progress: 85 },
-    { id: 5, name: 'David Lee', contact: '+256 705 678 901', project: 'Water & Sanitation', status: 'pending', progress: 30 },
-    { id: 6, name: 'Sarah Wilson', contact: '+256 706 789 012', project: 'Health Program', status: 'active', progress: 70 },
+    { id: 1, name: 'Kamal Perera', contact: '+94 71 234 5678', project: 'Education Initiative', status: 'active', progress: 75 },
+    { id: 2, name: 'Nimali Silva', contact: '+94 77 345 6789', project: 'Health Program', status: 'active', progress: 60 },
+    { id: 3, name: 'Ruwan Bandara', contact: '+94 76 456 7890', project: 'Economic Empowerment', status: 'inactive', progress: 40 },
+    { id: 4, name: 'Kumari Jayawardena', contact: '+94 70 567 8901', project: 'Education Initiative', status: 'active', progress: 85 },
+    { id: 5, name: 'Chaminda Rajapaksa', contact: '+94 75 678 9012', project: 'Water & Sanitation', status: 'pending', progress: 30 },
+    { id: 6, name: 'Dilani Fernando', contact: '+94 78 789 0123', project: 'Health Program', status: 'active', progress: 70 },
   ];
 
   const filteredBeneficiaries = beneficiaries

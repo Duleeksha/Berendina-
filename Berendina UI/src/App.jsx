@@ -16,7 +16,7 @@ import Beneficiaries from './pages/Beneficiaries/Beneficiaries';
 import BeneficiaryForm from './pages/Beneficiaries/BeneficiaryForm';
 import FieldVisits from './pages/FieldVisits/FieldVisits';
 import Resources from './pages/Resources/Resources';
-import FieldOfficers from './pages/Fieldofficers/FieldOfficers'; // NEW IMPORT
+import FieldOfficers from './pages/Fieldofficers/FieldOfficers';
 import ReportGenerator from './pages/ReportGenerator/ReportGenerator';
 
 // Components
@@ -42,10 +42,21 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // --- FIXED USE EFFECT ---
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
+    
+    // Check if storedUser exists AND is not the string "undefined"
+    if (storedUser && storedUser !== "undefined") {
+      try {
+        setCurrentUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Error parsing stored user:", error);
+        localStorage.removeItem('user'); // Clean up corrupt data
+      }
+    } else {
+      // If it is "undefined" or null, clean it up
+      localStorage.removeItem('user');
     }
     setLoading(false);
   }, []);
