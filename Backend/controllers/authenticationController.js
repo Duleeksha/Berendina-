@@ -449,6 +449,68 @@ const addProject = async (req, res) => {
   }
 };
 
+// --- NEW: Get All Beneficiaries ---
+
+  const getBeneficiaries = async (req, res) => {
+  try {
+    
+    const query = `
+      SELECT 
+        b.beneficiary_id AS id, 
+        b.ben_name AS name, 
+        b.ben_contac_no AS contact, 
+        p.project_name AS project, 
+        b.ben_status AS status, 
+        COALESCE(b.ben_progress, 0) AS progress 
+      FROM beneficiary b
+      LEFT JOIN project p ON b.project_id = p.project_id
+      ORDER BY b.beneficiary_id DESC;
+    `;
+    
+    const result = await pool.query(query);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching beneficiaries:', error);
+    res.status(500).json({ message: 'Server error while fetching beneficiaries' });
+  }
+};
+
+const addBeneficiary = async (req, res) => {
+  const { 
+    name, nic, dob, gender, address, contact, district, 
+    dsDivision, maritalStatus, familyMembers, monthlyIncome, 
+    occupation, project, status 
+    // progress methanin ain kala
+  } = req.body;
+
+  try {
+    const query = `
+      INSERT INTO beneficiary (
+        ben_name, ben_nic, ben_dob, ben_gender, ben_address, 
+        ben_contac_no, ben_district, ben_ds_division, ben_marital_status, 
+        ben_family_members, ben_monthly_income, ben_occupation, 
+        ben_project, ben_status, ben_progress
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *;
+    `;
+
+    const values = [
+      name, nic, dob || null, gender, address, contact, district, 
+      dsDivision, maritalStatus, parseInt(familyMembers) || 0, 
+      parseFloat(monthlyIncome) || 0, occupation, 
+      project, 
+      status || 'active', 
+      0 // Progress eka mehema kelinma 0 widihata yawanna
+    ];
+
+    const result = await pool.query(query, values);
+    res.status(201).json({ message: 'Beneficiary added successfully!', data: result.rows[0] });
+  } catch (error) {
+    console.error('Error adding beneficiary:', error);
+    res.status(500).json({ message: 'Server error while adding beneficiary' });
+  }
+};
+
 export { 
     registerUser, 
     loginUser, 
@@ -459,5 +521,7 @@ export {
     resetPassword,
     getActiveFieldOfficers,
     getProjects,
-    addProject
+    addProject,
+    getBeneficiaries,
+    addBeneficiary
 };

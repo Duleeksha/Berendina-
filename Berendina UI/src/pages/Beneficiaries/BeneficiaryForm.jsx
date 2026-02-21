@@ -158,11 +158,34 @@ const BeneficiaryForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Submitted:", formData);
-    // Methana API call eka danna
-    navigate('/beneficiaries'); // Save kala pasu apahu list ekata yanawa
+    
+    // Debugging: Frontend eke data check karanna
+    console.log("Submitting to backend:", formData);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/beneficiaries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Meken thama Alert eka popup wenne
+        alert("Beneficiary saved successfully!"); 
+        navigate('/beneficiaries'); 
+      } else {
+        alert(`Error: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("Failed to connect to the server. Backend eka run wenawada kiyala balanna.");
+    }
   };
 
   return (
@@ -389,20 +412,7 @@ const BeneficiaryForm = () => {
               </div>
             </div>
 
-            <div className="form-row">
-               <div className="form-group full-width">
-                  <label>Project Progress ({formData.progress}%)</label>
-                  <input 
-                    type="range" 
-                    name="progress" 
-                    min="0" 
-                    max="100" 
-                    className="range-input"
-                    value={formData.progress} 
-                    onChange={handleChange} 
-                  />
-               </div>
-            </div>
+            
           </div>
 
           {/* Action Buttons */}

@@ -1,114 +1,125 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Beneficiaries.css';
 
 const Beneficiaries = () => {
   const navigate = useNavigate();
-  // Sidebar state eka ayin kala (Mokada App.jsx eken eka handle wenawa)
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Real data ganna states
+  const [beneficiaries, setBeneficiaries] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const beneficiaries = [
-    { id: 1, name: 'Kamal Perera', contact: '+94 71 234 5678', project: 'Education Initiative', status: 'active', progress: 75 },
-    { id: 2, name: 'Nimali Silva', contact: '+94 77 345 6789', project: 'Health Program', status: 'active', progress: 60 },
-    { id: 3, name: 'Ruwan Bandara', contact: '+94 76 456 7890', project: 'Economic Empowerment', status: 'inactive', progress: 40 },
-    { id: 4, name: 'Kumari Jayawardena', contact: '+94 70 567 8901', project: 'Education Initiative', status: 'active', progress: 85 },
-    { id: 5, name: 'Chaminda Rajapaksa', contact: '+94 75 678 9012', project: 'Water & Sanitation', status: 'pending', progress: 30 },
-    { id: 6, name: 'Dilani Fernando', contact: '+94 78 789 0123', project: 'Health Program', status: 'active', progress: 70 },
-  ];
+  // Backend API eken data ganna useEffect eka
+  useEffect(() => {
+    const fetchBeneficiaries = async () => {
+      try {
+        // API LINK EKA WENAS KALA
+        const response = await fetch('http://localhost:5000/api/auth/beneficiaries');
+        if (response.ok) {
+          const data = await response.json();
+          setBeneficiaries(data);
+        } else {
+          console.error('Failed to fetch beneficiaries');
+        }
+      } catch (error) {
+        console.error('Network error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredBeneficiaries = beneficiaries
-    .filter(b => statusFilter === 'all' || b.status === statusFilter)
-    .filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    fetchBeneficiaries();
+  }, []);
+
+  // Search filter eka
+  const filteredBeneficiaries = beneficiaries.filter(ben =>
+    ben.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ben.contact?.includes(searchTerm) ||
+    ben.project?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    // Dashboard eke layout class ekama use karanawa consistency ekata
-    <div className="beneficiaries-page-content">
-      
-      {/* Header Section */}
-      <div className="page-header">
+    <div className="officers-page-content">
+      {/* Header */}
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1>Beneficiaries</h1>
           <p>Manage and track all beneficiaries in your programs</p>
         </div>
-        <button className="add-btn" onClick={() => navigate('/beneficiary-form')}>
+        <button className="add-project-btn" onClick={() => navigate('/beneficiary-form')}>
           + Add Beneficiary
         </button>
       </div>
 
-      {/* Main Card Container */}
+      {/* Content Card */}
       <div className="content-card">
-        {/* Filters Bar */}
-        <div className="filters-bar">
+        
+        {/* Search Bar */}
+        <div className="search-section">
           <div className="search-wrapper">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="Search beneficiaries..."
-              className="modern-input"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+             <span className="search-icon">🔍</span>
+             <input
+                type="text"
+                placeholder="Search beneficiaries by name, contact or project..."
+                className="modern-input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
           </div>
-          <select
-            className="modern-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="pending">Pending</option>
-          </select>
         </div>
 
         {/* Table */}
         <div className="table-responsive">
-          <table className="modern-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Contact</th>
-                <th>Project</th>
-                <th>Status</th>
-                <th>Progress</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBeneficiaries.map(beneficiary => (
-                <tr key={beneficiary.id}>
-                  <td className="font-medium">{beneficiary.name}</td>
-                  <td className="text-gray">{beneficiary.contact}</td>
-                  <td>{beneficiary.project}</td>
-                  <td>
-                    <span className={`status-pill ${beneficiary.status}`}>
-                      {beneficiary.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="progress-wrapper">
-                      <div className="progress-track">
-                        <div 
-                          className="progress-bar-fill" 
-                          style={{ width: `${beneficiary.progress}%` }}
-                        ></div>
-                      </div>
-                      <span className="progress-text">{beneficiary.progress}%</span>
-                    </div>
-                  </td>
-                  <td>
-                    <button 
-                      className="action-btn" 
-                      onClick={() => navigate(`/beneficiary-form/${beneficiary.id}`)}
-                    >
-                      Edit
-                    </button>
-                  </td>
+          {loading ? (
+             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading beneficiaries...</div>
+          ) : (
+            <table className="modern-table">
+              <thead>
+                <tr>
+                  <th>NAME</th>
+                  <th>CONTACT</th>
+                  <th>PROJECT</th>
+                  <th>STATUS</th>
+                  <th>PROGRESS</th>
+                  <th>ACTIONS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredBeneficiaries.length > 0 ? (
+                  filteredBeneficiaries.map(ben => (
+                    <tr key={ben.id}>
+                      <td className="font-medium" style={{ color: '#1e293b' }}>{ben.name}</td>
+                      <td>{ben.contact || 'N/A'}</td>
+                      <td>{ben.project || 'Unassigned'}</td>
+                      <td>
+                        <span className={`status-badge ${ben.status ? ben.status.toLowerCase() : 'pending'}`}>
+                          {ben.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '100px', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: `${ben.progress || 0}%`, height: '100%', background: '#3b82f6' }}></div>
+                          </div>
+                          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{ben.progress || 0}%</span>
+                        </div>
+                      </td>
+                      <td>
+                        <button className="action-btn-view">Edit</button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" style={{textAlign: 'center', padding: '30px'}}>
+                      No beneficiaries found. Try adding a new beneficiary!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

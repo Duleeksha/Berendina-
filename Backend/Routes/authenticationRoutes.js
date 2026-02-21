@@ -9,7 +9,9 @@ import {
     resetPassword,  // NEW Import
     getActiveFieldOfficers,  // NEW Import
     getProjects,
-    addProject
+    addProject,
+    getBeneficiaries,
+    addBeneficiary
 } from '../controllers/authenticationController.js';
 
 const router = express.Router();
@@ -30,5 +32,9 @@ router.get('/officers', getActiveFieldOfficers);
 router.get('/projects', getProjects);
 
 router.post('/projects', addProject);
+
+router.get('/beneficiaries', getBeneficiaries);
+
+router.post('/beneficiaries', addBeneficiary);
 
 export default router;
