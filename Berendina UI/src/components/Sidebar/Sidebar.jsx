@@ -16,6 +16,7 @@ const Sidebar = ({ currentUser, onLogout }) => {
   const userName = effectiveUser?.firstName || 'User';
 
   // Menu Items Define Karanawa
+  // Menu Items Define Karanawa
   const allMenuItems = [
     { 
       id: 1, 
@@ -45,17 +46,23 @@ const Sidebar = ({ currentUser, onLogout }) => {
       path: '/resources',
       roles: ['admin', 'officer'] 
     },
-    // --- NEW TAB ADDED HERE (Only for Admin) ---
+    // --- NEW TAB: Projects ---
     { 
       id: 5, 
+      icon: '📁', 
+      label: 'Projects', 
+      path: '/projects',
+      roles: ['admin', 'officer'] // Admin ta saha Officer ta dennama penawa
+    },
+    { 
+      id: 6, 
       icon: '👮', 
       label: 'Field Officers', 
       path: '/field-officers', 
       roles: ['admin'] // Penne Adminlata witharai
     },
-    // -------------------------------------------
     { 
-      id: 6, // ID eka 5 sita 6 kala
+      id: 7, // ID eka 6 sita 7 kala
       icon: '📋', 
       label: 'Reports', 
       path: '/report-generator',

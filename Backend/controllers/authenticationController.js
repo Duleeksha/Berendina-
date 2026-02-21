@@ -387,6 +387,68 @@ const getActiveFieldOfficers = async (req, res) => {
   }
 };
 
+// --- NEW: Projects Data Fetching ---
+const getProjects = async (req, res) => {
+  try {
+    // API eken ewana data tika UI eke (Dummy data) nam walatama galapenna AS dala gannawa
+    const query = `
+      SELECT 
+        project_id AS id, 
+        project_name AS name, 
+        donor_agency AS donor, 
+        target_location AS location, 
+        TO_CHAR(start_date, 'YYYY-MM-DD') AS start, 
+        TO_CHAR(end_date, 'YYYY-MM-DD') AS "end", 
+        budget, 
+        status 
+      FROM project
+      ORDER BY project_id DESC;
+    `;
+    
+    const result = await pool.query(query);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    res.status(500).json({ message: 'Server error while fetching projects' });
+  }
+};
+
+// --- NEW: Add New Project ---
+const addProject = async (req, res) => {
+  const { projectName, donorAgency, targetLocation, startDate, endDate, budget, status, description } = req.body;
+  
+  try {
+    const query = `
+      INSERT INTO project (project_name, donor_agency, target_location, start_date, end_date, budget, status, description)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *;
+    `;
+    
+    // Values tika array ekakata danawa (Empty fields thiyenawanam NULL widihata yanawa)
+    const values = [
+      projectName, 
+      donorAgency || null, 
+      targetLocation || null, 
+      startDate, 
+      endDate || null, 
+      budget ? parseFloat(budget) : null, 
+      status || 'Active', 
+      description || null
+    ];
+    
+    const result = await pool.query(query, values);
+    
+    res.status(201).json({ 
+      message: 'Project added successfully!', 
+      project: result.rows[0] 
+    });
+    
+  } catch (error) {
+    console.error('Error adding new project:', error);
+    res.status(500).json({ message: 'Server error while adding the project' });
+  }
+};
+
 export { 
     registerUser, 
     loginUser, 
@@ -395,5 +457,7 @@ export {
     sendOTP, 
     verifyOTP, 
     resetPassword,
-    getActiveFieldOfficers 
+    getActiveFieldOfficers,
+    getProjects,
+    addProject
 };

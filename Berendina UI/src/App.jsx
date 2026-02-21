@@ -22,6 +22,12 @@ import ReportGenerator from './pages/ReportGenerator/ReportGenerator';
 // Components
 import Sidebar from './components/Sidebar/Sidebar';
 
+// --- projects ---
+import Projects from './pages/Projects/Projects';
+
+// project form
+import ProjectForm from './pages/Projects/ProjectForm';
+
 // Layout Component
 const DashboardLayout = ({ handleLogout, currentUser }) => {
   if (!currentUser) {
@@ -120,6 +126,12 @@ function App() {
                 <Navigate to="/login" replace />
              )
           } />
+
+{/* --- NEW ROUTE: Projects --- */}
+          <Route path="/projects" element={<Projects />} />
+
+<Route path="/project-form" element={<ProjectForm />} />
+
 
           {/* Fallback for unknown routes */}
           <Route path="*" element={<Navigate to="/" replace />} />

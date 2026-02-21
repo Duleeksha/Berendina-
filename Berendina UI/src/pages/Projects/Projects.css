@@ -1,0 +1,22 @@
+/* Projects.css */
+.add-project-btn {
+  background-color: #3b82f6; /* Berendina Blue Color */
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+}
+
+.add-project-btn:hover {
+  background-color: #2563eb;
+}
+
+.status-badge.pending {
+  background-color: #fef08a;
+  color: #854d0e;
+}
