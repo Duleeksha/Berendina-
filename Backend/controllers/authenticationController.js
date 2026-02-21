@@ -358,6 +358,35 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// --- NEW: Field Officers Data Fetching ---
+const getActiveFieldOfficers = async (req, res) => {
+  try {
+    // METHANA QUERY EKA WENAS KALA (Aluth columns 3k ekathu kala)
+    const query = `
+      SELECT 
+        u.user_id AS id, 
+        u.first_name AS "firstName", 
+        u.last_name AS "lastName", 
+        u.email, 
+        o.mobile_no AS mobile, 
+        o.ds_division AS district, 
+        o.vehicle_type AS "vehicleType", 
+        o.vehicle_no AS "vehicleNo", 
+        o.languages,
+        u.status 
+      FROM user_table u
+      JOIN officer_details o ON u.user_id = o.user_id
+      WHERE u.role = 'officer' AND u.status = 'Active';
+    `;
+    
+    const result = await pool.query(query);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching active field officers:', error);
+    res.status(500).json({ message: 'Server error while fetching officers' });
+  }
+};
+
 export { 
     registerUser, 
     loginUser, 
@@ -365,5 +394,6 @@ export {
     approveUser,
     sendOTP, 
     verifyOTP, 
-    resetPassword 
+    resetPassword,
+    getActiveFieldOfficers 
 };

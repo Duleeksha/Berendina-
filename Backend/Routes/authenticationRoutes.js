@@ -6,7 +6,8 @@ import {
     approveUser,
     sendOTP,       // NEW Import
     verifyOTP,     // NEW Import
-    resetPassword  // NEW Import
+    resetPassword,  // NEW Import
+    getActiveFieldOfficers  // NEW Import
 } from '../controllers/authenticationController.js';
 
 const router = express.Router();
@@ -22,4 +23,5 @@ router.post('/send-otp', sendOTP);
 router.post('/verify-otp', verifyOTP);
 router.post('/reset-password', resetPassword);
 
+router.get('/officers', getActiveFieldOfficers);
 export default router;
