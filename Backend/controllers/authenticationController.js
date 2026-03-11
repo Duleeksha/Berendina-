@@ -13,44 +13,47 @@ const transporter = nodemailer.createTransport({
 
 // --- EXISTING FUNCTIONS (Register, Login, etc.) ---
 
+// ... existing imports ...
+
 const registerUser = async (req, res) => {
   const { 
     firstName, lastName, email, role, password, 
-    // Officer Specific Fields (මේවා Frontend එකෙන් එවන නම්)
     mobileNumber, dsDivision, vehicleType, vehicleNumber, languages 
   } = req.body;
 
-  // 1. Password Validation
-  if (password.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+  // --- UPDATED: Backend Validations ---
+  if (!firstName || !lastName || !email || !role || !password) {
+    return res.status(400).json({ message: 'All required fields must be provided.' });
   }
 
-  // Transaction එකක් පටන් ගන්න client කෙනෙක් ගන්නවා (Table දෙකකට දාන්න ඕන නිසා)
-  const client = await pool.connect();
+  const emailTrimmed = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(emailTrimmed)) {
+    return res.status(400).json({ message: 'Invalid email format.' });
+  }
 
+  if (password.length < 8) {
+    return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+  }
+
+  const client = await pool.connect();
   try {
-    // Transaction START
     await client.query('BEGIN');
 
-    // 2. Email එක කලින් තියෙනවද බලනවා
-    // (වැදගත්: මෙතන pool.query නෙවෙයි client.query පාවිච්චි කරන්න ඕනේ Transaction එක ඇතුලේ නිසා)
-    const userCheck = await client.query('SELECT * FROM user_table WHERE email = $1', [email]);
+    // 2. Duplicate Email Check
+    const userCheck = await client.query('SELECT * FROM user_table WHERE email = $1', [emailTrimmed]);
     if (userCheck.rows.length > 0) {
-      await client.query('ROLLBACK'); // Transaction එක නවත්වනවා (අවලංගු කරනවා)
-      return res.status(400).json({ message: 'User already exists with this email' });
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'User already exists with this email address.' });
     }
 
-    // 3. Password Hash කරනවා
+    // 3. Password Hashing
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    let initialStatus = 'Pending';
-    if (role === 'admin') {
-       initialStatus = 'Pending'; // Admin ලාටත් Approve වෙන්න ඕන
-    }
+    const initialStatus = 'Pending';
 
-    // 4. INSERT INTO user_table (පොදු විස්තර ටික)
-    // දැන් මෙතනට mobile_no, ds_division වගේ ඒවා දාන්නේ නෑ, ඒවා යන්නේ අනිත් table එකට
+    // 4. INSERT INTO user_table
     const newUserQuery = `
       INSERT INTO user_table (first_name, last_name, email, password_hash, role, status)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -58,16 +61,14 @@ const registerUser = async (req, res) => {
     `;
     
     const newUserResult = await client.query(newUserQuery, [
-      firstName, lastName, email, passwordHash, role, initialStatus
+      firstName, lastName, emailTrimmed, passwordHash, role, initialStatus
     ]);
     
-    // අලුත් User ගේ ID එක ලබා ගැනීම
     const newUserId = newUserResult.rows[0].user_id;
 
-    // 5. IF OFFICER: Insert into officer_details (Officer විස්තර ටික)
+    // 5. IF OFFICER: Insert into officer_details
     if (role === 'officer') {
-        // Languages array එක String එකක් බවට පත් කරනවා (උදා: ["Sinhala", "Tamil"] -> "Sinhala, Tamil")
-        const languagesString = languages && Array.isArray(languages) ? languages.join(', ') : languages;
+        const languagesString = Array.isArray(languages) ? languages.join(', ') : languages;
         
         const officerQuery = `
             INSERT INTO officer_details (user_id, mobile_no, ds_division, vehicle_type, vehicle_no, languages)
@@ -75,7 +76,7 @@ const registerUser = async (req, res) => {
         `;
 
         await client.query(officerQuery, [
-            newUserId,          // උඩින් ලැබුණු user_id එක Foreign Key එකක් විදිහට
+            newUserId, 
             mobileNumber, 
             dsDivision, 
             vehicleType || 'None', 
@@ -84,84 +85,74 @@ const registerUser = async (req, res) => {
         ]);
     }
 
-    // 6. Transaction COMMIT (සාර්ථකයි නම් Save කරනවා)
     await client.query('COMMIT');
-
     res.status(201).json({ 
       message: 'Registration successful! Please wait for Admin approval.', 
       user: newUserResult.rows[0] 
     });
 
   } catch (err) {
-    await client.query('ROLLBACK'); // Error එකක් ආවොත් ඔක්කොම අවලංගු කරනවා
-    console.error(err.message);
-    res.status(500).json({ message: 'Server Error' });
+    await client.query('ROLLBACK');
+    console.error('Registration Error:', err.message);
+    res.status(500).json({ message: 'Server Error during registration.' });
   } finally {
-    client.release(); // Connection එක නිදහස් කරනවා
+    client.release();
   }
 };
+
+// ... keep all other functions as they are ...
 
 
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
-  console.log('Login attempt:', { email, password: password ? '***' : undefined });
+  // --- UPDATED: Backend Validations ---
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+  const emailTrimmed = email.trim();
 
   try {
-    // 1. මුලින්ම user_table එකෙන් මූලික විස්තර ගන්නවා
-    const userResult = await pool.query('SELECT * FROM user_table WHERE email = $1', [email]);
+    // 1. User check (Using trimmed email)
+    const userResult = await pool.query('SELECT * FROM user_table WHERE email = $1', [emailTrimmed]);
 
     if (userResult.rows.length === 0) {
-      console.log('User not found for email:', email);
       return res.status(400).json({ message: 'Invalid Email or Password' });
     }
 
     const user = userResult.rows[0];
 
-    // 2. Status Check (Admin Approve කරලා නැත්නම් Login වෙන්න බෑ)
+    // 2. Status Check
     if (user.status === 'Pending') {
-        console.log('User pending approval:', email);
         return res.status(403).json({ message: 'Your account is pending Admin approval.' });
     }
 
     // 3. Password Check
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
-      console.log('Invalid password for email:', email);
       return res.status(400).json({ message: 'Invalid Email or Password' });
     }
 
-    // 4. Officer කෙනෙක් නම්, අපි officer_details table එකෙන් අමතර විස්තර ගන්නවා
+    // 4. Officer Info Fetching
     let officerInfo = {};
-    
     if (user.role === 'officer') {
-        // user_id එක පාවිච්චි කරලා officer_details එකෙන් හොයනවා
         const officerRes = await pool.query('SELECT * FROM officer_details WHERE user_id = $1', [user.user_id]);
-        
         if (officerRes.rows.length > 0) {
             officerInfo = officerRes.rows[0];
-            // officerInfo එකේ තියෙන officer_id එක සහ user_id එක Frontend එකට ඕන නැත්නම් අයින් කරන්න පුළුවන්, 
-            // හැබැයි දැනට ඔක්කොම යවමු.
         }
     }
 
-    console.log('Login successful for:', email);
-    
-    // 5. Response එක යවනවා
-   res.json({
+    // 5. Success Response
+    res.json({
       message: 'Login Successful',
-      
       user: {
-        // User Table Data
         id: user.user_id,
         firstName: user.first_name,
         lastName: user.last_name,
         email: user.email,
         role: user.role,
         status: user.status,
-         
-        // Officer Details (Spread Operator එකෙන් එකතු කරනවා)
-        // Officer කෙනෙක් නෙවෙයි නම් මේක හිස්ව (Empty) තියෙයි.
         ...officerInfo 
       }
     });
@@ -171,6 +162,8 @@ const loginUser = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// ... keep all other functions (registerUser, sendOTP, etc.) as they are ...
 
 const getPendingUsers = async (req, res) => {
   try {
@@ -453,17 +446,25 @@ const addProject = async (req, res) => {
 
   const getBeneficiaries = async (req, res) => {
   try {
-    
     const query = `
       SELECT 
         b.beneficiary_id AS id, 
         b.ben_name AS name, 
         b.ben_contac_no AS contact, 
-        p.project_name AS project, 
+        b.ben_project AS project, -- database column eka project kiyala map kala
         b.ben_status AS status, 
-        COALESCE(b.ben_progress, 0) AS progress 
+        COALESCE(b.ben_progress, 0) AS progress,
+        b.ben_nic AS nic,
+        b.ben_dob AS dob,
+        b.ben_gender AS gender,
+        b.ben_address AS address,
+        b.ben_district AS district,
+        b.ben_ds_division AS "dsDivision",
+        b.ben_marital_status AS "maritalStatus",
+        b.ben_family_members AS "familyMembers",
+        b.ben_monthly_income AS "monthlyIncome",
+        b.ben_occupation AS occupation
       FROM beneficiary b
-      LEFT JOIN project p ON b.project_id = p.project_id
       ORDER BY b.beneficiary_id DESC;
     `;
     
@@ -480,7 +481,6 @@ const addBeneficiary = async (req, res) => {
     name, nic, dob, gender, address, contact, district, 
     dsDivision, maritalStatus, familyMembers, monthlyIncome, 
     occupation, project, status 
-    // progress methanin ain kala
   } = req.body;
 
   try {
@@ -500,7 +500,7 @@ const addBeneficiary = async (req, res) => {
       parseFloat(monthlyIncome) || 0, occupation, 
       project, 
       status || 'active', 
-      0 // Progress eka mehema kelinma 0 widihata yawanna
+      0 
     ];
 
     const result = await pool.query(query, values);

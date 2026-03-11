@@ -16,7 +16,6 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     organization: '',
-    // --- Aluth Fields (Officer Specific) ---
     mobileNumber: '',
     dsDivision: '',
     hasVehicle: 'no',
@@ -28,23 +27,38 @@ const Register = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // Validation Logic
+  // --- UPDATED: Enhanced Validation Logic ---
   const validateForm = () => {
     const newErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^(?:\+94|0)?[7][0-9]{8}$/; // Sri Lankan Mobile format
+
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
     if (!formData.role) newErrors.role = 'Please select a role';
-    if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
     
-    // --- UPDATED: Password minimum length 8 ---
-    if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
+    if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
     
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
     
-    // Officer specific validation (Optional)
     if (formData.role === 'officer') {
-        if (!formData.mobileNumber) newErrors.mobileNumber = 'Mobile number is required for officers';
+        if (!formData.mobileNumber) {
+          newErrors.mobileNumber = 'Mobile number is required';
+        } else if (!phoneRegex.test(formData.mobileNumber)) {
+          newErrors.mobileNumber = 'Invalid mobile format (Ex: 0771234567)';
+        }
+        
         if (!formData.dsDivision) newErrors.dsDivision = 'DS Division is required';
     }
 
@@ -57,11 +71,9 @@ const Register = () => {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  // --- Checkbox Handle Kirima (Languages) ---
   const handleLanguageChange = (e) => {
     const { value, checked } = e.target;
     const { languages } = formData;
-    
     if (checked) {
       setFormData({ ...formData, languages: [...languages, value] });
     } else {
@@ -76,33 +88,27 @@ const Register = () => {
     if (Object.keys(newErrors).length === 0) {
       setLoading(true);
       try {
-        // Backend ekata yawana data object eka
         const response = await axios.post('http://localhost:5000/api/auth/register', {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim().toLowerCase(),
           role: formData.role,
           password: formData.password,
-          organization: formData.organization,
-          // Aluth Data Tika
-          mobileNumber: formData.mobileNumber,
+          organization: formData.organization.trim(),
+          mobileNumber: formData.mobileNumber.trim(),
           dsDivision: formData.dsDivision,
           vehicleType: formData.hasVehicle === 'yes' ? formData.vehicleType : 'None',
-          vehicleNumber: formData.hasVehicle === 'yes' ? formData.vehicleNumber : '',
+          vehicleNumber: formData.hasVehicle === 'yes' ? formData.vehicleNumber.trim() : '',
           languages: formData.languages
         });
 
-        alert('Registration Successful! Your account is pending Admin approval. You cannot login until approved.');
+        alert('Registration Successful! Your account is pending Admin approval.');
         navigate('/login');
 
       } catch (error) {
-        console.error(error);
-        if (error.response && error.response.data) {
-          setErrors({ apiError: error.response.data.message });
-          alert(error.response.data.message);
-        } else {
-          alert('Server connection failed. Please try again.');
-        }
+        const msg = error.response?.data?.message || 'Server connection failed.';
+        alert(msg);
+        setErrors({ apiError: msg });
       } finally {
         setLoading(false);
       }
@@ -146,14 +152,12 @@ const Register = () => {
             {errors.role && <span className="form-error">{errors.role}</span>}
           </div>
 
-          {/* --- ALUTH OFFICER SECTION EKA --- */}
           {formData.role === 'officer' && (
             <div className="officer-section">
                 <h4 className="section-title">Officer Details</h4>
-                
                 <div className="form-row">
                     <div className="form-group">
-                        <input type="tel" name="mobileNumber" placeholder="Mobile Number" className="input-field" onChange={handleChange} />
+                        <input type="tel" name="mobileNumber" placeholder="Mobile Number (07...)" className="input-field" onChange={handleChange} />
                         {errors.mobileNumber && <span className="form-error">{errors.mobileNumber}</span>}
                     </div>
                     <div className="form-group">
@@ -189,7 +193,7 @@ const Register = () => {
                                 </select>
                             </div>
                             <div className="form-group">
-                                <input type="text" name="vehicleNumber" placeholder="Plate No (WP ABC-1234)" className="input-field" onChange={handleChange} />
+                                <input type="text" name="vehicleNumber" placeholder="WP ABC-1234" className="input-field" onChange={handleChange} />
                             </div>
                         </div>
                     </div>
@@ -205,7 +209,6 @@ const Register = () => {
                 </div>
             </div>
           )}
-          {/* ----------------------------------- */}
 
           <div className="form-group">
             <input type="text" name="organization" placeholder="Organization (Optional)" className="input-field" value={formData.organization} onChange={handleChange} />
