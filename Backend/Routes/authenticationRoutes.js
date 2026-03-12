@@ -11,7 +11,8 @@ import {
     getProjects,
     addProject,
     getBeneficiaries,
-    addBeneficiary
+    addBeneficiary,
+    updateBeneficiary
 } from '../controllers/authenticationController.js';
 
 const router = express.Router();
@@ -36,5 +37,7 @@ router.post('/projects', addProject);
 router.get('/beneficiaries', getBeneficiaries);
 
 router.post('/beneficiaries', addBeneficiary);
+
+router.put('/beneficiaries/:id', updateBeneficiary);
 
 export default router;

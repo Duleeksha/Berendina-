@@ -444,14 +444,15 @@ const addProject = async (req, res) => {
 
 // --- NEW: Get All Beneficiaries ---
 
-  const getBeneficiaries = async (req, res) => {
+
+const getBeneficiaries = async (req, res) => {
   try {
     const query = `
       SELECT 
         b.beneficiary_id AS id, 
         b.ben_name AS name, 
         b.ben_contac_no AS contact, 
-        b.ben_project AS project, -- database column eka project kiyala map kala
+        b.ben_project AS project, -- FIXED: Column eka 'project' kiyala map kala
         b.ben_status AS status, 
         COALESCE(b.ben_progress, 0) AS progress,
         b.ben_nic AS nic,
@@ -475,6 +476,8 @@ const addProject = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching beneficiaries' });
   }
 };
+
+
 
 const addBeneficiary = async (req, res) => {
   const { 
@@ -511,6 +514,45 @@ const addBeneficiary = async (req, res) => {
   }
 };
 
+const updateBeneficiary = async (req, res) => {
+  const { id } = req.params;
+  const { 
+    name, nic, dob, gender, address, contact, district, 
+    dsDivision, maritalStatus, familyMembers, monthlyIncome, 
+    occupation, project, status 
+  } = req.body;
+
+  try {
+    const query = `
+      UPDATE beneficiary SET 
+        ben_name = $1, ben_nic = $2, ben_dob = $3, ben_gender = $4, ben_address = $5, 
+        ben_contac_no = $6, ben_district = $7, ben_ds_division = $8, ben_marital_status = $9, 
+        ben_family_members = $10, ben_monthly_income = $11, ben_occupation = $12, 
+        ben_project = $13, ben_status = $14
+      WHERE beneficiary_id = $15
+      RETURNING *;
+    `;
+    
+    const values = [
+      name, nic, dob || null, gender, address, contact, district, 
+      dsDivision, maritalStatus, parseInt(familyMembers) || 0, 
+      parseFloat(monthlyIncome) || 0, occupation, 
+      project, status, id
+    ];
+
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Beneficiary not found" });
+    }
+
+    res.json({ message: "Beneficiary updated successfully", data: result.rows[0] });
+  } catch (error) {
+    console.error("Update Error:", error);
+    res.status(500).json({ message: "Server error during beneficiary update" });
+  }
+};
+
 export { 
     registerUser, 
     loginUser, 
@@ -523,5 +565,6 @@ export {
     getProjects,
     addProject,
     getBeneficiaries,
-    addBeneficiary
+    addBeneficiary,
+    updateBeneficiary
 };

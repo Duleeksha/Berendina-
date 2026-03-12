@@ -7,56 +7,38 @@ const Beneficiaries = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // --- NEW: Project List State (Real projects tika fetch karanna) ---
   const [projectList, setProjectList] = useState([]);
 
-  // --- MODAL STATES ---
+  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBen, setSelectedBen] = useState({
-    name: '', nic: '', dob: '', gender: '',
-    contact: '', district: '', dsDivision: '', address: '',
-    maritalStatus: '', familyMembers: '', monthlyIncome: '', occupation: '',
-    project: '', status: 'active'
+    name: '', nic: '', dob: '', gender: '', contact: '', 
+    district: '', dsDivision: '', address: '', maritalStatus: '', 
+    familyMembers: '', monthlyIncome: '', occupation: '', project: '', status: 'active'
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // 1. Fetch Beneficiaries
+  // Data Loading
   useEffect(() => {
-    const fetchBeneficiaries = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/auth/beneficiaries');
-        if (response.ok) {
-          const data = await response.json();
-          setBeneficiaries(data);
-        }
+        const [benRes, projRes] = await Promise.all([
+          fetch('http://localhost:5000/api/auth/beneficiaries'),
+          fetch('http://localhost:5000/api/auth/projects')
+        ]);
+        if (benRes.ok) setBeneficiaries(await benRes.json());
+        if (projRes.ok) setProjectList(await projRes.json());
       } catch (error) {
         console.error('Network error:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchBeneficiaries();
-  }, []);
-
-  // 2. --- NEW: Fetch Projects for Dropdown ---
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/auth/projects');
-        if (response.ok) {
-          const data = await response.json();
-          setProjectList(data);
-        }
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      }
-    };
-    fetchProjects();
+    fetchData();
   }, []);
 
   const handleEditClick = (ben) => {
-    setSelectedBen({ ...ben }); 
+    setSelectedBen({ ...ben });
     setIsModalOpen(true);
   };
 
@@ -69,11 +51,25 @@ const Beneficiaries = () => {
     e.preventDefault();
     setIsUpdating(true);
     try {
-      console.log("Updating Beneficiary:", selectedBen);
-      alert("Beneficiary profile updated successfully!");
-      setIsModalOpen(false);
+      // Backend Update API call eka (PUT)
+      const response = await fetch(`http://localhost:5000/api/auth/beneficiaries/${selectedBen.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(selectedBen),
+      });
+      
+      if (response.ok) {
+        alert("Beneficiary profile updated successfully!");
+        setIsModalOpen(false);
+        // Refresh the list without page reload
+        const updatedRes = await fetch('http://localhost:5000/api/auth/beneficiaries');
+        if (updatedRes.ok) setBeneficiaries(await updatedRes.json());
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message}`);
+      }
     } catch (error) {
-      alert("Error updating beneficiary");
+      alert("Error connecting to server");
     } finally {
       setIsUpdating(false);
     }
@@ -112,7 +108,7 @@ const Beneficiaries = () => {
 
         <div className="table-responsive">
           {loading ? (
-             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading beneficiaries...</div>
+             <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
           ) : (
             <table className="modern-table">
               <thead>
@@ -123,9 +119,8 @@ const Beneficiaries = () => {
               <tbody>
                 {filteredBeneficiaries.map(ben => (
                   <tr key={ben.id}>
-                    <td>{ben.name}</td>
+                    <td className="font-medium" style={{ color: '#1e293b' }}>{ben.name}</td>
                     <td>{ben.contact}</td>
-                    {/* --- FIXED: Project name eka display karanna --- */}
                     <td>{ben.project || 'Unassigned'}</td>
                     <td><span className={`status-badge ${ben.status?.toLowerCase()}`}>{ben.status}</span></td>
                     <td>{ben.progress}%</td>
@@ -140,7 +135,7 @@ const Beneficiaries = () => {
         </div>
       </div>
 
-      {/* --- UPDATED FULL MODAL --- */}
+      {/* FULL EDIT MODAL WITH REGISTRATION FORM FIELDS */}
       {isModalOpen && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
@@ -148,105 +143,71 @@ const Beneficiaries = () => {
           zIndex: 1000, overflowY: 'auto', padding: '40px 20px'
         }}>
           <div className="modal-content" style={{
-            background: 'white', padding: '35px', borderRadius: '16px', width: '100%', maxWidth: '850px', 
-            boxShadow: '0 20px 50px rgba(0,0,0,0.3)', position: 'relative', marginBottom: '40px'
+            background: 'white', padding: '35px', borderRadius: '16px', width: '100%', maxWidth: '850px', position: 'relative'
           }}>
-            <h2 style={{ marginBottom: '25px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px', color: '#1e293b' }}>
-              Update Beneficiary Profile
-            </h2>
-            
+            <h2 style={{ marginBottom: '25px', color: '#1e293b', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Update Beneficiary Profile</h2>
             <form onSubmit={handleUpdateSubmit}>
+              
+              {/* Row 1: Basic Info */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Full Name</label>
-                  <input type="text" name="name" value={selectedBen.name} onChange={handleInputChange} className="modern-input" required />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>NIC Number</label>
-                  <input type="text" name="nic" value={selectedBen.nic} onChange={handleInputChange} className="modern-input" />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Mobile Number</label>
-                  <input type="text" name="contact" value={selectedBen.contact} onChange={handleInputChange} className="modern-input" required />
-                </div>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Full Name</label><input type="text" name="name" value={selectedBen.name} onChange={handleInputChange} className="modern-input" required /></div>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>NIC Number</label><input type="text" name="nic" value={selectedBen.nic} onChange={handleInputChange} className="modern-input" /></div>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Mobile Number</label><input type="text" name="contact" value={selectedBen.contact} onChange={handleInputChange} className="modern-input" required /></div>
               </div>
 
+              {/* Row 2: Personal Details */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>District</label>
-                  <select name="district" value={selectedBen.district} onChange={handleInputChange} className="modern-input">
-                    <option value="Colombo">Colombo</option><option value="Gampaha">Gampaha</option><option value="Kalutara">Kalutara</option><option value="Kandy">Kandy</option>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Date of Birth</label><input type="date" name="dob" value={selectedBen.dob} onChange={handleInputChange} className="modern-input" /></div>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Gender</label>
+                  <select name="gender" value={selectedBen.gender} onChange={handleInputChange} className="modern-select">
+                    <option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
                   </select>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>DS Division</label>
-                  <input type="text" name="dsDivision" value={selectedBen.dsDivision} onChange={handleInputChange} className="modern-input" />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Gender</label>
-                  <select name="gender" value={selectedBen.gender} onChange={handleInputChange} className="modern-input">
-                    <option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>District</label>
+                  <select name="district" value={selectedBen.district} onChange={handleInputChange} className="modern-select">
+                    <option value="">Select District</option><option value="Colombo">Colombo</option><option value="Gampaha">Gampaha</option><option value="Kalutara">Kalutara</option><option value="Kandy">Kandy</option><option value="Galle">Galle</option><option value="Matara">Matara</option>
                   </select>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Residential Address</label>
-                <input type="text" name="address" value={selectedBen.address} onChange={handleInputChange} className="modern-input" />
+              {/* Row 3: Location Details */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px', marginBottom: '20px' }}>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>DS Division</label><input type="text" name="dsDivision" value={selectedBen.dsDivision} onChange={handleInputChange} className="modern-input" placeholder="Ex: Mahara" /></div>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Residential Address</label><input type="text" name="address" value={selectedBen.address} onChange={handleInputChange} className="modern-input" placeholder="House No, Street, City" /></div>
               </div>
 
+              {/* Row 4: Socio-Economic */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Marital Status</label>
+                  <select name="maritalStatus" value={selectedBen.maritalStatus} onChange={handleInputChange} className="modern-select">
+                    <option value="">Select Status</option><option value="Single">Single</option><option value="Married">Married</option><option value="Widowed">Widowed</option><option value="Divorced">Divorced</option>
+                  </select>
+                </div>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Family Members</label><input type="number" name="familyMembers" value={selectedBen.familyMembers} onChange={handleInputChange} className="modern-input" /></div>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Monthly Income</label><input type="number" name="monthlyIncome" value={selectedBen.monthlyIncome} onChange={handleInputChange} className="modern-input" /></div>
+              </div>
+
+              {/* Row 5: Occupation & Assignment */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Occupation</label><input type="text" name="occupation" value={selectedBen.occupation} onChange={handleInputChange} className="modern-input" /></div>
                 <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Assigned Project</label>
-                  {/* --- FIXED: Dynamic Dropdown using Project Tab Data --- */}
-                  <select name="project" value={selectedBen.project} onChange={handleInputChange} className="modern-input" style={{ border: '1px solid #3b82f6' }}>
+                  <label style={{fontSize: '0.85rem', fontWeight: '600'}}>Assigned Project</label>
+                  <select name="project" value={selectedBen.project} onChange={handleInputChange} className="modern-select" style={{ border: '1px solid #3b82f6' }}>
                     <option value="">Select Project</option>
-                    {projectList.map((proj) => (
-                      <option key={proj.id} value={proj.name}>
-                        {proj.name}
-                      </option>
-                    ))}
+                    {projectList.map(proj => <option key={proj.id} value={proj.name}>{proj.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Current Status</label>
-                  <select name="status" value={selectedBen.status} onChange={handleInputChange} className="modern-input">
-                    <option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Pending">Pending</option>
+                <div><label style={{fontSize: '0.85rem', fontWeight: '600'}}>Current Status</label>
+                  <select name="status" value={selectedBen.status} onChange={handleInputChange} className="modern-select">
+                    <option value="active">Active</option><option value="inactive">Inactive</option><option value="pending">Pending</option>
                   </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Monthly Income</label>
-                  <input type="number" name="monthlyIncome" value={selectedBen.monthlyIncome} onChange={handleInputChange} className="modern-input" />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Marital Status</label>
-                  <select name="maritalStatus" value={selectedBen.maritalStatus} onChange={handleInputChange} className="modern-input">
-                    <option value="Single">Single</option><option value="Married">Married</option><option value="Widowed">Widowed</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '8px' }}>Family Members</label>
-                  <input type="number" name="familyMembers" value={selectedBen.familyMembers} onChange={handleInputChange} className="modern-input" />
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', marginTop: '30px', borderTop: '2px solid #f1f5f9', paddingTop: '25px' }}>
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)} 
-                  style={{ padding: '12px 30px', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isUpdating} 
-                  style={{ padding: '12px 30px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}
-                >
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
+                <button type="button" onClick={() => setIsModalOpen(false)} style={{ padding: '12px 35px', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" disabled={isUpdating} style={{ padding: '12px 35px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
                   {isUpdating ? "Saving..." : "Update Beneficiary"}
                 </button>
               </div>
