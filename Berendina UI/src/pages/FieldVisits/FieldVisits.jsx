@@ -1,59 +1,52 @@
-import React, { useState } from 'react';
-// Sidebar import eka ayin kala (App.jsx eken eka handle wena nisa)
+import React, { useState, useEffect } from 'react';
 import './FieldVisits.css';
 
 const FieldVisits = () => {
-  // Local Sidebar state eka ayin kala
   const [viewMode, setViewMode] = useState('month');
+  
+  // Real data ganna states
+  const [visits, setVisits] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const upcomingVisits = [
-    { id: 1, beneficiary: 'John Doe', district: 'District A', date: '2024-02-15', time: '10:00 AM', status: 'scheduled' },
-    { id: 2, beneficiary: 'Jane Smith', district: 'District B', date: '2024-02-16', time: '2:00 PM', status: 'scheduled' },
-    { id: 3, beneficiary: 'Robert Johnson', district: 'District C', date: '2024-02-18', time: '9:30 AM', status: 'scheduled' },
-    { id: 4, beneficiary: 'Maria Garcia', district: 'District A', date: '2024-02-20', time: '11:00 AM', status: 'pending' },
-    { id: 5, beneficiary: 'David Lee', district: 'District D', date: '2024-02-22', time: '3:00 PM', status: 'scheduled' },
-  ];
+  // --- NEW: Fetch Real Visits ---
+  useEffect(() => {
+    const fetchVisits = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/field-visits');
+        if (response.ok) {
+          const data = await response.json();
+          setVisits(data);
+        }
+      } catch (error) {
+        console.error('Network error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVisits();
+  }, []);
 
+  // Calendar eke dot eka penna visit thiyena dawas tika extract karanawa
+  const visitDates = visits.map(v => parseInt(v.date.split('-')[2]));
   const calendarDays = Array.from({ length: 29 }, (_, i) => i + 1);
 
   return (
-    // Admin Dashboard layout class ekama use karanawa consistency ekata
     <div className="field-visits-page-content">
-      
-      {/* Header Section */}
       <div className="page-header">
         <div>
           <h1>Field Visits</h1>
           <p>Schedule and track field visits to beneficiaries</p>
         </div>
-        
-        {/* View Controls (Buttons) */}
         <div className="view-controls">
-          <button 
-            className={`view-btn ${viewMode === 'month' ? 'active' : ''}`}
-            onClick={() => setViewMode('month')}
-          >
-            Month
-          </button>
-          <button 
-            className={`view-btn ${viewMode === 'week' ? 'active' : ''}`}
-            onClick={() => setViewMode('week')}
-          >
-            Week
-          </button>
-          <button 
-            className={`view-btn ${viewMode === 'day' ? 'active' : ''}`}
-            onClick={() => setViewMode('day')}
-          >
-            Day
-          </button>
+          {['month', 'week', 'day'].map(mode => (
+            <button key={mode} className={`view-btn ${viewMode === mode ? 'active' : ''}`} onClick={() => setViewMode(mode)}>
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Main Content Grid (Calendar & List) */}
       <div className="calendar-container">
-        
-        {/* Left Side: Calendar */}
         <div className="content-card calendar-section">
           <div className="card-header-row">
              <h3>February 2024</h3>
@@ -61,19 +54,13 @@ const FieldVisits = () => {
           </div>
           
           <div className="calendar-header">
-            <div>Sun</div>
-            <div>Mon</div>
-            <div>Tue</div>
-            <div>Wed</div>
-            <div>Thu</div>
-            <div>Fri</div>
-            <div>Sat</div>
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d}</div>)}
           </div>
           
           <div className="calendar-grid">
             {[...Array(4)].map((_, i) => <div key={i} className="empty-day"></div>)}
             {calendarDays.map(day => (
-              <div key={day} className={`calendar-day ${day === 15 ? 'has-visit' : ''}`}>
+              <div key={day} className={`calendar-day ${visitDates.includes(day) ? 'has-visit' : ''}`}>
                 {day}
               </div>
             ))}
@@ -87,27 +74,26 @@ const FieldVisits = () => {
           </div>
         </div>
 
-        {/* Right Side: Timeline */}
         <div className="content-card timeline-section">
           <h3>Upcoming Visits</h3>
           <div className="timeline-items">
-            {upcomingVisits.map(visit => (
-              <div key={visit.id} className="timeline-item">
-                <div className="timeline-date">{visit.date}</div>
-                <div className="timeline-line">
-                    <div className="timeline-dot"></div>
+            {loading ? <p>Loading visits...</p> : (
+              visits.length > 0 ? visits.map(visit => (
+                <div key={visit.id} className="timeline-item">
+                  <div className="timeline-date">{visit.date}</div>
+                  <div className="timeline-line"><div className="timeline-dot"></div></div>
+                  <div className="timeline-details">
+                    <div className="visit-beneficiary-name">{visit.beneficiary}</div>
+                    <div className="visit-location">📍 {visit.district}</div>
+                    <div className="visit-officer">👤 Officer: {visit.officerName || 'Not Assigned'}</div>
+                    <div className="visit-time">🕒 {visit.time}</div>
+                    <span className={`visit-status ${visit.status}`}>{visit.status}</span>
+                  </div>
                 </div>
-                <div className="timeline-details">
-                  <div className="visit-beneficiary-name">{visit.beneficiary}</div>
-                  <div className="visit-location">📍 {visit.district}</div>
-                  <div className="visit-time">🕒 {visit.time}</div>
-                  <span className={`visit-status ${visit.status}`}>{visit.status}</span>
-                </div>
-              </div>
-            ))}
+              )) : <p>No visits scheduled.</p>
+            )}
           </div>
         </div>
-
       </div>
     </div>
   );

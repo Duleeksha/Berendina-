@@ -553,6 +553,51 @@ const updateBeneficiary = async (req, res) => {
   }
 };
 
+// --- NEW: Get All Field Visits ---
+const getFieldVisits = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        v.visit_id AS id, 
+        v.beneficiary_name AS beneficiary, 
+        v.district, 
+        TO_CHAR(v.visit_date, 'YYYY-MM-DD') AS date, 
+        TO_CHAR(v.visit_time, 'HH12:MI AM') AS time, 
+        v.status,
+        u.first_name || ' ' || u.last_name AS "officerName"
+      FROM field_visits v
+      LEFT JOIN user_table u ON v.officer_id = u.user_id
+      ORDER BY v.visit_date ASC;
+    `;
+    const result = await pool.query(query);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching field visits:', error);
+    res.status(500).json({ message: 'Server error while fetching visits' });
+  }
+};
+
+// --- NEW: Add Field Visit ---
+const addFieldVisit = async (req, res) => {
+  const { beneficiary, district, date, time, officerId, status } = req.body;
+  try {
+    const query = `
+      INSERT INTO field_visits (beneficiary_name, district, visit_date, visit_time, officer_id, status)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *;
+    `;
+    const values = [beneficiary, district, date, time, officerId, status || 'scheduled'];
+    const result = await pool.query(query, values);
+    res.status(201).json({ message: 'Visit scheduled successfully!', data: result.rows[0] });
+  } catch (error) {
+    console.error('Error scheduling visit:', error);
+    res.status(500).json({ message: 'Server error while scheduling' });
+  }
+};
+
+// Export ekata me aluth functions deka danna (existing list ekatama)
+
+
 export { 
     registerUser, 
     loginUser, 
@@ -566,5 +611,7 @@ export {
     addProject,
     getBeneficiaries,
     addBeneficiary,
-    updateBeneficiary
+    updateBeneficiary,
+    getFieldVisits,
+    addFieldVisit
 };
