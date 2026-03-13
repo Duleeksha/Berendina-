@@ -7,24 +7,25 @@ import './Dashboard.css';
 
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
+  
+  // --- REAL-TIME STATS STATE ---
+  const [stats, setStats] = useState({ totalBeneficiaries: 0 });
 
-  // Mock Data (Updated for smoother graphs)
-  const projectData = [
-    { name: 'Jan', progress: 65 }, { name: 'Feb', progress: 72 },
-    { name: 'Mar', progress: 68 }, { name: 'Apr', progress: 85 },
-    { name: 'May', progress: 78 }, { name: 'Jun', progress: 92 }
-  ];
-
-  const beneficiaryData = [
-    { name: 'Jan', beneficiaries: 120 }, { name: 'Feb', beneficiaries: 145 },
-    { name: 'Mar', beneficiaries: 168 }, { name: 'Apr', beneficiaries: 210 },
-    { name: 'May', beneficiaries: 230 }, { name: 'Jun', beneficiaries: 248 }
-  ];
-
-  // 1. Pending Users Fetching
+  // 1. Fetch data on load
   useEffect(() => {
     fetchPendingUsers();
+    fetchDashboardStats(); // Real database counts load karanawa
   }, []);
+
+  // Database eken beneficiaries count eka ganna function eka
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/auth/dashboard-stats');
+      setStats(response.data);
+    } catch (error) {
+      console.error("Dashboard stats fetching error:", error);
+    }
+  };
 
   const fetchPendingUsers = async () => {
     try {
@@ -45,6 +46,19 @@ const AdminDashboard = () => {
       alert("Approval Failed");
     }
   };
+
+  // --- EXISTING CHART DATA (MOCK DATA - KEEPING AS IS) ---
+  const projectData = [
+    { name: 'Jan', progress: 65 }, { name: 'Feb', progress: 72 },
+    { name: 'Mar', progress: 68 }, { name: 'Apr', progress: 85 },
+    { name: 'May', progress: 78 }, { name: 'Jun', progress: 92 }
+  ];
+
+  const beneficiaryData = [
+    { name: 'Jan', beneficiaries: 120 }, { name: 'Feb', beneficiaries: 145 },
+    { name: 'Mar', beneficiaries: 168 }, { name: 'Apr', beneficiaries: 210 },
+    { name: 'May', beneficiaries: 230 }, { name: 'Jun', beneficiaries: 248 }
+  ];
 
   return (
     <div className="dashboard-content">
@@ -70,12 +84,14 @@ const AdminDashboard = () => {
           </div>
         </div>
 
+        {/* --- DYNAMIC BENEFICIARY CARD (UPDATED TO REAL DATA) --- */}
         <div className="stat-card blue">
           <div className="stat-icon">👥</div>
           <div className="stat-info">
             <h3>Beneficiaries</h3>
-            <div className="stat-value">1,248</div>
-            <span className="stat-meta success">↑ 12% Month Over Month</span>
+            {/* Database count eka methana pennanawa */}
+            <div className="stat-value">{stats.totalBeneficiaries.toLocaleString()}</div>
+            <span className="stat-meta success">Real-time Data</span>
           </div>
         </div>
 
@@ -98,7 +114,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Main Grid: Charts (Left) & Pending List (Right) */}
+      {/* Main Grid: Charts & Pending List */}
       <div className="main-grid">
         
         {/* Left Column - Charts */}

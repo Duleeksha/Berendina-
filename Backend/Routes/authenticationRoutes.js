@@ -14,7 +14,8 @@ import {
     addBeneficiary,
     updateBeneficiary,
     getFieldVisits, 
-    addFieldVisit
+    addFieldVisit,
+    getDashboardStats
 } from '../controllers/authenticationController.js';
 
 const router = express.Router();
@@ -45,5 +46,7 @@ router.put('/beneficiaries/:id', updateBeneficiary);
 router.get('/field-visits', getFieldVisits);
 
 router.post('/field-visits', addFieldVisit);
+
+router.get('/dashboard-stats', getDashboardStats);
 
 export default router;

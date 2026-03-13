@@ -596,7 +596,22 @@ const addFieldVisit = async (req, res) => {
 };
 
 // Export ekata me aluth functions deka danna (existing list ekatama)
+const getDashboardStats = async (req, res) => {
+  try {
+    // Database eken total count eka gannawa
+    const result = await pool.query('SELECT COUNT(*) FROM beneficiary');
+    
+    // SQL result eke 'count' kiyana value eka number ekak widihata gannawa
+    const totalCount = parseInt(result.rows[0].count);
 
+    res.status(200).json({
+      totalBeneficiaries: totalCount
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    res.status(500).json({ message: 'Server error while fetching dashboard data' });
+  }
+};
 
 export { 
     registerUser, 
@@ -613,5 +628,6 @@ export {
     addBeneficiary,
     updateBeneficiary,
     getFieldVisits,
-    addFieldVisit
+    addFieldVisit,
+    getDashboardStats
 };
