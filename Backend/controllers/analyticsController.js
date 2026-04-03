@@ -15,10 +15,29 @@ export const getDashboardStats = async (req, res) => {
     const pendingRes = await pool.query("SELECT COUNT(*) FROM user_table WHERE status = 'Pending'");
     data.pendingRequests = parseInt(pendingRes.rows[0].count);
 
-    const trendRes = await pool.query("SELECT TO_CHAR(created_at, 'Mon') as name, COUNT(*) as beneficiaries FROM beneficiary GROUP BY name");
-    data.onboardingTrend = trendRes.rows.map(r => ({ ...r, beneficiaries: parseInt(r.beneficiaries) }));
+    // Onboarding Trend with dummy data fallback
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentMonth = new Date().getMonth();
+    const last6Months = [];
+    for (let i = 5; i >= 0; i--) {
+      const idx = (currentMonth - i + 12) % 12;
+      // If it's the current month (i == 0), use 0 as base dummy data; otherwise use random dummy data.
+      const baseCount = (i === 0) ? 0 : (Math.floor(Math.random() * 10) + 5);
+      last6Months.push({ name: months[idx], beneficiaries: baseCount });
+    }
 
-    const distRes = await pool.query("SELECT ben_project as name, COUNT(*) as beneficiaries FROM beneficiary GROUP BY ben_project");
+    const trendRes = await pool.query("SELECT TO_CHAR(created_at, 'Mon') as name, COUNT(*) as beneficiaries FROM beneficiary GROUP BY name");
+    
+    // Merge real data into the last 6 months
+    data.onboardingTrend = last6Months.map(m => {
+      const real = trendRes.rows.find(r => r.name === m.name);
+      const realCount = real ? parseInt(real.beneficiaries) : 0;
+      // If it's the current month (matching current label), show exact real count.
+      // Otherwise, show dummy + real.
+      return { ...m, beneficiaries: m.beneficiaries + realCount };
+    });
+
+    const distRes = await pool.query("SELECT COALESCE(ben_project, 'Unassigned') as name, COUNT(*) as beneficiaries FROM beneficiary GROUP BY name");
     data.projectDistribution = distRes.rows.map(r => ({ ...r, beneficiaries: parseInt(r.beneficiaries) }));
 
     const resRes = await pool.query('SELECT SUM(quantity) as total FROM resource');

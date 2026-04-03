@@ -173,6 +173,36 @@ const BeneficiaryForm = () => {
           </div>
 
           <div className="form-section">
+            <h3>Socio-Economic Information</h3>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Marital Status</label>
+                <select name="maritalStatus" className="modern-select" value={formData.maritalStatus || ''} onChange={handleChange}>
+                  <option value="">Select Status</option>
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                  <option value="Widowed">Widowed</option>
+                  <option value="Divorced">Divorced</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Family Members</label>
+                <input type="number" name="familyMembers" className="modern-input" value={formData.familyMembers || ''} onChange={handleChange} min="0" />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Monthly Income (LKR)</label>
+                <input type="number" name="monthlyIncome" className="modern-input" value={formData.monthlyIncome || ''} onChange={handleChange} min="0" />
+              </div>
+              <div className="form-group">
+                <label>Primary Occupation</label>
+                <input type="text" name="occupation" className="modern-input" value={formData.occupation || ''} onChange={handleChange} placeholder="e.g. Farmer, Self-employed" />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-section">
             <h3>Supporting Documents</h3>
             <div className="form-group">
               <label>Upload Documents (JPG, PNG, PDF)</label>

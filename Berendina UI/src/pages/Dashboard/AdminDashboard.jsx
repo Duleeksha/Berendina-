@@ -122,10 +122,11 @@ const AdminDashboard = () => {
                   <BarChart data={stats.projectDistribution} barSize={50}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#718096', fontSize: 12}} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#718096'}} />
+                    <YAxis hide={true} />
                     <Tooltip 
                         cursor={{fill: '#f7fafc'}}
                         contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
+                        formatter={(value) => [value, "Beneficiaries"]}
                     />
                     <Bar dataKey="beneficiaries" fill="#4299e1" radius={[8, 8, 0, 0]} />
                   </BarChart>
@@ -148,8 +149,11 @@ const AdminDashboard = () => {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#718096'}} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#718096'}} />
-                    <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                    <YAxis hide={true} />
+                    <Tooltip 
+                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} 
+                        formatter={(value) => [value, "Beneficiaries"]}
+                    />
                     <Area type="monotone" dataKey="beneficiaries" stroke="#48bb78" strokeWidth={3} fillOpacity={1} fill="url(#colorBen)" />
                   </AreaChart>
                 ) : <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a0aec0'}}>No onboarding data yet</div>}
