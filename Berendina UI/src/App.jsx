@@ -116,13 +116,8 @@ useEffect(() => {
              )
           } />
 
-          <Route path="/" element={
-             currentUser ? (
-                currentUser.role === 'admin' ? <Navigate to="/admin-dashboard" replace /> : <Navigate to="/officer-dashboard" replace />
-             ) : (
-                <Navigate to="/login" replace />
-             )
-          } />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+
 
 {/* --- NEW ROUTE: Projects --- */}
           <Route path="/projects" element={<Projects />} />
