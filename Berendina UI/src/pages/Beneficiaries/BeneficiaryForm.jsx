@@ -7,36 +7,27 @@ const BeneficiaryForm = () => {
   const { id } = useParams(); 
   const isEditMode = !!id;
 
-  // --- NEW: Project List State ---
   const [projectList, setProjectList] = useState([]);
-
-  // Form State
-  const [formData, setFormData] = useState({
-    name: '',
-    nic: '',
-    dob: '',
-    gender: '',
-    contact: '',
-    address: '',
-    district: '',
-    dsDivision: '',
-    maritalStatus: '',
-    familyMembers: '',
-    monthlyIncome: '',
-    occupation: '',
-    project: '', // Meka dropdown eken dynamic wenawa
-    status: 'active',
-    progress: 0
+  const [formData, setFormData] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const projParam = params.get('project');
+    return {
+      name: '', nic: '', dob: '', gender: '', contact: '', 
+      address: '', district: '', dsDivision: '', maritalStatus: '', 
+      familyMembers: '', monthlyIncome: '', occupation: '', 
+      project: projParam || '', 
+      status: 'active'
+    };
   });
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
-  // 1. Fetch Real Projects from Backend
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/auth/projects');
+        const response = await fetch('http://localhost:5000/api/projects');
         if (response.ok) {
           const data = await response.json();
-          setProjectList(data); // Projects tika load wenawa
+          setProjectList(data);
         }
       } catch (error) {
         console.error("Error fetching projects:", error);
@@ -45,58 +36,63 @@ const BeneficiaryForm = () => {
     fetchProjects();
   }, []);
 
-  // 2. Edit mode nam data purawanna
   useEffect(() => {
     if (isEditMode) {
-      console.log("Fetching data for ID:", id);
-      const mockDatabase = {
-        '1': { name: 'Kamal Perera', nic: '198512345678', dob: '1985-05-15', gender: 'Male', contact: '+94 71 234 5678', address: 'No 123, Temple Road, Gampaha', district: 'Gampaha', dsDivision: 'Mahara', maritalStatus: 'Married', familyMembers: '4', monthlyIncome: '45000', occupation: 'Farmer', project: 'Education Initiative', status: 'active', progress: 75 },
+      const fetchBen = async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/auth/beneficiaries`);
+          if (response.ok) {
+            const data = await response.json();
+            const ben = data.find(b => b.id.toString() === id);
+            if (ben) setFormData(ben);
+          }
+        } catch (error) {
+          console.error("Error loading beneficiary:", error);
+        }
       };
-      const selectedBeneficiary = mockDatabase[id] || mockDatabase['1'];
-      setFormData(selectedBeneficiary);
+      fetchBen();
     }
   }, [isEditMode, id]);
-
-  const validateForm = () => {
-    const { name, nic, dob, contact, district, project } = formData;
-    if (!name.trim()) return "Full Name is required.";
-    const nicRegex = /^(?:\d{9}[vVxX]|\d{12})$/;
-    if (nic && !nicRegex.test(nic)) return "Invalid NIC format.";
-    const today = new Date().toISOString().split('T')[0];
-    if (dob && dob > today) return "Date of Birth cannot be in the future.";
-    const phoneRegex = /^(?:\+94|0)?[7][0-9]{8}$/;
-    if (!contact.trim()) return "Mobile Number is required.";
-    if (!phoneRegex.test(contact)) return "Invalid Mobile Number.";
-    if (!district) return "Please select a District.";
-    if (!project) return "Please assign a Project.";
-    return null; 
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    setSelectedFiles(Array.from(e.target.files));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errorMessage = validateForm();
-    if (errorMessage) {
-      alert(errorMessage);
-      return;
-    }
+
+    const data = new FormData();
+    // Append text fields
+    Object.keys(formData).forEach(key => {
+      data.append(key, formData[key]);
+    });
+    // Append files
+    selectedFiles.forEach(file => {
+      data.append('documents', file);
+    });
+
+    const url = isEditMode 
+      ? `http://localhost:5000/api/beneficiaries/${id}`
+      : 'http://localhost:5000/api/beneficiaries';
+
+    const method = isEditMode ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/beneficiaries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      const response = await fetch(url, {
+        method,
+        body: data, // No headers needed for FormData, browser sets multipart/form-data
       });
 
-      const result = await response.json();
       if (response.ok) {
-        alert("Beneficiary saved successfully!"); 
-        navigate('/beneficiaries'); 
+        alert(`Beneficiary ${isEditMode ? 'updated' : 'saved'} successfully!`);
+        navigate('/beneficiaries');
       } else {
+        const result = await response.json();
         alert(`Error: ${result.message}`);
       }
     } catch (error) {
@@ -117,27 +113,26 @@ const BeneficiaryForm = () => {
 
       <div className="form-card">
         <form onSubmit={handleSubmit}>
-          {/* Section 1: Personal Info */}
           <div className="form-section">
             <h3>Personal Information</h3>
             <div className="form-row">
               <div className="form-group">
                 <label>Full Name</label>
-                <input type="text" name="name" className="modern-input" value={formData.name} onChange={handleChange} required />
+                <input type="text" name="name" className="modern-input" value={formData.name || ''} onChange={handleChange} required />
               </div>
               <div className="form-group">
                 <label>National ID (NIC)</label>
-                <input type="text" name="nic" className="modern-input" value={formData.nic} onChange={handleChange} />
+                <input type="text" name="nic" className="modern-input" value={formData.nic || ''} onChange={handleChange} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
                 <label>Date of Birth</label>
-                <input type="date" name="dob" className="modern-input" value={formData.dob} onChange={handleChange} />
+                <input type="date" name="dob" className="modern-input" value={formData.dob || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Gender</label>
-                <select name="gender" className="modern-select" value={formData.gender} onChange={handleChange}>
+                <select name="gender" className="modern-select" value={formData.gender || ''} onChange={handleChange}>
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -146,17 +141,16 @@ const BeneficiaryForm = () => {
             </div>
           </div>
 
-          {/* Section 2: Contact & Location */}
           <div className="form-section">
             <h3>Contact & Location</h3>
             <div className="form-row">
               <div className="form-group">
                 <label>Mobile Number</label>
-                <input type="text" name="contact" className="modern-input" value={formData.contact} onChange={handleChange} required />
+                <input type="text" name="contact" className="modern-input" value={formData.contact || ''} onChange={handleChange} required />
               </div>
               <div className="form-group">
                 <label>District</label>
-                <select name="district" className="modern-select" value={formData.district} onChange={handleChange}>
+                <select name="district" className="modern-select" value={formData.district || ''} onChange={handleChange}>
                   <option value="">Select District</option>
                   <option value="Colombo">Colombo</option>
                   <option value="Gampaha">Gampaha</option>
@@ -164,54 +158,42 @@ const BeneficiaryForm = () => {
                 </select>
               </div>
             </div>
-          </div>
-
-          {/* Section 3: Socio-Economic */}
-          <div className="form-section">
-            <h3>Socio-Economic Details</h3>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Marital Status</label>
-                <select name="maritalStatus" className="modern-select" value={formData.maritalStatus} onChange={handleChange}>
-                  <option value="">Select Status</option>
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Monthly Household Income (LKR)</label>
-                <input type="number" name="monthlyIncome" className="modern-input" value={formData.monthlyIncome} onChange={handleChange} />
-              </div>
+            <div className="form-group" style={{ marginTop: '20px' }}>
+              <label>Exact Address (Door No, Street, Village)</label>
+              <input 
+                type="text" 
+                name="address" 
+                className="modern-input" 
+                value={formData.address || ''} 
+                onChange={handleChange} 
+                placeholder="e.g. 123, Temple Road, Gampaha" 
+                required 
+              />
             </div>
           </div>
 
-          {/* Section 4: Project Assignment (DYNAMIC UPDATED) */}
+          <div className="form-section">
+            <h3>Supporting Documents</h3>
+            <div className="form-group">
+              <label>Upload Documents (JPG, PNG, PDF)</label>
+              <input type="file" multiple onChange={handleFileChange} className="modern-input" style={{padding: '10px'}} />
+              <p style={{fontSize: '0.8rem', color: '#64748b', marginTop: '5px'}}>Selected {selectedFiles.length} files</p>
+            </div>
+          </div>
+
           <div className="form-section">
             <h3>Project Assignment</h3>
             <div className="form-row">
               <div className="form-group">
                 <label>Assigned Project</label>
-                <select 
-                  name="project" 
-                  className="modern-select" 
-                  value={formData.project} 
-                  onChange={handleChange}
-                  required
-                  style={{ border: '1px solid #3b82f6' }}
-                >
+                <select name="project" className="modern-select" value={formData.project || ''} onChange={handleChange} required>
                   <option value="">Select Project</option>
-                  
-                  {/* --- NEW: Dynamic Project Mapping --- */}
-                  {projectList.map((proj) => (
-                    <option key={proj.id} value={proj.name}>
-                      {proj.name}
-                    </option>
-                  ))}
+                  {projectList.map((proj) => <option key={proj.id} value={proj.name}>{proj.name}</option>)}
                 </select>
               </div>
               <div className="form-group">
                 <label>Current Status</label>
-                <select name="status" className="modern-select" value={formData.status} onChange={handleChange}>
+                <select name="status" className="modern-select" value={formData.status || 'active'} onChange={handleChange}>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                   <option value="pending">Pending</option>
@@ -224,7 +206,6 @@ const BeneficiaryForm = () => {
             <button type="button" className="cancel-btn" onClick={() => navigate('/beneficiaries')}>Cancel</button>
             <button type="submit" className="save-btn">{isEditMode ? 'Update Beneficiary' : 'Save Beneficiary'}</button>
           </div>
-
         </form>
       </div>
     </div>

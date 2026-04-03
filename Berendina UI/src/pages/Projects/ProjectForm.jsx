@@ -27,7 +27,7 @@ const ProjectForm = () => {
     
     try {
       // API eken Backend ekata data yawanawa
-      const response = await fetch('http://localhost:5000/api/auth/projects', {
+      const response = await fetch('http://localhost:5000/api/projects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,6 +46,33 @@ const ProjectForm = () => {
       console.error("Error submitting project:", error);
       alert("Failed to connect to the server. Please try again.");
     }
+  };
+
+  const DONOR_AGENCIES = [
+    "World Vision",
+    "Save the Children",
+    "The Asia Foundation",
+    "Helvetas",
+    "USAID",
+    "Department of foreign affairs and trade",
+    "Asian development bank"
+  ];
+
+  const [showOtherDonor, setShowOtherDonor] = useState(false);
+
+  const handleDonorChange = (e) => {
+    const { value } = e.target;
+    if (value === "Other") {
+      setShowOtherDonor(true);
+      setFormData({ ...formData, donorAgency: '' });
+    } else {
+      setShowOtherDonor(false);
+      setFormData({ ...formData, donorAgency: value });
+    }
+  };
+
+  const handleOtherDonorChange = (e) => {
+    setFormData({ ...formData, donorAgency: e.target.value });
   };
 
   return (
@@ -80,24 +107,43 @@ const ProjectForm = () => {
 
             <div className="form-group">
               <label>Donor Agency</label>
-              <input 
-                type="text" 
-                name="donorAgency" 
-                placeholder="Ex: USAID, Berendina Board" 
-                value={formData.donorAgency} 
-                onChange={handleChange} 
-              />
+              <select 
+                name="donorDropdown" 
+                className="modern-input"
+                onChange={handleDonorChange}
+                value={showOtherDonor ? "Other" : (DONOR_AGENCIES.includes(formData.donorAgency) ? formData.donorAgency : (formData.donorAgency ? "Other" : ""))}
+              >
+                <option value="">Select Donor Agency</option>
+                {DONOR_AGENCIES.map(agency => (
+                  <option key={agency} value={agency}>{agency}</option>
+                ))}
+                <option value="Other">Other</option>
+              </select>
+              {showOtherDonor && (
+                <input 
+                  type="text" 
+                  name="donorAgency" 
+                  placeholder="Enter custom donor agency name" 
+                  style={{ marginTop: '10px' }}
+                  value={formData.donorAgency} 
+                  onChange={handleOtherDonorChange} 
+                />
+              )}
             </div>
 
             <div className="form-group">
               <label>Target Location</label>
-              <input 
-                type="text" 
+              <select 
                 name="targetLocation" 
-                placeholder="Ex: Gampaha District" 
+                className="modern-input"
                 value={formData.targetLocation} 
-                onChange={handleChange} 
-              />
+                onChange={handleChange}
+              >
+                <option value="">Select Target Location</option>
+                {["Ambagamuwa", "Hanguranketha", "Kothmale", "Nuwara Eliya", "Walapane"].map(loc => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">

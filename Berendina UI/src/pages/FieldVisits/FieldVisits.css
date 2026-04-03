@@ -66,9 +66,56 @@
 /* Layout Grid */
 .calendar-container {
   display: grid;
-  grid-template-columns: 2fr 1fr; /* Calendar is wider (2 parts), Timeline is smaller (1 part) */
+  grid-template-columns: 280px 1fr 350px; /* Officer List | Calendar | Timeline */
   gap: 25px;
   width: 100%;
+}
+
+.officer-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.officer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.officer-item:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.officer-item.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+.officer-item.active .officer-avatar {
+  background: white;
+  color: #2563eb;
+}
+
+.officer-avatar {
+  width: 36px;
+  height: 36px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 /* Common Card Style (White Box) */
@@ -105,16 +152,49 @@
 }
 
 /* Calendar Styles */
-.calendar-header {
+.calendar-header-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.calendar-header-nav h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.nav-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: 700;
+  color: #4b5563;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.calendar-days-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 10px;
-  margin-bottom: 15px;
-  font-weight: 600;
+  margin-bottom: 10px;
+  font-weight: 700;
   color: #9ca3af;
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
-  text-transform: uppercase;
 }
 
 .calendar-grid {
@@ -282,7 +362,80 @@
   color: #854d0e;
 }
 
-/* Responsive */
+.add-project-btn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.add-project-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+}
+
+.add-project-btn:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  border: 1px solid #cbd5e1;
+  cursor: not-allowed;
+  opacity: 1; /* Ensure it is fully opaque even when disabled */
+  box-shadow: none;
+}
+
+.cancel-btn {
+  background: #f3f4f6;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: #4b5563;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-btn {
+  background: #2563eb;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Modal Form Styles */
+.modern-select, .modern-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 14px;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.modern-select:focus, .modern-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.address-preview {
+  background: #fdf2f8; /* Light Pink/Red */
+  border: 1px dashed #f472b6;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #9d174d;
+  min-height: 40px;
+}
+
 @media (max-width: 1366px) {
   .field-visits-page-content {
     padding: 20px 25px;

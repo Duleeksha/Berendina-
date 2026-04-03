@@ -3,72 +3,59 @@ import './FieldOfficers.css';
 
 const FieldOfficers = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [officers, setOfficers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal (Popup) eka wenuwen hadapu aluth states
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedOfficer, setSelectedOfficer] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState([]);
+  const [expandedOfficer, setExpandedOfficer] = useState(null);
+  const [expandedProject, setExpandedProject] = useState(null);
 
   useEffect(() => {
-    const fetchActiveOfficers = async () => {
+    const fetchAnalytics = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/auth/officers');
+        const response = await fetch('http://localhost:5000/api/analytics/officer-analytics');
         if (response.ok) {
           const data = await response.json();
-          setOfficers(data);
-        } else {
-          console.error('Failed to fetch officers');
+          setAnalyticsData(data);
         }
       } catch (error) {
-        console.error('Network error:', error);
+        console.error('Error fetching analytics:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchActiveOfficers();
+    fetchAnalytics();
   }, []);
 
-  const filteredOfficers = officers.filter(officer =>
-    (officer.firstName && officer.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (officer.lastName && officer.lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (officer.email && officer.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredData = analyticsData.filter(item =>
+    item.officerName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // "View Details" button eka ebuwama meka wada karanawa
-  const handleViewDetails = (officer) => {
-    setSelectedOfficer(officer);
-    setIsModalOpen(true);
+  const toggleOfficer = (name) => {
+    setExpandedOfficer(expandedOfficer === name ? null : name);
+    setExpandedProject(null);
   };
 
-  // Popup eka close karana function eka
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedOfficer(null);
+  const toggleProject = (projectName) => {
+    setExpandedProject(expandedProject === projectName ? null : projectName);
   };
 
   return (
     <div className="officers-page-content">
-      
-      {/* Header */}
       <div className="page-header">
         <div>
-          <h1>Field Officers</h1>
-          <p>List of approved and active field officers in the system.</p>
+          <h1>Field Officers Performance</h1>
+          <p>Track assigned projects and beneficiaries for each field officer.</p>
         </div>
       </div>
 
-      {/* Main Content Card */}
       <div className="content-card">
-        
-        {/* Search Bar */}
         <div className="search-section">
           <div className="search-wrapper">
              <span className="search-icon">🔍</span>
              <input
                 type="text"
-                placeholder="Search officers by name or email..."
+                placeholder="Search officers..."
                 className="modern-input"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -76,116 +63,56 @@ const FieldOfficers = () => {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="table-responsive">
-          {loading ? (
-             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading officers data...</div>
-          ) : (
-            <table className="modern-table">
-              <thead>
-                <tr>
-                  <th>Officer Name</th>
-                  <th>Email Address</th>
-                  <th>Contact Number</th>
-                  <th>DS Division</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOfficers.length > 0 ? (
-                  filteredOfficers.map(officer => (
-                    <tr key={officer.id}>
-                      <td className="font-medium">
-                        <div className="officer-name-cell">
-                          <div className="officer-avatar">
-                            {officer.firstName ? officer.firstName.charAt(0).toUpperCase() : ''}
-                            {officer.lastName ? officer.lastName.charAt(0).toUpperCase() : ''}
-                          </div>
-                          {officer.firstName} {officer.lastName}
-                        </div>
-                      </td>
-                      <td className="text-gray">{officer.email}</td>
-                      <td>{officer.mobile || 'N/A'}</td>
-                      <td>{officer.district || 'Not Assigned'}</td>
-                      <td>
-                        <span className="status-badge active">
-                          {officer.status}
-                        </span>
-                      </td>
-                      <td>
-                        {/* METHANA BUTTON ACTION EKA DAMMA */}
-                        <button 
-                          className="action-btn-view" 
-                          onClick={() => handleViewDetails(officer)}
+        <div className="analytics-list">
+          {loading ? <p>Loading data...</p> : (
+            filteredData.map(officer => (
+              <div key={officer.officerName} className="officer-card" style={{border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '15px', overflow: 'hidden'}}>
+                <div 
+                  className="officer-header" 
+                  onClick={() => toggleOfficer(officer.officerName)}
+                  style={{padding: '15px', background: '#f8fafc', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
+                >
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                    <div className="officer-avatar">{officer.officerName.charAt(0)}</div>
+                    <strong>{officer.officerName}</strong>
+                  </div>
+                  <span>{expandedOfficer === officer.officerName ? '▼' : '▶'}</span>
+                </div>
+
+                {expandedOfficer === officer.officerName && (
+                  <div className="officer-details" style={{padding: '15px', background: 'white'}}>
+                    <h4>Assigned Projects ({officer.projects.length})</h4>
+                    {officer.projects.length > 0 ? officer.projects.map(project => (
+                      <div key={project.name} style={{marginLeft: '20px', marginBottom: '10px', borderLeft: '2px solid #cbd5e1', paddingLeft: '15px'}}>
+                        <div 
+                          onClick={() => toggleProject(project.name)}
+                          style={{cursor: 'pointer', fontWeight: '600', color: '#1e293b', display: 'flex', justifyContent: 'space-between'}}
                         >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" style={{textAlign: 'center', padding: '30px'}}>
-                      No active field officers found.
-                    </td>
-                  </tr>
+                          {project.name}
+                          <span>{expandedProject === project.name ? '▼' : '▶'}</span>
+                        </div>
+                        
+                        {expandedProject === project.name && (
+                          <div style={{marginTop: '10px', fontSize: '0.9rem'}}>
+                            <ul style={{listStyle: 'none', padding: 0}}>
+                              {project.beneficiaries.map((ben, i) => (
+                                <li key={i} style={{padding: '5px 0', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between'}}>
+                                  <span>{ben.name}</span>
+                                  <span className={`status-badge ${ben.status?.toLowerCase()}`}>{ben.status}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )) : <p>No projects assigned via field visits.</p>}
+                  </div>
                 )}
-              </tbody>
-            </table>
+              </div>
+            ))
           )}
         </div>
       </div>
-
-      {/* MODAL (POPUP) EKA METHANA LIKA THIYENNE */}
-      {isModalOpen && selectedOfficer && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>Officer Full Details</h2>
-              <button className="close-btn" onClick={closeModal}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div className="detail-group">
-                <label>Full Name</label>
-                <p>{selectedOfficer.firstName} {selectedOfficer.lastName}</p>
-              </div>
-              <div className="detail-group">
-                <label>Email Address</label>
-                <p>{selectedOfficer.email}</p>
-              </div>
-              <div className="detail-group">
-                <label>Contact Number</label>
-                <p>{selectedOfficer.mobile}</p>
-              </div>
-              <div className="detail-group">
-                <label>DS Division</label>
-                <p>{selectedOfficer.district}</p>
-              </div>
-              <div className="detail-group">
-                <label>Vehicle Type</label>
-                <p>{selectedOfficer.vehicleType || 'None'}</p>
-              </div>
-              <div className="detail-group">
-                <label>Vehicle Number</label>
-                <p>{selectedOfficer.vehicleNo || 'N/A'}</p>
-              </div>
-              <div className="detail-group">
-                <label>Languages Spoken</label>
-                <p>{selectedOfficer.languages || 'N/A'}</p>
-              </div>
-              <div className="detail-group">
-                <label>Current Status</label>
-                <p><span className="status-badge active">{selectedOfficer.status}</span></p>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={closeModal}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

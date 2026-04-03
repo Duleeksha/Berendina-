@@ -1,25 +1,36 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import pool from './config/db.js';
 
-// METHANA WENAS KALA: '../' wenuwata './' damma
-import authRoutes from './Routes/authenticationRoutes.js'; 
+import authRoutes from './Routes/authRoutes.js';
+import beneficiaryRoutes from './Routes/beneficiaryRoutes.js';
+import visitRoutes from './Routes/visitRoutes.js';
+import resourceRoutes from './Routes/resourceRoutes.js';
+import projectRoutes from './Routes/projectRoutes.js';
+import analyticsRoutes from './Routes/analyticsRoutes.js';
 
-// METHANA WENAS KALA: '../Backend/db.js' wenuwata './db.js' damma (Mokada server.js ekayi db.js ekayi ekama thana thiyenne)
-import pool from './db.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-
-// React (Frontend) run wenne Port 3000 wala nisa, api Backend eka 5000 walata gamu.
 const port = 5000;
 
 // Middleware
 app.use(cors());
 app.use(express.json()); 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- ROUTES ---
 
-// 1. Auth Routes (Register & Login)
+// --- STANDARDIZED API ROUTES ---
 app.use("/api/auth", authRoutes);
+app.use("/api/beneficiaries", beneficiaryRoutes);
+app.use("/api/visits", visitRoutes);
+app.use("/api/resources", resourceRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // 2. Test Route 
 app.get("/users", async (req, res) => {

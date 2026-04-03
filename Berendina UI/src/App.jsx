@@ -18,6 +18,8 @@ import FieldVisits from './pages/FieldVisits/FieldVisits';
 import Resources from './pages/Resources/Resources';
 import FieldOfficers from './pages/Fieldofficers/FieldOfficers';
 import ReportGenerator from './pages/ReportGenerator/ReportGenerator';
+import BeneficiaryLogin from './pages/Auth/BeneficiaryLogin';
+import BeneficiaryPortal from './pages/Beneficiaries/BeneficiaryPortal';
 
 // Components
 import Sidebar from './components/Sidebar/Sidebar';
@@ -45,27 +47,22 @@ const DashboardLayout = ({ handleLogout, currentUser }) => {
 };
 
 function App() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // --- FIXED USE EFFECT ---
-  useEffect(() => {
+  const [currentUser, setCurrentUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
-    
-    // Check if storedUser exists AND is not the string "undefined"
-    if (storedUser && storedUser !== "undefined") {
+    if (storedUser) {
       try {
-        setCurrentUser(JSON.parse(storedUser));
+        return JSON.parse(storedUser);
       } catch (error) {
         console.error("Error parsing stored user:", error);
-        localStorage.removeItem('user'); // Clean up corrupt data
+        localStorage.removeItem('user');
       }
-    } else {
-      // If it is "undefined" or null, clean it up
-      localStorage.removeItem('user');
     }
-    setLoading(false);
-  }, []);
+  return null;
+});
+
+useEffect(() => {
+    // Already initialized via lazy initializer
+}, []);
 
   const handleLogin = (userData) => {
     setCurrentUser(userData);
@@ -77,9 +74,7 @@ function App() {
     localStorage.removeItem('user');
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+
 
   return (
     <Router>
@@ -87,6 +82,8 @@ function App() {
         {/* Auth Routes */}
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/beneficiary-login" element={<BeneficiaryLogin />} />
+        <Route path="/beneficiary-portal" element={<BeneficiaryPortal />} />
         
         {/* Protected Dashboard Routes */}
         <Route element={<DashboardLayout handleLogout={handleLogout} currentUser={currentUser} />}>

@@ -1,0 +1,12 @@
+import express from 'express';
+import { getDashboardStats, getReportData, exportPDF, exportExcel, getOfficerAnalytics } from '../controllers/analyticsController.js';
+
+const router = express.Router();
+
+router.get('/dashboard-stats', getDashboardStats);
+router.get('/reports', getReportData);
+router.get('/export/pdf', exportPDF);
+router.get('/export/excel', exportExcel);
+router.get('/officer-analytics', getOfficerAnalytics);
+
+export default router;

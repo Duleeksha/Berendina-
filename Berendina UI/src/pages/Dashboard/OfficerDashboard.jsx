@@ -1,80 +1,152 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import './Dashboard.css'; // Admin CSS ekama use karanawa
+import './Dashboard.css';
 
 const OfficerDashboard = () => {
-  // --- Data Tika Ehemamai (No Changes) ---
+  const [visits, setVisits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newVisitCount, setNewVisitCount] = useState(0);
+
+  const currentUser = (() => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  })();
+
+  const fetchVisits = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/visits?officerId=${currentUser.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setVisits(data);
+        const newOnes = data.filter(v => v.is_new).length;
+        setNewVisitCount(newOnes);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard visits:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchVisits();
+    }
+  }, [currentUser?.id, fetchVisits]);
+
+  const handleDismissNotifications = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/visits/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      });
+      if (response.ok) {
+        setNewVisitCount(0);
+        fetchVisits();
+      }
+    } catch (error) {
+      console.error('Error dismissing notifications:', error);
+    }
+  };
+
+  // Process data for charts vs upcoming list
+  const upcomingVisits = visits.filter(v => v.status === 'scheduled').slice(0, 5);
+  
+  // Dummy data for chart since we don't have historical counts in current schema easily
   const myVisitsData = [
     { name: 'Mon', visits: 2 }, { name: 'Tue', visits: 4 },
     { name: 'Wed', visits: 1 }, { name: 'Thu', visits: 5 },
     { name: 'Fri', visits: 3 }
   ];
 
-  const upcomingVisits = [
-    { id: 1, beneficiary: 'Kamal Perera', location: 'Gampaha', date: '2024-02-15' },
-    { id: 2, beneficiary: 'Nimali Silva', location: 'Wattala', date: '2024-02-16' },
-    { id: 3, beneficiary: 'Sunil Rathnayake', location: 'Ja-Ela', date: '2024-02-18' },
-  ];
-
   return (
-    // Admin Dashboard eke class ekama use karanawa layout eka full-screen ganna
     <div className="dashboard-content">
       
+      {/* --- NOTIFICATION BANNER --- */}
+      {newVisitCount > 0 && (
+        <div style={{
+          background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
+          color: 'white',
+          padding: '15px 25px',
+          borderRadius: '12px',
+          marginBottom: '25px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.4)'
+        }}>
+          <div>
+            <h4 style={{margin: 0, fontSize: '16px'}}>🔔 New Visits Assigned!</h4>
+            <p style={{margin: '5px 0 0', fontSize: '14px', opacity: 0.9}}>
+              You have {newVisitCount} new field visit{newVisitCount > 1 ? 's' : ''} scheduled for you recently.
+            </p>
+          </div>
+          <button 
+            onClick={handleDismissNotifications}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.4)',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Acknowledge
+          </button>
+        </div>
+      )}
+
       {/* --- HEADER SECTION --- */}
       <div className="dashboard-header">
         <div>
           <h1>Officer Dashboard</h1>
-          <p>Welcome back! Here is your field summary.</p>
+          <p>Welcome back, {currentUser?.firstName || 'Officer'}! Here is your field summary.</p>
         </div>
         <div className="date-display">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
 
-      {/* --- STATS CARDS (Using Admin Styles) --- */}
+      {/* --- STATS CARDS --- */}
       <div className="stats-grid">
-        {/* Card 1: My Beneficiaries */}
         <div className="stat-card blue">
           <div className="stat-icon">👥</div>
           <div className="stat-info">
-            <h3>My Beneficiaries</h3>
-            <div className="stat-value">45</div>
-            <span className="stat-meta">Assigned to you</span>
+            <h3>Total Assignments</h3>
+            <div className="stat-value">{visits.length}</div>
+            <span className="stat-meta">Lifetime visits</span>
           </div>
         </div>
 
-        {/* Card 2: Pending Visits */}
         <div className="stat-card orange">
           <div className="stat-icon">📅</div>
           <div className="stat-info">
             <h3>Pending Visits</h3>
-            <div className="stat-value">8</div>
-            <span className="stat-meta">This week</span>
+            <div className="stat-value">{visits.filter(v => v.status === 'scheduled').length}</div>
+            <span className="stat-meta">Upcoming schedule</span>
           </div>
         </div>
 
-        {/* Card 3: Resources */}
         <div className="stat-card purple">
-          <div className="stat-icon">📦</div>
+          <div className="stat-icon">✅</div>
           <div className="stat-info">
-            <h3>Resources</h3>
-            <div className="stat-value">12</div>
-            <span className="stat-meta">Items Distributed</span>
+            <h3>Completed</h3>
+            <div className="stat-value">{visits.filter(v => v.status === 'completed').length}</div>
+            <span className="stat-meta">Successfully finished</span>
           </div>
         </div>
-        
-        {/* 4 weni card ekak nathi nisa layout eka balance wenna nikan thiyanawa ho 
-            anagathaye aluth stat ekak methanata danna puluwan */}
       </div>
 
-      {/* --- MAIN GRID (Charts & Lists) --- */}
+      {/* --- MAIN GRID --- */}
       <div className="main-grid">
         
-        {/* LEFT COLUMN: Charts */}
         <div className="charts-section">
           <div className="chart-card">
             <div className="chart-header">
-                <h3>My Field Visits (This Week)</h3>
+                <h3>My Field Visits (Weekly Summary)</h3>
             </div>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={myVisitsData} barSize={50}>
@@ -91,40 +163,40 @@ const OfficerDashboard = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Upcoming Visits List */}
         <div className="side-panel">
             <div className="panel-card">
                 <div className="panel-header">
-                    <h3>📅 Upcoming Visits</h3>
+                    <h3>📅 Next 5 Visits</h3>
                 </div>
                 
-                {/* List eka Admin list eka wagema lassana karamu */}
                 <div className="approval-list">
-                    {upcomingVisits.map(visit => (
+                    {loading ? <p>Loading visits...</p> : (
+                      upcomingVisits.length > 0 ? upcomingVisits.map(visit => (
                         <div key={visit.id} className="approval-item">
                             <div className="user-details-row">
-                                {/* Icon for Location/User */}
                                 <div className="avatar-placeholder" style={{background: '#f0fdf4', color: '#16a34a'}}>
                                     📍
                                 </div>
                                 <div className="user-text">
                                     <h4>{visit.beneficiary}</h4>
-                                    <p>{visit.location}</p>
+                                    <p>{visit.address || visit.district}</p>
                                 </div>
                             </div>
                             <div style={{
-                                fontSize: '12px', 
+                                fontSize: '11px', 
                                 fontWeight: 'bold', 
                                 color: '#4b5563', 
                                 background: '#f3f4f6', 
                                 padding: '4px 8px', 
                                 borderRadius: '6px',
-                                textAlign: 'center'
+                                textAlign: 'center',
+                                minWidth: '80px'
                             }}>
                                 {visit.date}
                             </div>
                         </div>
-                    ))}
+                      )) : <p>No upcoming visits.</p>
+                    )}
                 </div>
             </div>
         </div>

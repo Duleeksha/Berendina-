@@ -1,5 +1,4 @@
 import 'dotenv/config';
-
 import pkg from 'pg';
 const { Pool } = pkg;
 
@@ -12,7 +11,6 @@ const pool = new Pool({
   ssl: process.env.DB_SSL === 'true'
 });
 
-// Test database connection on startup
 pool.query('SELECT 1', (err, res) => {
   if (err) {
     console.error('Database connection failed:', err);
@@ -21,10 +19,8 @@ pool.query('SELECT 1', (err, res) => {
   }
 });
 
-// Handle connection errors
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client:', err);
 });
 
-// Me pool eka anith files walata use karanna puluwan wenna export karanawa
 export default pool;

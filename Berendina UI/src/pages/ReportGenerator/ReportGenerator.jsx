@@ -1,160 +1,114 @@
-import React, { useState } from 'react';
-import Sidebar from '../../components/Sidebar/Sidebar';
+import React, { useState, useEffect } from 'react';
 import './ReportGenerator.css';
 
 const ReportGenerator = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [formData, setFormData] = useState({
     reportType: 'monthly',
     startDate: '2024-01-01',
-    endDate: '2024-01-31',
-    districts: ['all'],
-    projects: ['all'],
+    endDate: '2024-12-31',
+    district: '',
+    project: '',
   });
+
+  const [reportData, setReportData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [projects, setProjects] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/projects')
+      .then(res => res.json())
+      .then(data => setProjects(data));
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleGenerate = async (e) => {
     e.preventDefault();
-    console.log('Report generated:', formData);
+    setLoading(true);
+    try {
+      const query = new URLSearchParams(formData).toString();
+      const response = await fetch(`http://localhost:5000/api/analytics/reports?${query}`);
+      if (response.ok) {
+        const data = await response.json();
+        setReportData(data);
+      }
+    } catch (error) {
+      console.error("Report error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExport = (type) => {
+    window.open(`http://localhost:5000/api/analytics/export/${type}`, '_blank');
   };
 
   return (
-    <div className="report-layout">
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-      <main className={`report-content ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-        <div className="page-header">
-          <h1>Report Generator</h1>
-          <p>Generate customized reports for your organization</p>
-        </div>
+    <div className="report-page-content">
+      <div className="page-header">
+        <h1>Report Generator</h1>
+        <p>Generate and export customized beneficiary reports</p>
+      </div>
 
-        <div className="report-container">
-          {/* Form Section */}
-          <div className="report-settings">
-            <form onSubmit={handleSubmit} className="settings-form">
-              <h3>Report Settings</h3>
-
-              <div className="form-group">
-                <label>Report Type</label>
-                <select name="reportType" value={formData.reportType} onChange={handleChange}>
-                  <option value="monthly">Monthly Report</option>
-                  <option value="quarterly">Quarterly Report</option>
-                  <option value="annual">Annual Report</option>
-                  <option value="custom">Custom Report</option>
-                </select>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Start Date</label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    value={formData.startDate}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>End Date</label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    value={formData.endDate}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Districts</label>
-                <select name="districts" onChange={handleChange}>
-                  <option value="all">All Districts</option>
-                  <option value="district-a">District A</option>
-                  <option value="district-b">District B</option>
-                  <option value="district-c">District C</option>
-                  <option value="district-d">District D</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Projects</label>
-                <select name="projects" onChange={handleChange}>
-                  <option value="all">All Projects</option>
-                  <option value="education">Education Initiative</option>
-                  <option value="health">Health Program</option>
-                  <option value="economic">Economic Empowerment</option>
-                  <option value="water">Water & Sanitation</option>
-                </select>
-              </div>
-
-              <button type="submit" className="btn btn-primary generate-btn">
-                Generate Report
-              </button>
-            </form>
-          </div>
-
-          {/* Preview Section */}
-          <div className="report-preview">
-            <h3>Report Preview</h3>
-            <div className="preview-content">
-              <div className="preview-header">
-                <h2>Berendina Development Services</h2>
-                <p className="report-title">Monthly Progress Report</p>
-                <p className="report-date">January 1 - January 31, 2024</p>
-              </div>
-
-              <div className="preview-section">
-                <h4>Executive Summary</h4>
-                <p>
-                  This report provides a comprehensive overview of activities, progress, and key metrics
-                  for the reporting period. The organization has successfully implemented programs across
-                  multiple districts with significant impact on beneficiary communities.
-                </p>
-              </div>
-
-              <div className="preview-section">
-                <h4>Key Metrics</h4>
-                <div className="metrics-grid">
-                  <div className="metric">
-                    <span className="metric-label">Total Beneficiaries</span>
-                    <span className="metric-value">1,248</span>
-                  </div>
-                  <div className="metric">
-                    <span className="metric-label">Projects Active</span>
-                    <span className="metric-value">24</span>
-                  </div>
-                  <div className="metric">
-                    <span className="metric-label">Field Visits</span>
-                    <span className="metric-value">156</span>
-                  </div>
-                  <div className="metric">
-                    <span className="metric-label">Budget Utilization</span>
-                    <span className="metric-value">78%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="preview-section">
-                <h4>Activities Completed</h4>
-                <ul>
-                  <li>Conducted 156 field visits across all districts</li>
-                  <li>Registered 45 new beneficiaries in education program</li>
-                  <li>Distributed medical supplies to 8 healthcare centers</li>
-                  <li>Completed water infrastructure projects in 3 villages</li>
-                  <li>Provided training to 120 community leaders</li>
-                </ul>
-              </div>
-
-              <div className="preview-footer">
-                <p><strong>Report Generated:</strong> {new Date().toLocaleDateString()}</p>
-              </div>
+      <div className="report-container">
+        <div className="report-settings content-card">
+          <form onSubmit={handleGenerate}>
+            <h3>Filter Criteria</h3>
+            <div className="form-group">
+              <label>Project</label>
+              <select name="project" value={formData.project} onChange={handleChange} className="modern-select">
+                <option value="">All Projects</option>
+                {projects.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+              </select>
             </div>
+            <div className="form-group">
+              <label>District</label>
+              <select name="district" value={formData.district} onChange={handleChange} className="modern-select">
+                <option value="">All Districts</option>
+                <option value="Colombo">Colombo</option>
+                <option value="Gampaha">Gampaha</option>
+                <option value="Kalutara">Kalutara</option>
+              </select>
+            </div>
+            <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
+              <button type="submit" className="save-btn" style={{flex: 1}}>Generate Preview</button>
+            </div>
+            <div style={{marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                <button type="button" onClick={() => handleExport('pdf')} className="action-btn-view" style={{width: '100%', background: '#ef4444', color: 'white'}}>Export as PDF</button>
+                <button type="button" onClick={() => handleExport('excel')} className="action-btn-view" style={{width: '100%', background: '#10b981', color: 'white'}}>Export as Excel</button>
+            </div>
+          </form>
+        </div>
+
+        <div className="report-preview content-card">
+          <h3>Report Preview ({reportData.length} Results)</h3>
+          <div className="table-responsive">
+            <table className="modern-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>NIC</th><th>District</th><th>Project</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? <tr><td colSpan="5">Generating...</td></tr> : (
+                  reportData.length > 0 ? reportData.map((b, i) => (
+                    <tr key={i}>
+                      <td>{b.ben_name}</td>
+                      <td>{b.ben_nic}</td>
+                      <td>{b.ben_district}</td>
+                      <td>{b.ben_project}</td>
+                      <td>{b.ben_status}</td>
+                    </tr>
+                  )) : <tr><td colSpan="5" style={{textAlign: 'center'}}>No data to display. Adjust filters and generate.</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
