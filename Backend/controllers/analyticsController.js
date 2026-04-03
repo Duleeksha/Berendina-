@@ -15,11 +15,11 @@ export const getDashboardStats = async (req, res) => {
     const pendingRes = await pool.query("SELECT COUNT(*) FROM user_table WHERE status = 'Pending'");
     data.pendingRequests = parseInt(pendingRes.rows[0].count);
 
-    const trendRes = await pool.query("SELECT TO_CHAR(created_at, 'Mon') as month, COUNT(*) as count FROM beneficiary GROUP BY month");
-    data.onboardingTrend = trendRes.rows.map(r => ({ ...r, count: parseInt(r.count) }));
+    const trendRes = await pool.query("SELECT TO_CHAR(created_at, 'Mon') as name, COUNT(*) as beneficiaries FROM beneficiary GROUP BY name");
+    data.onboardingTrend = trendRes.rows.map(r => ({ ...r, beneficiaries: parseInt(r.beneficiaries) }));
 
-    const distRes = await pool.query("SELECT ben_project as name, COUNT(*) as value FROM beneficiary GROUP BY ben_project");
-    data.projectDistribution = distRes.rows.map(r => ({ ...r, value: parseInt(r.value) }));
+    const distRes = await pool.query("SELECT ben_project as name, COUNT(*) as beneficiaries FROM beneficiary GROUP BY ben_project");
+    data.projectDistribution = distRes.rows.map(r => ({ ...r, beneficiaries: parseInt(r.beneficiaries) }));
 
     const resRes = await pool.query('SELECT SUM(quantity) as total FROM resource');
     data.totalResources = parseInt(resRes.rows[0].total) || 0;
