@@ -11,11 +11,14 @@ export const getProjects = async (req, res) => {
 };
 
 export const addProject = async (req, res) => {
-  const { projectName, donorAgency, targetLocation, startDate, endDate, budget, status, description } = req.body;
+  const { name, donor, location, start, end, budget, status, description } = req.body;
+  
+  console.log('Add Project Attempt:', { name, donor, location, start, end });
+
   try {
     const result = await pool.query(
-      'INSERT INTO project (project_name, donor_agency, target_location, start_date, end_date, budget, status, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [projectName, donorAgency, targetLocation, startDate || null, endDate || null, budget || 0, status || 'Active', description]
+      'INSERT INTO project (project_name, donor_agency, target_location, start_date, end_date, budget, status, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, \'YYYY-MM-DD\') AS start, TO_CHAR(end_date, \'YYYY-MM-DD\') AS "end", budget, status, description',
+      [name, donor, location, start || null, end || null, budget || 0, status || 'Active', description]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -28,6 +31,8 @@ export const updateProject = async (req, res) => {
   const { id } = req.params;
   const { name, donor, location, start, end, budget, status, description } = req.body;
   
+  console.log('Update Project Attempt:', { id, name, location });
+
   try {
     const result = await pool.query(
       `UPDATE project SET 
@@ -39,9 +44,11 @@ export const updateProject = async (req, res) => {
         budget = $6, 
         status = $7, 
         description = $8 
-      WHERE project_id = $9 RETURNING *`,
+      WHERE project_id = $9 RETURNING project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, 'YYYY-MM-DD') AS start, TO_CHAR(end_date, 'YYYY-MM-DD') AS "end", budget, status, description`,
       [name, donor, location, start, end, budget, status, description, id]
     );
+    
+    console.log('Update Result Rows:', result.rowCount);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Project not found' });

@@ -93,11 +93,20 @@ const Projects = () => {
       });
       if (response.ok) {
         const updated = await response.json();
-        setProjects(projects.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+        
+        // Use functional state update and ensure ID comparison handles type mismatch
+        setProjects(prevProjects => 
+          prevProjects.map(p => String(p.id) === String(updated.id) ? { ...p, ...updated } : p)
+        );
+        
         alert('Project updated successfully!');
+        setIsModalOpen(false); 
         setIsEditMode(false);
-        setSelectedProject(updated);
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unexpected error' }));
+        alert(`Error: ${errorData.message || response.statusText}`);
       }
+
     } catch (error) {
       console.error('Update error:', error);
       alert('Error updating project');

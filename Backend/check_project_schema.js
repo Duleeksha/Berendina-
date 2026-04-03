@@ -1,19 +1,21 @@
-import pool from './config/db.js';
+import pool from '../config/db.js';
 
-async function checkSchema() {
-  try {
-    const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'project'
-    `);
-    console.log("Project Table Schema:");
-    console.log(res.rows);
-    process.exit(0);
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
-  }
-}
+const checkSchema = async () => {
+    try {
+        const result = await pool.query("SELECT * FROM project LIMIT 1");
+        console.log("Columns in project table:", Object.keys(result.rows[0] || {}).join(", "));
+        
+        if (result.rows.length > 0) {
+            console.log("Example Row Data:", JSON.stringify(result.rows[0], null, 2));
+        } else {
+            console.log("Project table is empty.");
+        }
+        
+    } catch (error) {
+        console.error("Error checking schema:", error.message);
+    } finally {
+        process.exit();
+    }
+};
 
 checkSchema();

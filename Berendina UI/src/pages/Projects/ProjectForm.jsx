@@ -7,11 +7,11 @@ const ProjectForm = () => {
 
   // Form data state eka (Database columns walata match wenna)
   const [formData, setFormData] = useState({
-    projectName: '',
-    donorAgency: '',
-    targetLocation: '',
-    startDate: '',
-    endDate: '',
+    name: '',
+    donor: '',
+    location: '',
+    start: '',
+    end: '',
     budget: '',
     status: 'Active',
     description: ''
@@ -64,15 +64,15 @@ const ProjectForm = () => {
     const { value } = e.target;
     if (value === "Other") {
       setShowOtherDonor(true);
-      setFormData({ ...formData, donorAgency: '' });
+      setFormData({ ...formData, donor: '' });
     } else {
       setShowOtherDonor(false);
-      setFormData({ ...formData, donorAgency: value });
+      setFormData({ ...formData, donor: value });
     }
   };
 
   const handleOtherDonorChange = (e) => {
-    setFormData({ ...formData, donorAgency: e.target.value });
+    setFormData({ ...formData, donor: e.target.value });
   };
 
   return (
@@ -97,9 +97,9 @@ const ProjectForm = () => {
               <label>Project Name <span className="required">*</span></label>
               <input 
                 type="text" 
-                name="projectName" 
+                name="name" 
                 placeholder="Ex: Education Support Program" 
-                value={formData.projectName} 
+                value={formData.name} 
                 onChange={handleChange} 
                 required 
               />
@@ -111,7 +111,7 @@ const ProjectForm = () => {
                 name="donorDropdown" 
                 className="modern-input"
                 onChange={handleDonorChange}
-                value={showOtherDonor ? "Other" : (DONOR_AGENCIES.includes(formData.donorAgency) ? formData.donorAgency : (formData.donorAgency ? "Other" : ""))}
+                value={showOtherDonor ? "Other" : (DONOR_AGENCIES.includes(formData.donor) ? formData.donor : (formData.donor ? "Other" : ""))}
               >
                 <option value="">Select Donor Agency</option>
                 {DONOR_AGENCIES.map(agency => (
@@ -122,10 +122,10 @@ const ProjectForm = () => {
               {showOtherDonor && (
                 <input 
                   type="text" 
-                  name="donorAgency" 
+                  name="donor" 
                   placeholder="Enter custom donor agency name" 
                   style={{ marginTop: '10px' }}
-                  value={formData.donorAgency} 
+                  value={formData.donor} 
                   onChange={handleOtherDonorChange} 
                 />
               )}
@@ -134,9 +134,9 @@ const ProjectForm = () => {
             <div className="form-group">
               <label>Target Location</label>
               <select 
-                name="targetLocation" 
+                name="location" 
                 className="modern-input"
-                value={formData.targetLocation} 
+                value={formData.location} 
                 onChange={handleChange}
               >
                 <option value="">Select Target Location</option>
@@ -161,8 +161,8 @@ const ProjectForm = () => {
               <label>Start Date <span className="required">*</span></label>
               <input 
                 type="date" 
-                name="startDate" 
-                value={formData.startDate} 
+                name="start" 
+                value={formData.start} 
                 onChange={handleChange} 
                 required 
               />
@@ -172,8 +172,8 @@ const ProjectForm = () => {
               <label>End Date</label>
               <input 
                 type="date" 
-                name="endDate" 
-                value={formData.endDate} 
+                name="end" 
+                value={formData.end} 
                 onChange={handleChange} 
               />
             </div>
