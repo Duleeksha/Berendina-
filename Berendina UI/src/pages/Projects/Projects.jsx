@@ -43,6 +43,8 @@ const Projects = () => {
   const [projectBeneficiaries, setProjectBeneficiaries] = useState([]);
   const [fetchingBen, setFetchingBen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchProjectBeneficiaries = async (projectName) => {
     setFetchingBen(true);
@@ -81,6 +83,42 @@ const Projects = () => {
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const promptDelete = (e, project) => {
+    e.stopPropagation();
+    setDeletingProject(project);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingProject) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/projects/${deletingProject.id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        alert('Project deleted successfully!');
+        setDeletingProject(null);
+        // Refresh project list
+        const res = await fetch('http://localhost:5000/api/projects');
+        if (res.ok) setProjects(await res.json());
+      } else {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const errorData = await response.json();
+          alert(`Error: ${errorData.message}`);
+        } else {
+          console.error("Server returned non-JSON error:", response.status);
+          alert(`Server Error (${response.status}). Please ensure the backend is restarted.`);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Error connecting to the server.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleUpdateSubmit = async () => {
@@ -178,7 +216,12 @@ const Projects = () => {
                         </span>
                       </td>
                       <td>
-                        <button className="action-btn-view" onClick={(e) => handleOpenEdit(project, e)}>Edit</button>
+                        <div className="action-group" style={{display: 'flex', gap: '8px'}}>
+                          <button className="action-btn-view" onClick={(e) => handleOpenEdit(project, e)}>Edit</button>
+                          <button className="action-btn-delete" onClick={(e) => promptDelete(e, project)} style={{
+                            backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'
+                          }}>Delete</button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -351,8 +394,50 @@ const Projects = () => {
           </div>
         </div>
       )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {deletingProject && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+          backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 2000
+        }}>
+          <div className="modal-content delete-modal" style={{
+            background: 'white', padding: '40px', borderRadius: '15px', width: '90%', maxWidth: '400px',
+            textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+             <div style={{fontSize: '50px', marginBottom: '20px'}}>⚠️</div>
+             <h2 style={{color: '#111827', marginBottom: '10px'}}>Are you sure?</h2>
+             <p style={{color: '#6b7280', marginBottom: '30px', fontSize: '15px'}}>
+               Do you really want to delete <strong>{deletingProject.name}</strong>? This action cannot be undone.
+             </p>
+             <div style={{display: 'flex', gap: '15px', justifyContent: 'center'}}>
+               <button 
+                 onClick={() => setDeletingProject(null)} 
+                 className="cancel-btn"
+                 disabled={isDeleting}
+                 style={{flex: 1, padding: '12px'}}
+               >
+                 Cancel
+               </button>
+               <button 
+                 onClick={confirmDelete} 
+                 className="delete-confirm-btn"
+                 disabled={isDeleting}
+                 style={{
+                   flex: 1, padding: '12px', backgroundColor: '#ef4444', color: 'white', 
+                   border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer'
+                 }}
+               >
+                 {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+               </button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default Projects;
+export default Projects;
+

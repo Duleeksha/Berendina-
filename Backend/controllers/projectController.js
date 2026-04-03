@@ -1,8 +1,11 @@
 import pool from '../config/db.js';
+import { uploadToSupabase } from '../middleware/upload.js';
+
 
 export const getProjects = async (req, res) => {
   try {
-    const result = await pool.query('SELECT project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, \'YYYY-MM-DD\') AS start, TO_CHAR(end_date, \'YYYY-MM-DD\') AS "end", budget, status, description, created_at FROM project ORDER BY created_at DESC');
+    const result = await pool.query('SELECT project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, \'YYYY-MM-DD\') AS start, TO_CHAR(end_date, \'YYYY-MM-DD\') AS "end", budget, status, description, image_url, created_at FROM project ORDER BY created_at DESC');
+
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching projects:', error);
@@ -12,13 +15,14 @@ export const getProjects = async (req, res) => {
 
 export const addProject = async (req, res) => {
   const { name, donor, location, start, end, budget, status, description } = req.body;
+  const image_url = req.file ? await uploadToSupabase(req.file, 'projects') : null;
   
-  console.log('Add Project Attempt:', { name, donor, location, start, end });
+  console.log('Add Project Attempt:', { name, donor, location, start, end, image_url });
 
   try {
     const result = await pool.query(
-      'INSERT INTO project (project_name, donor_agency, target_location, start_date, end_date, budget, status, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, \'YYYY-MM-DD\') AS start, TO_CHAR(end_date, \'YYYY-MM-DD\') AS "end", budget, status, description',
-      [name, donor, location, start || null, end || null, budget || 0, status || 'Active', description]
+      'INSERT INTO project (project_name, donor_agency, target_location, start_date, end_date, budget, status, description, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, \'YYYY-MM-DD\') AS start, TO_CHAR(end_date, \'YYYY-MM-DD\') AS "end", budget, status, description, image_url',
+      [name, donor, location, start || null, end || null, budget || 0, status || 'Active', description, image_url]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -27,26 +31,46 @@ export const addProject = async (req, res) => {
   }
 };
 
+
 export const updateProject = async (req, res) => {
   const { id } = req.params;
   const { name, donor, location, start, end, budget, status, description } = req.body;
+  const image_url = req.file ? await uploadToSupabase(req.file, 'projects') : null;
   
-  console.log('Update Project Attempt:', { id, name, location });
+  console.log('Update Project Attempt:', { id, name, location, image_url });
 
   try {
-    const result = await pool.query(
-      `UPDATE project SET 
-        project_name = $1, 
-        donor_agency = $2, 
-        target_location = $3, 
-        start_date = $4, 
-        end_date = $5, 
-        budget = $6, 
-        status = $7, 
-        description = $8 
-      WHERE project_id = $9 RETURNING project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, 'YYYY-MM-DD') AS start, TO_CHAR(end_date, 'YYYY-MM-DD') AS "end", budget, status, description`,
-      [name, donor, location, start, end, budget, status, description, id]
-    );
+    let result;
+    if (image_url) {
+        result = await pool.query(
+          `UPDATE project SET 
+            project_name = $1, 
+            donor_agency = $2, 
+            target_location = $3, 
+            start_date = $4, 
+            end_date = $5, 
+            budget = $6, 
+            status = $7, 
+            description = $8,
+            image_url = $9
+          WHERE project_id = $10 RETURNING project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, 'YYYY-MM-DD') AS start, TO_CHAR(end_date, 'YYYY-MM-DD') AS "end", budget, status, description, image_url`,
+          [name, donor, location, start, end, budget, status, description, image_url, id]
+        );
+    } else {
+        result = await pool.query(
+          `UPDATE project SET 
+            project_name = $1, 
+            donor_agency = $2, 
+            target_location = $3, 
+            start_date = $4, 
+            end_date = $5, 
+            budget = $6, 
+            status = $7, 
+            description = $8 
+          WHERE project_id = $9 RETURNING project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, 'YYYY-MM-DD') AS start, TO_CHAR(end_date, 'YYYY-MM-DD') AS "end", budget, status, description, image_url`,
+          [name, donor, location, start, end, budget, status, description, id]
+        );
+    }
     
     console.log('Update Result Rows:', result.rowCount);
     
@@ -60,3 +84,19 @@ export const updateProject = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const deleteProject = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM project WHERE project_id = $1 RETURNING project_id AS id', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    res.json({ message: 'Project deleted successfully!', id: result.rows[0].id });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+

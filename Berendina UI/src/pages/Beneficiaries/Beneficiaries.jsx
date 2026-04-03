@@ -13,6 +13,9 @@ const Beneficiaries = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [deletingBen, setDeletingBen] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [selectedBen, setSelectedBen] = useState({
     name: '', nic: '', dob: '', gender: '', contact: '', 
     district: '', dsDivision: '', address: '', maritalStatus: '', 
@@ -116,6 +119,41 @@ const Beneficiaries = () => {
     }
   };
 
+  const promptDelete = (e, ben) => {
+    e.stopPropagation();
+    setDeletingBen(ben);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingBen) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/beneficiaries/${deletingBen.id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        alert('Beneficiary deleted successfully!');
+        setDeletingBen(null);
+        fetchData();
+      } else {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const errorData = await response.json();
+          alert(`Error: ${errorData.message}`);
+        } else {
+          console.error("Server returned non-JSON error:", response.status);
+          alert(`Server Error (${response.status}). Please restart the backend server.`);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error deleting beneficiary:', error);
+      alert('Error connecting to the server.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleProgressSubmit = async (e) => {
     e.preventDefault();
     setIsUpdating(true);
@@ -200,7 +238,12 @@ const Beneficiaries = () => {
                       </div>
                     </td>
                     <td>
-                      <button className="action-btn-view" onClick={(e) => handleEditClick(e, ben)}>Edit</button>
+                      <div className="action-group" style={{display: 'flex', gap: '8px'}}>
+                        <button className="action-btn-view" onClick={(e) => handleEditClick(e, ben)}>Edit</button>
+                        <button className="action-btn-delete" onClick={(e) => promptDelete(e, ben)} style={{
+                          backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'
+                        }}>Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -259,7 +302,7 @@ const Beneficiaries = () => {
                 <h3>Location & Status</h3>
                 <div className="info-row">
                    <div className="info-group">
-                     <label>District</label>
+                     <label>DS Division</label>
                      <span>{selectedBen.district}</span>
                    </div>
                    <div className="info-group">
@@ -450,9 +493,9 @@ const Beneficiaries = () => {
                 <h3 style={{ fontSize: '1rem', fontBold: '700', marginBottom: '15px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location & Program</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
                   <div>
-                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>District</label>
+                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>DS Division</label>
                     <select name="district" value={selectedBen.district} onChange={handleInputChange} className="modern-select">
-                      <option value="">Select District</option>
+                      <option value="">Select Location</option>
                       <option value="Colombo">Colombo</option>
                       <option value="Gampaha">Gampaha</option>
                       <option value="Kalutara">Kalutara</option>
@@ -563,8 +606,48 @@ const Beneficiaries = () => {
           </div>
         </div>
       )}
+      {/* Custom Delete Confirmation Modal */}
+      {deletingBen && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+          backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 2000
+        }}>
+          <div className="modal-content delete-modal" style={{
+            background: 'white', padding: '40px', borderRadius: '15px', width: '90%', maxWidth: '400px',
+            textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+             <div style={{fontSize: '50px', marginBottom: '20px'}}>⚠️</div>
+             <h2 style={{color: '#111827', marginBottom: '10px'}}>Are you sure?</h2>
+             <p style={{color: '#6b7280', marginBottom: '30px', fontSize: '15px'}}>
+               Do you really want to delete <strong>{deletingBen.name}</strong>? This action cannot be undone.
+             </p>
+             <div style={{display: 'flex', gap: '15px', justifyContent: 'center'}}>
+               <button 
+                 onClick={() => setDeletingBen(null)} 
+                 className="cancel-btn"
+                 disabled={isDeleting}
+                 style={{flex: 1, padding: '12px'}}
+               >
+                 Cancel
+               </button>
+               <button 
+                 onClick={confirmDelete} 
+                 className="delete-confirm-btn"
+                 disabled={isDeleting}
+                 style={{
+                   flex: 1, padding: '12px', backgroundColor: '#ef4444', color: 'white', 
+                   border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer'
+                 }}
+               >
+                 {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+               </button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default Beneficiaries;
+export default Beneficiaries;

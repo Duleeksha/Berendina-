@@ -104,18 +104,85 @@ export const exportExcel = async (req, res) => {
 
 export const getOfficerAnalytics = async (req, res) => {
   try {
-    const query = `
-      SELECT u.user_id, u.first_name || ' ' || u.last_name AS name,
-             COUNT(v.visit_id) AS total_visits,
-             COUNT(CASE WHEN v.status = 'completed' THEN 1 END) AS completed_visits
-      FROM user_table u
-      LEFT JOIN field_visits v ON u.user_id = v.officer_id
-      WHERE u.role = 'officer'
-      GROUP BY u.user_id;
-    `;
-    const result = await pool.query(query);
-    res.json(result.rows);
+    // 1. Get all officers (using CONCAT to handle NULL first/last names)
+    const officersRes = await pool.query(`
+      SELECT user_id, 
+             TRIM(CONCAT(first_name, ' ', last_name)) AS name 
+      FROM user_table 
+      WHERE TRIM(LOWER(role)) = 'officer'
+    `);
+
+
+    const officers = officersRes.rows;
+
+
+    // Get all visits with beneficiary and project info
+    const visitsRes = await pool.query(`
+      SELECT 
+        v.officer_id,
+        v.beneficiary_name,
+        b.ben_project AS project_name,
+        b.ben_status AS status
+      FROM field_visits v
+      LEFT JOIN beneficiary b ON v.beneficiary_name = b.ben_name
+    `);
+
+    const visits = visitsRes.rows;
+
+    // Structure the data: Officer -> Projects -> Beneficiaries
+    const structuredData = officers.map(officer => {
+      const officerVisits = visits.filter(v => v.officer_id === officer.user_id);
+      
+      // Group by project
+      const projectsMap = {};
+      officerVisits.forEach(v => {
+        const projName = v.project_name || "Unassigned/Field Visit";
+        if (!projectsMap[projName]) {
+          projectsMap[projName] = { name: projName, beneficiaries: [] };
+        }
+        // Avoid duplicate beneficiaries in the same project list for this officer
+        if (!projectsMap[projName].beneficiaries.find(b => b.name === v.beneficiary_name)) {
+          projectsMap[projName].beneficiaries.push({
+            name: v.beneficiary_name,
+            status: v.status || 'Pending'
+          });
+        }
+      });
+
+
+      return {
+        officerName: officer.name,
+        totalVisits: officerVisits.length,
+        projects: Object.values(projectsMap)
+      };
+    });
+
+    // Sort by enthusiasm: Star Performers -> New Members (Zeroes) -> Others
+    structuredData.sort((a, b) => {
+      const aScore = a.projects.length + a.totalVisits;
+      const bScore = b.projects.length + b.totalVisits;
+
+      // If both are zero, they are equal
+      if (aScore === 0 && bScore === 0) return 0;
+      
+      // If one is high activity (e.g. > 5 total engagement) and other is zero, high activity wins
+      // If one is low activity (e.g. 1-2 engagement) and other is zero, zero activity (new) wins to be "second"
+      if (aScore === 0) return bScore > 5 ? 1 : -1;
+      if (bScore === 0) return aScore > 5 ? -1 : 1;
+
+      // Normal descending sort for active members
+      if (b.projects.length !== a.projects.length) {
+        return b.projects.length - a.projects.length;
+      }
+      return b.totalVisits - a.totalVisits;
+    });
+
+
+    res.json(structuredData);
+
   } catch (error) {
+    console.error('Officer Analytics Error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+

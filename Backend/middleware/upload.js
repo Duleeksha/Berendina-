@@ -11,7 +11,7 @@ export const uploadToSupabase = async (file, folder = 'uploads') => {
   const filePath = `${folder}/${fileName}`;
 
   const { data, error } = await supabase.storage
-    .from('berendina-bucket')
+    .from('Berendinaa')
     .upload(filePath, file.buffer, {
       contentType: file.mimetype,
       upsert: true
@@ -19,9 +19,12 @@ export const uploadToSupabase = async (file, folder = 'uploads') => {
 
   if (error) throw error;
 
-  const { data: publicUrlData } = supabase.storage
-    .from('berendina-bucket')
-    .getPublicUrl(filePath);
+  const { data: signedUrlData, error: signedError } = await supabase.storage
+    .from('Berendinaa')
+    .createSignedUrl(filePath, 157680000); // 5 years in seconds
 
-  return publicUrlData.publicUrl;
+  if (signedError) throw signedError;
+
+  return signedUrlData.signedUrl;
 };
+

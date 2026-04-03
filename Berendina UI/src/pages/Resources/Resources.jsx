@@ -22,6 +22,8 @@ const Resources = () => {
     issuingDate: '',
     allocatedToId: ''
   });
+  const [image, setImage] = useState(null);
+
 
   const fetchResources = async () => {
     try {
@@ -102,7 +104,9 @@ const Resources = () => {
       });
     }
     setIsModalOpen(true);
+    setImage(null);
   };
+
 
   const promptDelete = (resource) => {
     setDeletingResource(resource);
@@ -139,21 +143,29 @@ const Resources = () => {
     
     const method = editingResource ? 'PUT' : 'POST';
 
+    const data = new FormData();
+    Object.keys(formData).forEach(key => data.append(key, formData[key]));
+    if (image) data.append('image', image);
+
     try {
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: data,
       });
       if (response.ok) {
         alert(`Resource ${editingResource ? 'updated' : 'added'} successfully!`);
         setIsModalOpen(false);
         fetchResources();
+      } else {
+        const errorData = await response.json();
+        alert(`Error saving resource: ${errorData.message}`);
       }
     } catch (error) {
       console.error('Error saving resource:', error);
+      alert("Failed to connect to the server.");
     }
   };
+
 
   const filteredResources = resources.filter(r =>
     r.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -314,6 +326,15 @@ const Resources = () => {
                 </select>
               </div>
               <div className="form-group" style={{marginBottom: '25px'}}>
+                <label>Resource Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  className="modern-input"
+                  onChange={(e) => setImage(e.target.files[0])}
+                />
+              </div>
+              <div className="form-group" style={{marginBottom: '25px'}}>
                 <label>Condition</label>
                 <select 
                   className="modern-select" 
@@ -326,6 +347,7 @@ const Resources = () => {
                   <option value="Replace">Needs Replacement</option>
                 </select>
               </div>
+
               <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="cancel-btn">Cancel</button>
                 <button type="submit" className="save-btn">Save</button>

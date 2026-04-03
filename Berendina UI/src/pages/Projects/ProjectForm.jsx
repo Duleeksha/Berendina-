@@ -16,6 +16,8 @@ const ProjectForm = () => {
     status: 'Active',
     description: ''
   });
+  const [image, setImage] = useState(null);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,19 +27,19 @@ const ProjectForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    const data = new FormData();
+    Object.keys(formData).forEach(key => data.append(key, formData[key]));
+    if (image) data.append('image', image);
+
     try {
-      // API eken Backend ekata data yawanawa
       const response = await fetch('http://localhost:5000/api/projects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData), // Form eke thiyena data tika JSON karala yawanawa
+        body: data,
       });
 
       if (response.ok) {
         alert("Project saved successfully!");
-        navigate('/projects'); // Save unata passe auto Projects list ekata yanawa
+        navigate('/projects');
       } else {
         const errorData = await response.json();
         alert(`Error saving project: ${errorData.message}`);
@@ -47,6 +49,7 @@ const ProjectForm = () => {
       alert("Failed to connect to the server. Please try again.");
     }
   };
+
 
   const DONOR_AGENCIES = [
     "World Vision",
@@ -189,7 +192,16 @@ const ProjectForm = () => {
             </div>
           </div>
 
-          <h3 className="section-title" style={{ marginTop: '30px' }}>ADDITIONAL INFORMATION</h3>
+          <h3 className="section-title" style={{ marginTop: '30px' }}>MEDIA & ADDITIONAL INFORMATION</h3>
+          <div className="form-group full-width">
+            <label>Project Header Image</label>
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={(e) => setImage(e.target.files[0])}
+              className="modern-input"
+            />
+          </div>
           <div className="form-group full-width">
             <label>Project Description</label>
             <textarea 
@@ -200,6 +212,7 @@ const ProjectForm = () => {
               onChange={handleChange}
             ></textarea>
           </div>
+
 
           <div className="form-actions">
             <button type="button" className="btn-cancel" onClick={() => navigate('/projects')}>Cancel</button>

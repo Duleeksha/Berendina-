@@ -136,3 +136,18 @@ export const getBeneficiaryByNIC = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const deleteBeneficiary = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query('DELETE FROM beneficiary WHERE beneficiary_id = $1 RETURNING beneficiary_id AS id', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Beneficiary not found' });
+        }
+        res.json({ message: 'Beneficiary deleted successfully!', id: result.rows[0].id });
+    } catch (error) {
+        console.error('Delete Beneficiary Error:', error);
+        res.status(500).json({ message: 'Server error deleting beneficiary' });
+    }
+};
+

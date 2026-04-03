@@ -1,0 +1,285 @@
+{
+  "resource": [
+    {
+      "column_name": "resource_id",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "res_name",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "type",
+      "data_type": "character varying",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "condition",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "availability",
+      "data_type": "character varying",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "project_id",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "allocated_to",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "quantity",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "issuing_date",
+      "data_type": "date",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "project_name",
+      "data_type": "character varying",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "image_url",
+      "data_type": "text",
+      "is_nullable": "YES"
+    }
+  ],
+  "project": [
+    {
+      "column_name": "project_id",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "project_name",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "start_date",
+      "data_type": "date",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "end_date",
+      "data_type": "date",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "donor_agency",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "target_location",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "budget",
+      "data_type": "numeric",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "image_url",
+      "data_type": "text",
+      "is_nullable": "YES"
+    }
+  ],
+  "beneficiary": [
+    {
+      "column_name": "beneficiary_id",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_name",
+      "data_type": "character varying",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "ben_nic",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_dob",
+      "data_type": "date",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_gender",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_address",
+      "data_type": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_contac_no",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_district",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_ds_division",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_marital_status",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_family_members",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_monthly_income",
+      "data_type": "numeric",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_occupation",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_project",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_status",
+      "data_type": "character varying",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "ben_progress",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "project_id",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "documents",
+      "data_type": "ARRAY",
+      "is_nullable": "YES"
+    }
+  ],
+  "field_visits": [
+    {
+      "column_name": "visit_id",
+      "data_type": "integer",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "beneficiary_name",
+      "data_type": "character varying",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "district",
+      "data_type": "character varying",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "visit_date",
+      "data_type": "date",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "visit_time",
+      "data_type": "time without time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "officer_id",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "feedback",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "photo_url",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "address",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "photos",
+      "data_type": "ARRAY",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "is_new",
+      "data_type": "boolean",
+      "is_nullable": "YES"
+    }
+  ]
+}
