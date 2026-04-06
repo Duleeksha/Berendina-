@@ -33,7 +33,8 @@ const FieldVisits = () => {
     district: '',
     date: '',
     time: '10:00',
-    officerId: ''
+    officerId: '',
+    beneficiaryId: ''
   });
 
   const currentUser = React.useMemo(() => {
@@ -124,6 +125,7 @@ const FieldVisits = () => {
       setScheduleData({ 
         ...scheduleData, 
         beneficiaryName: ben.name, 
+        beneficiaryId: ben.id,
         address: ben.address || 'No address provided',
         district: ben.district || 'N/A'
       });
@@ -149,6 +151,7 @@ const FieldVisits = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           beneficiary: scheduleData.beneficiaryName,
+          beneficiaryId: scheduleData.beneficiaryId,
           district: scheduleData.district,
           address: scheduleData.address,
           date: scheduleData.date,

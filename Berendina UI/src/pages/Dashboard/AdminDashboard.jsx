@@ -8,6 +8,7 @@ import './Dashboard.css';
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null); // For Detailed Review
   const [stats, setStats] = useState({ 
     totalBeneficiaries: 0, 
     activeProjects: 0, 
@@ -37,24 +38,24 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleApprove = async (userId) => {
+  const handleAction = async (userId, action) => {
     try {
-      await axios.put('http://localhost:5000/api/auth/approve', { userId });
-      alert("User Approved Successfully!");
+      await axios.put('http://localhost:5000/api/auth/approve', { userId, action });
+      alert(`User ${action === 'reject' ? 'Rejected' : 'Approved'} Successfully!`);
+      setSelectedUser(null);
       fetchData(); 
     } catch (error) {
-      console.error("Approval error:", error);
-      alert("Approval Failed");
+      console.error("Action error:", error);
+      alert("Action Failed");
     }
   };
 
   return (
     <div className="dashboard-content">
-      {/* Header Section */}
       <div className="dashboard-header">
         <div>
           <h1>Admin Dashboard</h1>
-          <p>Welcome back! Here's what's happening across your programs.</p>
+          <p>Governance & Oversight Panel</p>
         </div>
         <div className="date-display">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -65,19 +66,16 @@ const AdminDashboard = () => {
         <div style={{textAlign: 'center', padding: '50px'}}>Loading dashboard data...</div>
       ) : (
         <>
-        {/* Stats Grid - 4 Cards */}
         <div className="stats-grid">
-          {/* Card 1: Pending */}
           <div className="stat-card orange">
             <div className="stat-icon">🔔</div>
             <div className="stat-info">
               <h3>Pending Requests</h3>
-              <div className="stat-value">{stats.pendingRequests}</div>
-              <span className="stat-meta">Active queue</span>
+              <div className="stat-value">{pendingUsers.length}</div>
+              <span className="stat-meta">Awaiting review</span>
             </div>
           </div>
 
-          {/* Card 2: Beneficiaries */}
           <div className="stat-card blue">
             <div className="stat-icon">👥</div>
             <div className="stat-info">
@@ -87,7 +85,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 3: Projects */}
           <div className="stat-card green">
             <div className="stat-icon">🚀</div>
             <div className="stat-info">
@@ -97,7 +94,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 4: Resources */}
           <div className="stat-card purple">
             <div className="stat-icon">📦</div>
             <div className="stat-info">
@@ -108,10 +104,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Main Grid: Charts & Pending List */}
         <div className="main-grid">
-          
-          {/* Left Column - Charts */}
           <div className="charts-section">
             <div className="chart-card">
               <div className="chart-header">
@@ -126,74 +119,41 @@ const AdminDashboard = () => {
                     <Tooltip 
                         cursor={{fill: '#f7fafc'}}
                         contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
-                        formatter={(value) => [value, "Beneficiaries"]}
                     />
                     <Bar dataKey="beneficiaries" fill="#4299e1" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 ) : <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a0aec0'}}>No project data yet</div>}
               </ResponsiveContainer>
             </div>
-
-            <div className="chart-card">
-              <div className="chart-header">
-                  <h3>Onboarding Trend (Last 6 Months)</h3>
-              </div>
-              <ResponsiveContainer width="100%" height={320}>
-                {stats.onboardingTrend.length > 0 ? (
-                  <AreaChart data={stats.onboardingTrend}>
-                    <defs>
-                      <linearGradient id="colorBen" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#48bb78" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#48bb78" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#718096'}} dy={10} />
-                    <YAxis hide={true} />
-                    <Tooltip 
-                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} 
-                        formatter={(value) => [value, "Beneficiaries"]}
-                    />
-                    <Area type="monotone" dataKey="beneficiaries" stroke="#48bb78" strokeWidth={3} fillOpacity={1} fill="url(#colorBen)" />
-                  </AreaChart>
-                ) : <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a0aec0'}}>No onboarding data yet</div>}
-              </ResponsiveContainer>
-            </div>
           </div>
 
-          {/* Right Column - Pending Approvals List */}
           <div className="side-panel">
               <div className="panel-card">
                   <div className="panel-header">
                       <h3>Pending Approvals</h3>
-                      <span className="badge">{pendingUsers.length} New</span>
+                      <span className="badge">{pendingUsers.length}</span>
                   </div>
                   
                   <div className="approval-list">
                       {pendingUsers.length === 0 ? (
                           <div style={{textAlign: 'center', padding: '40px 0', color: '#a0aec0'}}>
                               <p>All caught up! 🎉</p>
-                              <small>No pending requests.</small>
                           </div>
                       ) : (
                           pendingUsers.map(user => (
-                              <div key={user.user_id} className="approval-item">
+                              <div key={user.user_id} className="approval-item" onClick={() => setSelectedUser(user)} style={{cursor: 'pointer'}}>
                                   <div className="user-details-row">
-                                      <div className="avatar-placeholder">
-                                          {user.first_name.charAt(0)}
-                                      </div>
+                                      <div className="avatar-placeholder">{user.first_name.charAt(0)}</div>
                                       <div className="user-text">
                                           <h4>{user.first_name} {user.last_name}</h4>
                                           <p>{user.email}</p>
                                           <span className="role-badge">{user.role}</span>
                                       </div>
                                   </div>
-                                  <button 
-                                      className="approve-btn"
-                                      onClick={() => handleApprove(user.user_id)}
-                                  >
-                                      Approve
-                                  </button>
+                                  <div className="action-buttons">
+                                      <button className="reject-btn" onClick={(e) => { e.stopPropagation(); handleAction(user.user_id, 'reject'); }}>Reject</button>
+                                      <button className="approve-btn" onClick={(e) => { e.stopPropagation(); handleAction(user.user_id, 'approve'); }}>Approve</button>
+                                  </div>
                               </div>
                           ))
                       )}
@@ -201,6 +161,89 @@ const AdminDashboard = () => {
               </div>
           </div>
         </div>
+
+        {/* Detailed Review Modal */}
+        {selectedUser && (
+            <div className="review-modal-overlay">
+                <div className="review-modal">
+                    <h2>Review Registration</h2>
+                    <p className="subtitle">Please verify credentials before granting access.</p>
+                    
+                    <div className="details-grid">
+                        <div className="detail-item">
+                            <label>Full Name</label>
+                            <span>{selectedUser.first_name} {selectedUser.last_name}</span>
+                        </div>
+                        <div className="detail-item">
+                            <label>Role</label>
+                            <span className="role-badge">{selectedUser.role}</span>
+                        </div>
+                        <div className="detail-item">
+                            <label>Organization</label>
+                            <span>{selectedUser.organization || 'N/A'}</span>
+                        </div>
+                        <div className="detail-item">
+                            <label>Email</label>
+                            <span>{selectedUser.email}</span>
+                        </div>
+                         {selectedUser.role === 'admin' && (
+                             <>
+                                 <div className="detail-item">
+                                     <label>Employee ID</label>
+                                     <span>{selectedUser.employee_id || 'N/A'}</span>
+                                 </div>
+                                 <div className="detail-item">
+                                     <label>Department</label>
+                                     <span>{selectedUser.department || 'N/A'}</span>
+                                 </div>
+                                 <div className="detail-item">
+                                     <label>Branch</label>
+                                     <span>{selectedUser.branch || 'N/A'}</span>
+                                 </div>
+                                 <div className="detail-item">
+                                     <label>Job Title</label>
+                                     <span>{selectedUser.job_title || 'N/A'}</span>
+                                 </div>
+                             </>
+                         )}
+                         {selectedUser.role === 'officer' && (
+                            <>
+                                <div className="detail-item">
+                                    <label>Mobile Number</label>
+                                    <span>{selectedUser.mobile_no || 'N/A'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>DS Division</label>
+                                    <span>{selectedUser.ds_division || 'N/A'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Vehicle Info</label>
+                                    <span>{selectedUser.vehicle_type || 'None'} {selectedUser.vehicle_no ? `(${selectedUser.vehicle_no})` : ''}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Languages</label>
+                                    <span>{selectedUser.languages || 'N/A'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Emergency Contact</label>
+                                    <span>{selectedUser.emergency_contact || 'N/A'}</span>
+                                </div>
+                            </>
+                         )}
+                        <div className="detail-item">
+                            <label>Gender</label>
+                            <span>{selectedUser.gender || 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    <div className="modal-actions">
+                        <button className="btn-secondary" onClick={() => setSelectedUser(null)}>Close</button>
+                        <button className="reject-btn" style={{flex: 1}} onClick={() => handleAction(selectedUser.user_id, 'reject')}>Reject</button>
+                        <button className="btn-primary" onClick={() => handleAction(selectedUser.user_id, 'approve')}>Approve Access</button>
+                    </div>
+                </div>
+            </div>
+        )}
         </>
       )}
     </div>

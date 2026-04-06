@@ -1,10 +1,111 @@
+/* Role Switcher Styles */
+.role-cards-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.role-card {
+  padding: 15px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+  background: var(--bg-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-card:hover {
+  border-color: var(--primary-blue);
+  background: var(--bg-white);
+  transform: translateY(-2px);
+}
+
+.role-card.active {
+  border-color: var(--primary-blue);
+  background: rgba(59, 91, 219, 0.05);
+  box-shadow: 0 4px 12px rgba(59, 91, 219, 0.1);
+}
+
+.role-icon {
+  font-size: 24px;
+}
+
+.role-card h4 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-dark);
+}
+
+.role-card p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-gray);
+}
+
+/* Password Strength Meter */
+.strength-meter-container {
+  margin: 8px 0 15px;
+}
+
+.strength-bar-bg {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.strength-bar-fill {
+  height: 100%;
+  transition: all 0.4s ease;
+  width: 0%;
+}
+
+.strength-text {
+  font-size: 11px;
+  margin-top: 4px;
+  display: block;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Validation Styles */
+.input-field.valid {
+  border-color: #10b981 !important;
+  background-color: #f0fdf4 !important;
+}
+
+.input-field.invalid {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+.form-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
 /* --- New Officer Section Styles --- */
-.officer-section {
+.officer-section, .staff-section {
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .section-title {
@@ -53,9 +154,49 @@
 }
 
 .checkbox-item input {
-  accent-color: #3b82f6; /* Checkbox color eka Blue karanawa */
+  accent-color: #3b82f6;
   width: 15px;
   height: 15px;
   cursor: pointer;
 }
 
+/* Terms Checkbox */
+.terms-container {
+  margin: 20px 0;
+  padding: 10px;
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-gray);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.checkbox-label input {
+  margin-top: 3px;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-toggle-icon {
+  font-size: 18px;
+  line-height: 1;
+  padding: 5px;
+  color: #64748b;
+  transition: transform 0.1s ease;
+}
+
+.password-toggle-icon:active {
+  transform: scale(0.9);
+}

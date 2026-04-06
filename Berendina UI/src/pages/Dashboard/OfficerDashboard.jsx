@@ -6,6 +6,8 @@ const OfficerDashboard = () => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newVisitCount, setNewVisitCount] = useState(0);
+  const [selectedVisit, setSelectedVisit] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const currentUser = (() => {
     const user = localStorage.getItem('user');
@@ -50,6 +52,19 @@ const OfficerDashboard = () => {
     }
   };
 
+  const handleVisitClick = (visit) => {
+    setSelectedVisit(visit);
+    setIsModalOpen(true);
+  };
+
+  const handleBannerClick = () => {
+    const newVisits = visits.filter(v => v.is_new);
+    if (newVisits.length > 0) {
+      setSelectedVisit(newVisits[0]);
+      setIsModalOpen(true);
+    }
+  };
+
   // Process data for charts vs upcoming list
   const upcomingVisits = visits.filter(v => v.status === 'scheduled').slice(0, 5);
   
@@ -74,8 +89,11 @@ const OfficerDashboard = () => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.4)'
-        }}>
+          boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.4)',
+          cursor: 'pointer'
+        }}
+        onClick={handleBannerClick}
+        >
           <div>
             <h4 style={{margin: 0, fontSize: '16px'}}>🔔 New Visits Assigned!</h4>
             <p style={{margin: '5px 0 0', fontSize: '14px', opacity: 0.9}}>
@@ -172,7 +190,7 @@ const OfficerDashboard = () => {
                 <div className="approval-list">
                     {loading ? <p>Loading visits...</p> : (
                       upcomingVisits.length > 0 ? upcomingVisits.map(visit => (
-                        <div key={visit.id} className="approval-item">
+                        <div key={visit.id} className="approval-item" onClick={() => handleVisitClick(visit)} style={{cursor: 'pointer'}}>
                             <div className="user-details-row">
                                 <div className="avatar-placeholder" style={{background: '#f0fdf4', color: '#16a34a'}}>
                                     📍
@@ -202,6 +220,99 @@ const OfficerDashboard = () => {
         </div>
 
       </div>
+
+      {/* --- BENEFICIARY INFORMATION MODAL --- */}
+      {isModalOpen && selectedVisit && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+          backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000
+        }}>
+          <div className="modal-content" style={{
+            background: 'white', padding: '35px', borderRadius: '20px', 
+            width: '90%', maxWidth: '550px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            position: 'relative', animation: 'modalSlideUp 0.3s ease-out'
+          }}>
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              style={{
+                position: 'absolute', top: '20px', right: '20px', border: 'none', 
+                background: '#f3f4f6', borderRadius: '50%', width: '32px', height: '32px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#6b7280', fontWeight: 'bold'
+              }}
+            >✕</button>
+
+            <div style={{textAlign: 'center', marginBottom: '25px'}}>
+              <div style={{
+                width: '60px', height: '60px', background: '#eff6ff', color: '#2563eb',
+                borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '24px', margin: '0 auto 15px'
+              }}>👥</div>
+              <h2 style={{margin: 0, color: '#111827', fontSize: '24px'}}>Beneficiary Details</h2>
+              <p style={{margin: '5px 0 0', color: '#6b7280'}}>Visit Information & Assignment</p>
+            </div>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px'}}>
+              <div style={{background: '#f9fafb', padding: '15px', borderRadius: '12px'}}>
+                <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase'}}>Name</label>
+                <div style={{color: '#111827', fontWeight: 600}}>{selectedVisit.beneficiary}</div>
+              </div>
+              <div style={{background: '#f9fafb', padding: '15px', borderRadius: '12px'}}>
+                <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase'}}>District</label>
+                <div style={{color: '#111827', fontWeight: 600}}>{selectedVisit.district}</div>
+              </div>
+            </div>
+
+            <div style={{background: '#f0f9ff', padding: '20px', borderRadius: '15px', marginBottom: '25px', border: '1px solid #bae6fd'}}>
+              <label style={{display: 'block', fontSize: '12px', color: '#0369a1', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Assigned Project</label>
+              <div style={{color: '#0c4a6e', fontSize: '18px', fontWeight: 700}}>
+                {selectedVisit.project_name || 'No Project Assigned'}
+              </div>
+            </div>
+
+            <div style={{marginBottom: '25px'}}>
+              <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase'}}>Allocated Resources</label>
+              <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
+                {selectedVisit.allocated_resources && selectedVisit.allocated_resources.length > 0 ? (
+                  selectedVisit.allocated_resources.map((res, i) => (
+                    <span key={i} style={{
+                      background: '#ecfdf5', color: '#059669', padding: '6px 12px', 
+                      borderRadius: '8px', fontSize: '13px', fontWeight: 600, border: '1px solid #a7f3d0'
+                    }}>
+                      📦 {res}
+                    </span>
+                  ))
+                ) : (
+                  <span style={{color: '#9ca3af', fontSize: '14px', fontStyle: 'italic'}}>No resources allocated yet.</span>
+                )}
+              </div>
+            </div>
+
+            <div style={{borderTop: '1px solid #e5e7eb', paddingTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
+              <div>
+                <label style={{display: 'block', fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase'}}>Visit Date</label>
+                <div style={{color: '#4b5563', fontWeight: 500}}>{selectedVisit.date}</div>
+              </div>
+              <div style={{textAlign: 'right'}}>
+                <label style={{display: 'block', fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase'}}>Visit Time</label>
+                <div style={{color: '#4b5563', fontWeight: 500}}>{selectedVisit.time}</div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              style={{
+                width: '100%', marginTop: '25px', padding: '12px', background: '#2563eb',
+                color: 'white', borderRadius: '12px', border: 'none', fontWeight: 600,
+                cursor: 'pointer', transition: 'background 0.2s'
+              }}
+            >
+              Close Details
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -149,7 +149,7 @@ const BeneficiaryForm = () => {
                 <input type="text" name="contact" className="modern-input" value={formData.contact || ''} onChange={handleChange} required />
               </div>
               <div className="form-group">
-                <label>DS Division</label>
+                <label>DS Divisions</label>
                 <select name="district" className="modern-select" value={formData.district || ''} onChange={handleChange}>
                   <option value="">Select Location</option>
                   <option value="Ambagamuwa">Ambagamuwa</option>

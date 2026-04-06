@@ -7,7 +7,9 @@ import transporter from '../config/mail.js';
 export const register = async (req, res) => {
   const { 
     firstName, lastName, email, role, password, 
-    mobileNumber, dsDivision, vehicleType, vehicleNumber, languages 
+    mobileNumber, ds_division, vehicleType, vehicleNumber, languages,
+    organization, employee_id, department, branch, job_title, gender, terms_accepted,
+    emergency_contact
   } = req.body;
 
   if (!firstName || !lastName || !email || !role || !password) {
@@ -28,8 +30,15 @@ export const register = async (req, res) => {
     }
 
     const newUserResult = await client.query(
-      'INSERT INTO user_table (first_name, last_name, email, password_hash, role, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id, email, role, status',
-      [firstName, lastName, emailTrimmed, passwordHash, role, initialStatus]
+      `INSERT INTO user_table (
+        first_name, last_name, email, password_hash, role, status, 
+        organization, employee_id, department, branch, job_title, gender, terms_accepted
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+      RETURNING user_id, email, role, status`,
+      [
+        firstName, lastName, emailTrimmed, passwordHash, role, initialStatus,
+        organization, employee_id, department, branch, job_title, gender, terms_accepted
+      ]
     );
     
     const newUserId = newUserResult.rows[0].user_id;
@@ -37,8 +46,8 @@ export const register = async (req, res) => {
     if (role === 'officer') {
         const languagesString = Array.isArray(languages) ? languages.join(', ') : languages;
         await client.query(
-            'INSERT INTO officer_details (user_id, mobile_no, ds_division, vehicle_type, vehicle_no, languages) VALUES ($1, $2, $3, $4, $5, $6)',
-            [newUserId, mobileNumber, dsDivision, vehicleType || 'None', vehicleNumber || null, languagesString]
+            'INSERT INTO officer_details (user_id, mobile_no, ds_division, vehicle_type, vehicle_no, languages, emergency_contact) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+            [newUserId, mobileNumber, ds_division, vehicleType || 'None', vehicleNumber || null, languagesString, emergency_contact]
         );
     }
 
@@ -74,7 +83,14 @@ export const login = async (req, res) => {
 
 export const getPendingUsers = async (req, res) => {
   try {
-    const result = await pool.query("SELECT user_id, first_name, last_name, email, role FROM user_table WHERE status = 'Pending'");
+    const result = await pool.query(`
+      SELECT u.user_id, u.first_name, u.last_name, u.email, u.role, u.organization, 
+             u.employee_id, u.department, u.branch, u.job_title, u.gender,
+             o.mobile_no, o.ds_division, o.vehicle_type, o.vehicle_no, o.languages, o.emergency_contact
+      FROM user_table u
+      LEFT JOIN officer_details o ON u.user_id = o.user_id
+      WHERE u.status = 'Pending'
+    `);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

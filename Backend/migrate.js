@@ -30,7 +30,8 @@ const migrate = async () => {
                 notes TEXT,
                 feedback TEXT,
                 photos TEXT[] DEFAULT ARRAY[]::TEXT[],
-                is_new BOOLEAN DEFAULT TRUE
+                is_new BOOLEAN DEFAULT TRUE,
+                beneficiary_id INTEGER REFERENCES beneficiary(beneficiary_id)
             );
         `);
         // Ensure necessary columns exist (if table already existed)
@@ -45,6 +46,9 @@ const migrate = async () => {
                 END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='field_visits' AND column_name='address') THEN
                     ALTER TABLE field_visits ADD COLUMN address TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='field_visits' AND column_name='beneficiary_id') THEN
+                    ALTER TABLE field_visits ADD COLUMN beneficiary_id INTEGER REFERENCES beneficiary(beneficiary_id);
                 END IF;
             END $$;
         `);

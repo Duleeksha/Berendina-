@@ -302,11 +302,11 @@ const Beneficiaries = () => {
                 <h3>Location & Status</h3>
                 <div className="info-row">
                    <div className="info-group">
-                     <label>DS Division</label>
+                     <label>DS Divisions</label>
                      <span>{selectedBen.district}</span>
                    </div>
                    <div className="info-group">
-                     <label>DS Division</label>
+                     <label>DS Divisions</label>
                      <span>{selectedBen.dsDivision || 'N/A'}</span>
                    </div>
                 </div>
@@ -493,18 +493,18 @@ const Beneficiaries = () => {
                 <h3 style={{ fontSize: '1rem', fontBold: '700', marginBottom: '15px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location & Program</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
                   <div>
-                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>DS Division</label>
+                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>DS Divisions</label>
                     <select name="district" value={selectedBen.district} onChange={handleInputChange} className="modern-select">
                       <option value="">Select Location</option>
-                      <option value="Colombo">Colombo</option>
-                      <option value="Gampaha">Gampaha</option>
-                      <option value="Kalutara">Kalutara</option>
-                      <option value="Kandy">Kandy</option>
-                      <option value="Matale">Matale</option>
+                      <option value="Ambagamuwa">Ambagamuwa</option>
+                      <option value="Hanguranketha">Hanguranketha</option>
+                      <option value="Kothmale">Kothmale</option>
+                      <option value="Nuwara Eliya">Nuwara Eliya</option>
+                      <option value="Walapane">Walapane</option>
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>DS Division</label>
+                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>DS Divisions</label>
                     <input type="text" name="dsDivision" value={selectedBen.dsDivision || ''} onChange={handleInputChange} className="modern-input" placeholder="e.g. Maharagama" />
                   </div>
                 </div>

@@ -6,9 +6,30 @@ export const getFieldVisits = async (req, res) => {
   const { officerId } = req.query;
   try {
     let query = `
-      SELECT v.visit_id AS id, v.beneficiary_name AS beneficiary, v.district, v.address, v.visit_date::TEXT AS date, v.visit_time AS time, v.status, v.notes, v.feedback, v.photos, v.is_new, u.first_name || ' ' || u.last_name AS officer_name
+      SELECT 
+        v.visit_id AS id, 
+        v.beneficiary_name AS beneficiary, 
+        v.district, 
+        v.address, 
+        v.visit_date::TEXT AS date, 
+        v.visit_time AS time, 
+        v.status, 
+        v.notes, 
+        v.feedback, 
+        v.photos, 
+        v.is_new, 
+        v.beneficiary_id,
+        u.first_name || ' ' || u.last_name AS officer_name,
+        p.project_name,
+        (
+          SELECT json_agg(r.res_name) 
+          FROM resource r 
+          WHERE r.allocated_to = v.beneficiary_id
+        ) AS allocated_resources
       FROM field_visits v
       JOIN user_table u ON v.officer_id = u.user_id
+      LEFT JOIN beneficiary b ON v.beneficiary_id = b.beneficiary_id
+      LEFT JOIN project p ON b.project_id = p.project_id
     `;
     const params = [];
     if (officerId) {
@@ -24,15 +45,15 @@ export const getFieldVisits = async (req, res) => {
 };
 
 export const addFieldVisit = async (req, res) => {
-  const { beneficiary, district, address, date, time, officerId, status, notes, feedback } = req.body;
+  const { beneficiary, beneficiaryId, district, address, date, time, officerId, status, notes, feedback } = req.body;
   const photos = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'field-visits'))) : [];
 
   console.log("Scheduling Visit for:", { beneficiary, officerId, date });
 
   try {
     const query = `
-      INSERT INTO field_visits (beneficiary_name, district, address, visit_date, visit_time, officer_id, status, notes, feedback, photos, is_new)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE)
+      INSERT INTO field_visits (beneficiary_name, beneficiary_id, district, address, visit_date, visit_time, officer_id, status, notes, feedback, photos, is_new)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE)
       RETURNING *;
     `;
     const parsedOfficerId = parseInt(officerId);
@@ -42,6 +63,7 @@ export const addFieldVisit = async (req, res) => {
 
     const values = [
       beneficiary || "", 
+      beneficiaryId || null,
       district || "", 
       address || "", 
       date || null, 
