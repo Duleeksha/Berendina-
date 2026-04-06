@@ -169,3 +169,91 @@ export const getOfficers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const getOfficerById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+      SELECT u.user_id AS id, u.first_name AS "firstName", u.last_name AS "lastName", u.email, u.employee_id, u.organization, u.department, u.branch, u.job_title, u.gender,
+             o.mobile_no AS "mobileNumber", o.ds_division, o.vehicle_type AS "vehicleType", o.vehicle_no AS "vehicleNumber", o.languages, o.emergency_contact
+      FROM user_table u
+      LEFT JOIN officer_details o ON u.user_id = o.user_id
+      WHERE u.user_id = $1;
+    `;
+    const result = await pool.query(query, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Officer not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('getOfficerById error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const updateOfficer = async (req, res) => {
+  const { id } = req.params;
+  const { 
+    firstName, lastName, 
+    mobileNumber, ds_division, vehicleType, vehicleNumber, languages,
+    organization, employee_id, department, branch, job_title, gender,
+    emergency_contact
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Update user_table
+    await client.query(
+      `UPDATE user_table SET 
+        first_name = $1, last_name = $2, organization = $3, 
+        employee_id = $4, department = $5, branch = $6, 
+        job_title = $7, gender = $8 
+      WHERE user_id = $9`,
+      [firstName, lastName, organization, employee_id, department, branch, job_title, gender, id]
+    );
+
+    // Update officer_details
+    const languagesString = Array.isArray(languages) ? languages.join(', ') : languages;
+    await client.query(
+      `UPDATE officer_details SET 
+        mobile_no = $1, ds_division = $2, vehicle_type = $3, 
+        vehicle_no = $4, languages = $5, emergency_contact = $6 
+      WHERE user_id = $7`,
+      [mobileNumber, ds_division, vehicleType, vehicleNumber, languagesString, emergency_contact, id]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: 'Officer updated successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Update Officer Error:', err);
+    res.status(500).json({ message: 'Server error during update' });
+  } finally {
+    client.release();
+  }
+};
+
+export const deleteOfficer = async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Delete visits associated with this officer
+    await client.query('DELETE FROM field_visits WHERE officer_id = $1', [id]);
+    // Delete from officer_details
+    await client.query('DELETE FROM officer_details WHERE user_id = $1', [id]);
+    // Delete from user_table
+    await client.query('DELETE FROM user_table WHERE user_id = $1', [id]);
+    
+    await client.query('COMMIT');
+    res.json({ message: 'Officer deleted successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Delete Officer Error:', err);
+    res.status(500).json({ message: 'Server error during deletion' });
+  } finally {
+    client.release();
+  }
+};

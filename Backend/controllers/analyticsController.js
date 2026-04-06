@@ -106,10 +106,14 @@ export const getOfficerAnalytics = async (req, res) => {
   try {
     // 1. Get all officers (using CONCAT to handle NULL first/last names)
     const officersRes = await pool.query(`
-      SELECT user_id, 
-             TRIM(CONCAT(first_name, ' ', last_name)) AS name 
-      FROM user_table 
-      WHERE TRIM(LOWER(role)) = 'officer'
+      SELECT u.user_id, 
+             u.first_name, u.last_name, u.email, u.employee_id, u.organization, u.department, u.branch, u.job_title, u.gender,
+             TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS name,
+             u.created_at,
+             od.mobile_no, od.ds_division, od.vehicle_type, od.vehicle_no, od.languages, od.emergency_contact
+      FROM user_table u
+      LEFT JOIN officer_details od ON u.user_id = od.user_id
+      WHERE TRIM(LOWER(u.role)) = 'officer' AND u.status = 'Active'
     `);
 
 
@@ -120,30 +124,50 @@ export const getOfficerAnalytics = async (req, res) => {
     const visitsRes = await pool.query(`
       SELECT 
         v.officer_id,
-        v.beneficiary_name,
+        v.beneficiary_name AS visit_ben_name,
+        v.visit_date,
+        v.status AS visit_status,
+        b.ben_name AS actual_ben_name,
         b.ben_project AS project_name,
         b.ben_status AS status
       FROM field_visits v
-      LEFT JOIN beneficiary b ON v.beneficiary_name = b.ben_name
+      LEFT JOIN beneficiary b ON v.beneficiary_id = b.beneficiary_id
     `);
 
     const visits = visitsRes.rows;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     // Structure the data: Officer -> Projects -> Beneficiaries
     const structuredData = officers.map(officer => {
-      const officerVisits = visits.filter(v => v.officer_id === officer.user_id);
+      const officerVisits = visits.filter(v => Number(v.officer_id) === Number(officer.user_id));
       
       // Group by project
       const projectsMap = {};
+      const futureVisits = [];
+
       officerVisits.forEach(v => {
+        const visitDate = v.visit_date ? new Date(v.visit_date) : null;
+        const benName = v.actual_ben_name || v.visit_ben_name;
+        
+        // Check if it's a future visit
+        if (visitDate && visitDate > today && v.visit_status !== 'Completed') {
+          futureVisits.push({
+            beneficiary: benName,
+            project: v.project_name || "Unassigned",
+            date: v.visit_date,
+            status: v.visit_status || 'Scheduled'
+          });
+        }
+
         const projName = v.project_name || "Unassigned/Field Visit";
         if (!projectsMap[projName]) {
           projectsMap[projName] = { name: projName, beneficiaries: [] };
         }
         // Avoid duplicate beneficiaries in the same project list for this officer
-        if (!projectsMap[projName].beneficiaries.find(b => b.name === v.beneficiary_name)) {
+        if (!projectsMap[projName].beneficiaries.find(b => b.name === benName)) {
           projectsMap[projName].beneficiaries.push({
-            name: v.beneficiary_name,
+            name: benName,
             status: v.status || 'Pending'
           });
         }
@@ -151,30 +175,48 @@ export const getOfficerAnalytics = async (req, res) => {
 
 
       return {
+        officerId: officer.user_id,
         officerName: officer.name,
+        firstName: officer.first_name,
+        lastName: officer.last_name,
+        email: officer.email,
+        employee_id: officer.employee_id,
+        organization: officer.organization,
+        department: officer.department,
+        branch: officer.branch,
+        job_title: officer.job_title,
+        gender: officer.gender,
+        mobileNumber: officer.mobile_no,
+        ds_division: officer.ds_division,
+        vehicleType: officer.vehicle_type,
+        vehicleNumber: officer.vehicle_no,
+        languages: officer.languages,
+        emergency_contact: officer.emergency_contact,
         totalVisits: officerVisits.length,
-        projects: Object.values(projectsMap)
+        projects: Object.values(projectsMap),
+        futureVisits: futureVisits.sort((a, b) => new Date(a.date) - new Date(b.date)),
+        createdAt: officer.created_at
       };
     });
 
-    // Sort by enthusiasm: Star Performers -> New Members (Zeroes) -> Others
+    // --- NEW PRIORITIZATION LOGIC ---
+    // 1. Primary: Project Count + Beneficiary Count (Descending)
+    // 2. Secondary: Date of Join (createdAt) (Ascending - Early joiners first)
     structuredData.sort((a, b) => {
-      const aScore = a.projects.length + a.totalVisits;
-      const bScore = b.projects.length + b.totalVisits;
-
-      // If both are zero, they are equal
-      if (aScore === 0 && bScore === 0) return 0;
+      const aBeneficiaries = a.projects.reduce((sum, p) => sum + (p.beneficiaries?.length || 0), 0);
+      const bBeneficiaries = b.projects.reduce((sum, p) => sum + (p.beneficiaries?.length || 0), 0);
       
-      // If one is high activity (e.g. > 5 total engagement) and other is zero, high activity wins
-      // If one is low activity (e.g. 1-2 engagement) and other is zero, zero activity (new) wins to be "second"
-      if (aScore === 0) return bScore > 5 ? 1 : -1;
-      if (bScore === 0) return aScore > 5 ? -1 : 1;
+      const aScore = a.projects.length + aBeneficiaries;
+      const bScore = b.projects.length + bBeneficiaries;
 
-      // Normal descending sort for active members
-      if (b.projects.length !== a.projects.length) {
-        return b.projects.length - a.projects.length;
+      if (bScore !== aScore) {
+        return bScore - aScore; // Descending by engagement
       }
-      return b.totalVisits - a.totalVisits;
+
+      // Tie-breaker: Date of Join (Earliest first)
+      const aDate = new Date(a.createdAt || 0);
+      const bDate = new Date(b.createdAt || 0);
+      return aDate - bDate; // Ascending by date
     });
 
 

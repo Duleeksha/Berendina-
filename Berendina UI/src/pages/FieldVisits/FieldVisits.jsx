@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './FieldVisits.css';
 
 const FieldVisits = () => {
+  const navigate = useNavigate();
   const [visits, setVisits] = useState([]);
   const [officers, setOfficers] = useState([]);
   const [selectedOfficerId, setSelectedOfficerId] = useState(null);
@@ -133,13 +135,9 @@ const FieldVisits = () => {
   };
 
   const handleOpenScheduleModal = () => {
-    setScheduleData({
-      ...scheduleData,
-      officerId: selectedOfficerId || '',
-      date: new Date().toISOString().split('T')[0],
-      time: '10:00'
+    navigate('/field-officers', { 
+      state: { message: "Please check the availability of the field visitors and schedule" } 
     });
-    setIsScheduleModalOpen(true);
   };
 
   const handleScheduleSubmit = async (e) => {
@@ -259,7 +257,7 @@ const FieldVisits = () => {
           <p>{currentUser?.role === 'admin' ? 'Manage and assign visits for field officers' : 'Your assigned field visits'}</p>
         </div>
         {currentUser?.role === 'admin' && (
-          <button className="add-project-btn" onClick={handleOpenScheduleModal} disabled={!selectedOfficerId}>
+          <button className="add-project-btn" onClick={handleOpenScheduleModal}>
              + Schedule Visit
           </button>
         )}
