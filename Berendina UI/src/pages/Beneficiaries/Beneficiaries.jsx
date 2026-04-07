@@ -230,7 +230,7 @@ const Beneficiaries = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {ben.progress}%
                         <button 
-                          onClick={() => handleProgressClick(ben)}
+                          onClick={(e) => { e.stopPropagation(); handleProgressClick(ben); }}
                           style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
                         >
                           Update
@@ -446,14 +446,15 @@ const Beneficiaries = () => {
       {isModalOpen && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
-          backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-          zIndex: 1000, overflowY: 'auto', padding: '40px 20px'
+          backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 1000
         }}>
           <div className="modal-content" style={{
-            background: 'white', padding: '35px', borderRadius: '16px', width: '100%', maxWidth: '850px', position: 'relative'
+            background: 'white', padding: 0, borderRadius: '16px', width: '100%', maxWidth: '850px', 
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden'
           }}>
-            <h2 style={{ marginBottom: '25px', color: '#1e293b', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Update Beneficiary Profile</h2>
-            <form onSubmit={handleUpdateSubmit}>
+            <h2 style={{ padding: '25px 35px', margin: 0, color: '#1e293b', borderBottom: '1px solid #eee', flexShrink: 0 }}>Update Beneficiary Profile</h2>
+            <form onSubmit={handleUpdateSubmit} style={{ flex: 1, overflowY: 'auto', padding: '35px' }}>
               {/* SECTION: Personal Information */}
               <div style={{ marginBottom: '25px', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
                 <h3 style={{ fontSize: '1rem', fontBold: '700', marginBottom: '15px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Personal Information</h3>
@@ -596,7 +597,7 @@ const Beneficiaries = () => {
                 <input type="file" multiple onChange={handleFileChange} className="modern-input" style={{ padding: '8px' }} />
               </div>
 
-              <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', marginTop: '30px', borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', marginTop: '30px', borderTop: '1px solid #f1f5f9', paddingTop: '20px', background: 'white', position: 'sticky', bottom: '-35px', paddingBottom: '35px' }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="close-btn-secondary">Cancel</button>
                 <button type="submit" disabled={isUpdating} className="save-btn" style={{ minWidth: '160px' }}>
                   {isUpdating ? "Saving Changes..." : "Update Comprehensive Profile"}

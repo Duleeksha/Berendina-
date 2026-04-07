@@ -232,10 +232,13 @@
 .detail-modal {
   width: 90% !important;
   max-width: 900px !important;
+  max-height: 90vh !important;
   padding: 0 !important;
   overflow: hidden !important;
   border: none !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .modal-header-box {
@@ -245,6 +248,7 @@
   padding: 24px 32px;
   background: white;
   border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
 }
 
 .modal-header-box h2 {
@@ -293,6 +297,8 @@
   grid-template-columns: 1fr 1fr;
   gap: 32px;
   background: #f8fafc;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .profile-section {
@@ -404,6 +410,7 @@
   border-top: 1px solid #f1f5f9;
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .close-btn-secondary {

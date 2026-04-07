@@ -18,6 +18,11 @@ const AdminDashboard = () => {
     projectDistribution: []
   });
 
+  // Action Confirmation State
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [userToAction, setUserToAction] = useState(null);
+  const [actionType, setActionType] = useState('');
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -39,9 +44,20 @@ const AdminDashboard = () => {
   };
 
   const handleAction = async (userId, action) => {
+    if (action === 'reject' && !isConfirmModalOpen) {
+      setUserToAction(userId);
+      setActionType('reject');
+      setIsConfirmModalOpen(true);
+      return;
+    }
+
     try {
-      await axios.put('http://localhost:5000/api/auth/approve', { userId, action });
-      alert(`User ${action === 'reject' ? 'Rejected' : 'Approved'} Successfully!`);
+      await axios.put('http://localhost:5000/api/auth/approve', { 
+        userId: userId || userToAction, 
+        action: action || actionType 
+      });
+      alert(`User ${ (action || actionType) === 'reject' ? 'Rejected' : 'Approved'} Successfully!`);
+      setIsConfirmModalOpen(false);
       setSelectedUser(null);
       fetchData(); 
     } catch (error) {
@@ -240,6 +256,22 @@ const AdminDashboard = () => {
                         <button className="btn-secondary" onClick={() => setSelectedUser(null)}>Close</button>
                         <button className="reject-btn" style={{flex: 1}} onClick={() => handleAction(selectedUser.user_id, 'reject')}>Reject</button>
                         <button className="btn-primary" onClick={() => handleAction(selectedUser.user_id, 'approve')}>Approve Access</button>
+                    </div>
+                </div>
+            </div>
+        )}
+        {/* Action Confirmation Modal */}
+        {isConfirmModalOpen && (
+            <div className="review-modal-overlay" style={{zIndex: 2000}}>
+                <div className="review-modal" style={{maxWidth: '400px', textAlign: 'center'}}>
+                    <div style={{fontSize: '50px', marginBottom: '20px'}}>⚠️</div>
+                    <h2>Are you sure?</h2>
+                    <p className="subtitle">
+                        Do you really want to reject this registration request? This user will not be able to access the system.
+                    </p>
+                    <div className="modal-actions" style={{marginTop: '30px'}}>
+                        <button className="btn-secondary" onClick={() => setIsConfirmModalOpen(false)}>Cancel</button>
+                        <button className="reject-btn" onClick={() => handleAction(userToAction, 'reject')}>Yes, Reject</button>
                     </div>
                 </div>
             </div>

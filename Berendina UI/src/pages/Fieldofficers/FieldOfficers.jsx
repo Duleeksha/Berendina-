@@ -28,6 +28,10 @@ const FieldOfficers = () => {
     time: '10:00',
     beneficiaryId: ''
   });
+  
+  // Custom Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [officerToDelete, setOfficerToDelete] = useState(null);
 
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
@@ -137,19 +141,26 @@ const FieldOfficers = () => {
     }
   };
 
-  const handleDelete = async (officerId) => {
-    if (window.confirm("Are you sure you want to delete this field officer?")) {
-      try {
-        const response = await fetch(`http://localhost:5000/api/auth/officers/${officerId}`, {
-          method: 'DELETE'
-        });
-        if (response.ok) {
-          alert('Officer deleted successfully');
-          fetchAnalytics();
-        }
-      } catch (err) {
-        console.error('Delete error:', err);
+  const handleDeleteClick = (e, officerId) => {
+    e.stopPropagation();
+    setOfficerToDelete(officerId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!officerToDelete) return;
+    try {
+      const response = await fetch(`http://localhost:5000/api/auth/officers/${officerToDelete}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        alert('Officer deleted successfully');
+        setIsDeleteModalOpen(false);
+        setOfficerToDelete(null);
+        fetchAnalytics();
       }
+    } catch (err) {
+      console.error('Delete error:', err);
     }
   };
 
@@ -326,10 +337,10 @@ const FieldOfficers = () => {
                       </div>
 
                       {currentUser?.role === 'admin' && (
-                        <div className="card-admin-actions" onClick={e => e.stopPropagation()}>
-                           <button className="admin-btn schedule" onClick={() => openScheduleModal(officer)}>📅 Schedule</button>
-                           <button className="admin-btn edit" onClick={() => handleEdit(officer)}>✏️ Edit</button>
-                           <button className="admin-btn delete" onClick={() => handleDelete(officer.officerId)}>🗑️ Delete</button>
+                        <div className="card-admin-actions" onClick={e => e.stopPropagation()} style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                           <button className="action-btn-schedule" onClick={() => openScheduleModal(officer)} style={{flex: 1, padding: '8px 10px', fontSize: '0.8rem'}}>📅 Schedule</button>
+                           <button className="action-btn-edit" onClick={() => handleEdit(officer)} style={{flex: 1, padding: '8px 10px', fontSize: '0.8rem'}}>✏️ Edit</button>
+                           <button className="action-btn-delete" onClick={(e) => handleDeleteClick(e, officer.officerId)} style={{flex: 1, padding: '8px 10px', fontSize: '0.8rem'}}>🗑️ Delete</button>
                         </div>
                       )}
 
@@ -351,26 +362,28 @@ const FieldOfficers = () => {
         )}
       </div>
 
-      {/* DETAIL MODAL */}
       {isModalOpen && selectedOfficer && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-main">
-              <div className="modal-title-section">
-                <div className="modal-avatar-wrapper">
-                   <div className="modal-avatar" style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>
-                     {(selectedOfficer.officerName || 'U').charAt(0)}
-                   </div>
+          <div className="modal-content detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-box">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div className="modal-avatar" style={{ 
+                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  width: '50px', height: '50px', borderRadius: '12px', color: 'white',
+                  display: 'flex', alignItems: 'center', justify: 'center', fontSize: '20px', fontWeight: 'bold'
+                }}>
+                  {(selectedOfficer.officerName || 'U').charAt(0)}
                 </div>
-                <div className="modal-officer-info">
-                  <h2>{selectedOfficer.officerName}</h2>
-                  <p>Officer Portfolio & Ongoing Field Schedule</p>
+                <div>
+                  <h2 style={{ margin: 0 }}>{selectedOfficer.officerName}</h2>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Officer Portfolio & Field Schedule</p>
                 </div>
               </div>
-              <button className="close-modal-btn" onClick={closeModal}>&times;</button>
+              <button className="close-x" onClick={closeModal}>&times;</button>
             </div>
-            <div className="modal-body">
-              <div className="modal-column">
+            
+            <div className="profile-grid">
+              <div className="profile-section">
                 <h3 className="modal-section-title">📊 Active Portfolio</h3>
                 <div className="modal-portfolio-list">
                   {(selectedOfficer.projects || []).length > 0 ? (
@@ -378,7 +391,7 @@ const FieldOfficers = () => {
                       <div key={pIdx} className="modal-project-item">
                         <div className="modal-project-header">
                           <span className="modal-project-name">📁 {proj.name}</span>
-                          <span className="modal-ben-count">{proj.beneficiaries?.length || 0} Beneficiaries</span>
+                          <span className="modal-ben-count">{proj.beneficiaries?.length || 0} Bens</span>
                         </div>
                         <div className="modal-ben-tags">
                           {proj.beneficiaries?.map((ben, bIdx) => (
@@ -392,7 +405,8 @@ const FieldOfficers = () => {
                   )}
                 </div>
               </div>
-              <div className="modal-column">
+              
+              <div className="profile-section">
                 <h3 className="modal-section-title">📅 Upcoming Field Visits</h3>
                 <div className="visits-timeline">
                   {(selectedOfficer.futureVisits || []).length > 0 ? (
@@ -414,19 +428,22 @@ const FieldOfficers = () => {
                 </div>
               </div>
             </div>
+            
+            <div className="modal-footer">
+              <button className="close-btn-secondary" onClick={closeModal}>Close View</button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* EDIT MODAL */}
       {isEditModalOpen && (
         <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
-          <div className="modal-content admin-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header-main">
-              <h2>Edit Field Officer Details</h2>
-              <button className="close-modal-btn" onClick={() => setIsEditModalOpen(false)}>&times;</button>
+          <div className="modal-content admin-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '850px'}}>
+            <div className="modal-header-box">
+              <h2 style={{margin: 0}}>Edit Field Officer Details</h2>
+              <button className="close-x" onClick={() => setIsEditModalOpen(false)}>&times;</button>
             </div>
-            <form onSubmit={handleUpdateOfficer} className="admin-form" style={{ overflowY: 'auto', maxHeight: '75vh' }}>
+            <form onSubmit={handleUpdateOfficer} className="admin-form" style={{ padding: '30px', overflowY: 'auto', maxHeight: '75vh' }}>
               <div className="form-grid">
                 <div className="form-group">
                   <label>First Name</label>
@@ -499,27 +516,26 @@ const FieldOfficers = () => {
                   <input type="text" value={editFormData.emergency_contact || ''} onChange={e => setEditFormData({...editFormData, emergency_contact: e.target.value})} className="modern-input" />
                 </div>
               </div>
-              <div className="form-actions">
-                <button type="button" className="cancel-btn" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
-                <button type="submit" disabled={isSaving} className="submit-btn">{isSaving ? 'Saving...' : 'Save Changes'}</button>
+              <div className="modal-footer" style={{marginTop: '20px', padding: '20px 0 0 0'}}>
+                <button type="button" className="close-btn-secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
+                <button type="submit" disabled={isSaving} className="action-btn-view" style={{minWidth: '150px', padding: '10px 24px', borderRadius: '10px'}}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* SCHEDULE MODAL */}
       {isScheduleModalOpen && (
         <div className="modal-overlay" onClick={() => setIsScheduleModalOpen(false)}>
-          <div className="modal-content admin-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header-main">
+          <div className="modal-content admin-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
+            <div className="modal-header-box">
               <div>
-                <h2>Schedule New Visit</h2>
-                <p>Assigning to {selectedOfficer?.officerName}</p>
+                <h2 style={{margin: 0}}>Schedule New Visit</h2>
+                <p style={{margin: 0, color: '#64748b', fontSize: '0.9rem'}}>Assigning to {selectedOfficer?.officerName}</p>
               </div>
-              <button className="close-modal-btn" onClick={() => setIsScheduleModalOpen(false)}>&times;</button>
+              <button className="close-x" onClick={() => setIsScheduleModalOpen(false)}>&times;</button>
             </div>
-            <form onSubmit={handleScheduleSubmit} className="admin-form">
+            <form onSubmit={handleScheduleSubmit} className="admin-form" style={{padding: '30px'}}>
               <div className="form-group">
                 <label>Target Project</label>
                 <select className="modern-select" value={scheduleData.projectId} onChange={(e) => handleProjectChange(e.target.value)} required>
@@ -561,11 +577,49 @@ const FieldOfficers = () => {
                   <input type="time" className="modern-input" value={scheduleData.time} onChange={(e) => setScheduleData({...scheduleData, time: e.target.value})} required />
                 </div>
               </div>
-              <div className="form-actions">
-                <button type="button" onClick={() => setIsScheduleModalOpen(false)} className="cancel-btn">Cancel</button>
-                <button type="submit" disabled={isSaving} className="submit-btn">{isSaving ? 'Scheduling...' : 'Create Visit'}</button>
+              <div className="modal-footer" style={{marginTop: '20px', padding: '20px 0 0 0'}}>
+                <button type="button" onClick={() => setIsScheduleModalOpen(false)} className="close-btn-secondary">Cancel</button>
+                <button type="submit" disabled={isSaving} className="action-btn-view" style={{minWidth: '150px', padding: '10px 24px', borderRadius: '10px'}}>{isSaving ? 'Scheduling...' : 'Create Visit'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+          backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 2000
+        }}>
+          <div className="modal-content" style={{
+            background: 'white', padding: '40px', borderRadius: '15px', width: '90%', maxWidth: '400px',
+            textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+             <div style={{fontSize: '50px', marginBottom: '20px'}}>⚠️</div>
+             <h2 style={{color: '#111827', marginBottom: '10px'}}>Are you sure?</h2>
+             <p style={{color: '#6b7280', marginBottom: '30px', fontSize: '15px'}}>
+               Do you really want to delete this field officer? This action cannot be undone.
+             </p>
+             <div style={{display: 'flex', gap: '15px', justifyContent: 'center'}}>
+               <button 
+                 onClick={() => setIsDeleteModalOpen(false)} 
+                 className="close-btn-secondary"
+                 style={{flex: 1, padding: '12px'}}
+               >
+                 Cancel
+               </button>
+               <button 
+                 onClick={confirmDelete} 
+                 className="action-btn-delete"
+                 style={{
+                   flex: 1, padding: '12px', border: 'none', borderRadius: '10px', 
+                   fontWeight: '700', cursor: 'pointer', backgroundColor: '#ef4444', color: 'white'
+                 }}
+               >
+                 Yes, Delete
+               </button>
+             </div>
           </div>
         </div>
       )}
