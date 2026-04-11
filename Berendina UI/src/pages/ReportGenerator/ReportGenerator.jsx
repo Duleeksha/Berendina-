@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './ReportGenerator.css';
+import { DS_DIVISIONS } from '../../constants/locations';
 
 const ReportGenerator = () => {
   const [filters, setFilters] = useState({
@@ -7,7 +8,8 @@ const ReportGenerator = () => {
     endDate: '',
     district: '',
     project: '',
-    status: ''
+    status: '',
+    reportType: 'default' // Add reportType to filters
   });
 
   const [reportData, setReportData] = useState([]);
@@ -15,7 +17,10 @@ const ReportGenerator = () => {
     total: 0,
     active: 0,
     inactive: 0,
-    pending: 0
+    pending: 0,
+    avgProgress: 0,
+    completed: 0,
+    scheduled: 0
   });
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState([]);
@@ -41,7 +46,7 @@ const ReportGenerator = () => {
       if (response.ok) {
         const data = await response.json();
         setReportData(data.rows || []);
-        setReportStats(data.stats || { total: 0, active: 0, inactive: 0, pending: 0 });
+        setReportStats(data.stats || { total: 0 });
       }
     } catch (error) {
       console.error("Report generation error:", error);
@@ -57,38 +62,203 @@ const ReportGenerator = () => {
     window.open(`http://localhost:5000/api/analytics/export/${type}?${query}`, '_blank');
   };
 
+  // Dynamic Table Headers
+  const renderTableHeaders = () => {
+    switch (filters.reportType) {
+      case 'progress':
+        return (
+          <tr>
+            <th>Beneficiary Name</th>
+            <th>Project</th>
+            <th>Progress %</th>
+            <th>Last Update</th>
+            <th>Comment</th>
+          </tr>
+        );
+      case 'visits':
+        return (
+          <tr>
+            <th>Visit Date</th>
+            <th>Beneficiary</th>
+            <th>Field Officer</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        );
+      case 'resources':
+        return (
+          <tr>
+            <th>Resource</th>
+            <th>Type</th>
+            <th>Allocated To</th>
+            <th>Quantity</th>
+            <th>Status</th>
+          </tr>
+        );
+      case 'performance':
+        return (
+          <tr>
+            <th>Reporting Period</th>
+            <th>New Beneficiaries</th>
+            <th>Currently Active</th>
+            <th>Pending Review</th>
+          </tr>
+        );
+      default:
+        return (
+          <tr>
+            <th>Registration Date</th>
+            <th>Beneficiary Name</th>
+            <th>NIC Number</th>
+            <th>Project / Program</th>
+            <th>DS Division</th>
+            <th>Status</th>
+          </tr>
+        );
+    }
+  };
+
+  // Dynamic Table Rows
+  const renderTableRows = (data, i) => {
+    switch (filters.reportType) {
+      case 'progress':
+        return (
+          <tr key={data.history_id || i}>
+            <td className="font-medium">{data.ben_name}</td>
+            <td><span className="project-tag">{data.ben_project}</span></td>
+            <td>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ flex: 1, height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${data.progress_value}%`, height: '100%', background: '#2563eb' }}></div>
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{data.progress_value}%</span>
+              </div>
+            </td>
+            <td>{new Date(data.update_date).toLocaleDateString()}</td>
+            <td style={{ fontSize: '12px', color: '#64748b' }}>{data.comment || 'N/A'}</td>
+          </tr>
+        );
+      case 'visits':
+        return (
+          <tr key={data.visit_id || i}>
+            <td>{new Date(data.visit_date).toLocaleDateString()}</td>
+            <td className="font-medium">{data.beneficiary_name}</td>
+            <td>{data.officer_name}</td>
+            <td>
+              <span className={`report-status status-${(data.status || 'pending').toLowerCase()}`}>
+                {data.status}
+              </span>
+            </td>
+            <td style={{ fontSize: '12px', color: '#64748b' }}>{data.notes || 'No notes'}</td>
+          </tr>
+        );
+      case 'resources':
+        return (
+          <tr key={data.resource_id || i}>
+            <td className="font-medium">{data.resource_name}</td>
+            <td>{data.type}</td>
+            <td>{data.beneficiary_name || <span style={{color: '#94a3b8'}}>Unallocated</span>}</td>
+            <td>{data.quantity}</td>
+            <td>
+              <span className={`report-status status-${(data.status || 'available').toLowerCase()}`}>
+                {data.status}
+              </span>
+            </td>
+          </tr>
+        );
+      case 'performance':
+        return (
+          <tr key={i}>
+            <td className="font-medium">{data.period}</td>
+            <td style={{ textAlign: 'center' }}>{data.total_added}</td>
+            <td style={{ textAlign: 'center' }}>{data.active_now}</td>
+            <td style={{ textAlign: 'center' }}>{data.pending_now}</td>
+          </tr>
+        );
+      default:
+        return (
+          <tr key={data.id || i}>
+            <td style={{ color: '#64748b', fontSize: '13px' }}>
+              {data.created_at ? new Date(data.created_at).toLocaleDateString() : 'N/A'}
+            </td>
+            <td className="font-medium">{data.ben_name}</td>
+            <td>{data.ben_nic}</td>
+            <td><span className="project-tag">{data.ben_project}</span></td>
+            <td>{data.ben_district}</td>
+            <td>
+              <span className={`report-status status-${(data.ben_status || 'active').toLowerCase()}`}>
+                {data.ben_status}
+              </span>
+            </td>
+          </tr>
+        );
+    }
+  };
+
   return (
     <div className="report-page-content">
       <div className="page-header">
         <div>
           <h1>Smart Report Generator</h1>
-          <p>Extract, analyze, and export multi-dimensional beneficiary data.</p>
+          <p>Extract, analyze, and export multi-dimensional mission data.</p>
         </div>
       </div>
 
       {/* DASHBOARD METRICS */}
       <div className="report-metrics-grid">
         <div className="metric-card blue">
-          <span className="metric-label">Total Filtered</span>
+          <span className="metric-label">{filters.reportType === 'default' ? 'Total Filtered' : 'Records Found'}</span>
           <span className="metric-value">{reportStats.total}</span>
         </div>
-        <div className="metric-card green">
-          <span className="metric-label">Active Cases</span>
-          <span className="metric-value">{reportStats.active}</span>
-        </div>
-        <div className="metric-card orange">
-          <span className="metric-label">Pending Review</span>
-          <span className="metric-value">{reportStats.pending}</span>
-        </div>
+        
+        {filters.reportType === 'progress' ? (
+          <div className="metric-card green">
+            <span className="metric-label">Avg. Progress</span>
+            <span className="metric-value">{reportStats.avgProgress}%</span>
+          </div>
+        ) : filters.reportType === 'visits' ? (
+          <>
+            <div className="metric-card green">
+              <span className="metric-label">Completed Visits</span>
+              <span className="metric-value">{reportStats.completed}</span>
+            </div>
+            <div className="metric-card orange">
+              <span className="metric-label">Scheduled</span>
+              <span className="metric-value">{reportStats.scheduled}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="metric-card green">
+              <span className="metric-label">Active Cases</span>
+              <span className="metric-value">{reportStats.active || 0}</span>
+            </div>
+            <div className="metric-card orange">
+              <span className="metric-label">Pending Review</span>
+              <span className="metric-value">{reportStats.pending || 0}</span>
+            </div>
+          </>
+        )}
+
         <div className="metric-card red">
-          <span className="metric-label">Inactive</span>
-          <span className="metric-value">{reportStats.inactive}</span>
+          <span className="metric-label">{filters.reportType === 'visits' ? 'Overdue' : 'Inactive'}</span>
+          <span className="metric-value">{reportStats.inactive || 0}</span>
         </div>
       </div>
 
       {/* ADVANCED FILTERS */}
       <div className="report-filter-bar">
-        <form onSubmit={handleGenerate} className="filter-grid">
+        <form onSubmit={handleGenerate} className="filter-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div className="filter-group">
+            <label>Report Goal</label>
+            <select name="reportType" value={filters.reportType} onChange={handleFilterChange} className="modern-select" style={{ border: '2px solid #2563eb', fontWeight: 'bold' }}>
+              <option value="default">Beneficiary Smart List</option>
+              <option value="progress">Beneficiary Progress History</option>
+              <option value="visits">Field Visit Detailed Report</option>
+              <option value="resources">Resource Allocation Summary</option>
+              <option value="performance">Monthly Performance Summary</option>
+            </select>
+          </div>
           <div className="filter-group">
             <label>Project</label>
             <select name="project" value={filters.project} onChange={handleFilterChange} className="modern-select">
@@ -100,20 +270,9 @@ const ReportGenerator = () => {
             <label>DS Division</label>
             <select name="district" value={filters.district} onChange={handleFilterChange} className="modern-select">
               <option value="">All DS Divisions</option>
-              <option value="Ambagamuwa">Ambagamuwa</option>
-              <option value="Hanguranketha">Hanguranketha</option>
-              <option value="Kothmale">Kothmale</option>
-              <option value="Nuwara Eliya">Nuwara Eliya</option>
-              <option value="Walapane">Walapane</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Status</label>
-            <select name="status" value={filters.status} onChange={handleFilterChange} className="modern-select">
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
+              {DS_DIVISIONS.map(ds => (
+                <option key={ds} value={ds}>{ds}</option>
+              ))}
             </select>
           </div>
           <div className="filter-group">
@@ -125,8 +284,8 @@ const ReportGenerator = () => {
             <input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="modern-input" />
           </div>
           <div className="filter-group">
-            <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', height: '45px' }}>
-              {loading ? 'Processing...' : 'Apply Filters'}
+            <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', height: '45px', marginTop: 'auto' }}>
+              {loading ? 'Processing...' : 'Generate Report'}
             </button>
           </div>
         </form>
@@ -138,7 +297,7 @@ const ReportGenerator = () => {
            <button onClick={() => handleExport('excel')} className="action-btn-view" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569' }}>
              📊 Export Excel Sheet
            </button>
-           <button onClick={() => { setFilters({startDate:'', endDate:'', district:'', project:'', status:''}); setReportData([]); setReportStats({total:0, active:0, inactive:0, pending:0}); }} className="action-btn-view" style={{ background: 'none', border: 'none', color: '#94a3b8', textDecoration: 'underline' }}>
+           <button onClick={() => { setFilters({startDate:'', endDate:'', district:'', project:'', status:'', reportType: 'default'}); setReportData([]); setReportStats({total:0, active:0, inactive:0, pending:0}); }} className="action-btn-view" style={{ background: 'none', border: 'none', color: '#94a3b8', textDecoration: 'underline' }}>
              Reset All Filters
            </button>
         </div>
@@ -147,7 +306,13 @@ const ReportGenerator = () => {
       {/* REPORT PREVIEW TABLE */}
       <div className="report-preview-container">
         <div className="preview-header">
-          <h3>Report Preview</h3>
+          <h3>
+             {filters.reportType === 'default' ? 'Report Preview' : 
+              filters.reportType === 'progress' ? 'Beneficiary Progress Tracking' :
+              filters.reportType === 'visits' ? 'Recent Field Visit Activity' :
+              filters.reportType === 'resources' ? 'Resource Utilization Overview' :
+              'Periodic Performance Metrics'}
+          </h3>
           <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>
             Showing {reportData.length} records based on selection
           </span>
@@ -156,46 +321,24 @@ const ReportGenerator = () => {
         <div className="table-responsive">
           <table className="modern-table">
             <thead>
-              <tr>
-                <th>Registration Date</th>
-                <th>Beneficiary Name</th>
-                <th>NIC Number</th>
-                <th>Project / Program</th>
-                <th>DS Division</th>
-                <th>Status</th>
-              </tr>
+              {renderTableHeaders()}
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                   <td colSpan="6" style={{ textAlign: 'center', padding: '50px' }}>
+                   <td colSpan="10" style={{ textAlign: 'center', padding: '50px' }}>
                      <div className="loading-spinner" style={{ margin: '0 auto 15px' }}></div>
                      Calculating report data...
                    </td>
                 </tr>
               ) : reportData.length > 0 ? (
-                reportData.map((b, i) => (
-                  <tr key={b.id || i}>
-                    <td style={{ color: '#64748b', fontSize: '13px' }}>
-                      {b.created_at ? new Date(b.created_at).toLocaleDateString() : 'N/A'}
-                    </td>
-                    <td className="font-medium">{b.ben_name}</td>
-                    <td>{b.ben_nic}</td>
-                    <td><span className="project-tag">{b.ben_project}</span></td>
-                    <td>{b.ben_district}</td>
-                    <td>
-                      <span className={`report-status status-${(b.ben_status || 'active').toLowerCase()}`}>
-                        {b.ben_status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                reportData.map((data, i) => renderTableRows(data, i))
               ) : (
                 <tr>
-                   <td colSpan="6">
+                   <td colSpan="10">
                      <div className="report-empty-state">
                         <span className="empty-icon">📊</span>
-                        <p>No data matches the selected criteria.<br/>Adjust filters and click <strong>Apply Filters</strong> to generate a report.</p>
+                        <p>No data matches the selected criteria.<br/>Adjust filters and click <strong>Generate Report</strong> to download summary.</p>
                      </div>
                    </td>
                 </tr>

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import './Register.css';
 import '../Auth/Login.css'; 
+import { DS_DIVISIONS } from '../../constants/locations';
 import logo from '../../assets/berendina-logo.png';
 
 const Register = () => {
@@ -245,13 +246,11 @@ const Register = () => {
                         {errors.mobileNumber && <span className="form-error">{errors.mobileNumber}</span>}
                     </div>
                     <div className="form-group">
-                        <select name="ds_division" className="input-field select-field" onChange={handleChange}>
+                        <select name="ds_division" className="input-field select-field" value={formData.ds_division} onChange={handleChange}>
                             <option value="">DS Division</option>
-                            <option value="Ambagamuwa">Ambagamuwa</option>
-                            <option value="Hanguranketha">Hanguranketha</option>
-                            <option value="Kothmale">Kothmale</option>
-                            <option value="Nuwara Eliya">Nuwara Eliya</option>
-                            <option value="Walapane">Walapane</option>
+                            {DS_DIVISIONS.map(ds => (
+                                <option key={ds} value={ds}>{ds}</option>
+                            ))}
                         </select>
                     </div>
                 </div>

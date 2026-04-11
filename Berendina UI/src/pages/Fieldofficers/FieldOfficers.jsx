@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import './FieldOfficers.css';
+import { DS_DIVISIONS } from '../../constants/locations';
 
 const FieldOfficers = () => {
   const location = useLocation();
@@ -121,14 +122,9 @@ const FieldOfficers = () => {
           ds_division: fullData.ds_division || '',
           vehicleType: fullData.vehicleType || 'None',
           vehicleNumber: fullData.vehicleNumber || '',
-          languages: fullData.languages || '',
-          organization: fullData.organization || '',
-          employee_id: fullData.employee_id || '',
-          department: fullData.department || '',
-          branch: fullData.branch || '',
-          job_title: fullData.job_title || '',
           gender: fullData.gender || '',
-          emergency_contact: fullData.emergency_contact || ''
+          emergency_contact: fullData.emergency_contact || '',
+          languages: fullData.languages ? fullData.languages.split(', ') : []
         });
         setIsEditModalOpen(true);
       } else {
@@ -182,6 +178,15 @@ const FieldOfficers = () => {
       console.error('Update error:', err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleLanguageToggle = (lang) => {
+    const currentLangs = editFormData.languages || [];
+    if (currentLangs.includes(lang)) {
+      setEditFormData({ ...editFormData, languages: currentLangs.filter(l => l !== lang) });
+    } else {
+      setEditFormData({ ...editFormData, languages: [...currentLangs, lang] });
     }
   };
 
@@ -454,18 +459,6 @@ const FieldOfficers = () => {
                   <input type="text" value={editFormData.lastName || ''} onChange={e => setEditFormData({...editFormData, lastName: e.target.value})} required className="modern-input" />
                 </div>
                 <div className="form-group">
-                  <label>Email (Read-only)</label>
-                  <input type="email" value={editFormData.email || ''} readOnly className="modern-input read-only-input" />
-                </div>
-                <div className="form-group">
-                  <label>Mobile Number</label>
-                  <input type="text" value={editFormData.mobileNumber || ''} onChange={e => setEditFormData({...editFormData, mobileNumber: e.target.value})} required className="modern-input" />
-                </div>
-                <div className="form-group">
-                  <label>DS Division</label>
-                  <input type="text" value={editFormData.ds_division || ''} onChange={e => setEditFormData({...editFormData, ds_division: e.target.value})} required className="modern-input" />
-                </div>
-                <div className="form-group">
                   <label>Gender</label>
                   <select value={editFormData.gender || ''} onChange={e => setEditFormData({...editFormData, gender: e.target.value})} required className="modern-select">
                     <option value="">Select Gender</option>
@@ -475,46 +468,61 @@ const FieldOfficers = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Languages</label>
-                  <input type="text" value={editFormData.languages || ''} placeholder="e.g. English, Sinhala" onChange={e => setEditFormData({...editFormData, languages: e.target.value})} required className="modern-input" />
+                  <label>Email (Read-only)</label>
+                  <input type="email" value={editFormData.email || ''} readOnly className="modern-input read-only-input" />
                 </div>
                 <div className="form-group">
-                  <label>Vehicle Type</label>
-                  <select value={editFormData.vehicleType || 'None'} onChange={e => setEditFormData({...editFormData, vehicleType: e.target.value})} className="modern-select">
-                    <option value="None">None</option>
-                    <option value="Bike">Bike</option>
-                    <option value="Car">Car</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Vehicle Number</label>
-                  <input type="text" value={editFormData.vehicleNumber || ''} onChange={e => setEditFormData({...editFormData, vehicleNumber: e.target.value})} className="modern-input" />
-                </div>
-                <div className="form-group">
-                  <label>Employee ID (Read-only)</label>
-                  <input type="text" value={editFormData.employee_id || ''} readOnly className="modern-input read-only-input" />
-                </div>
-                <div className="form-group">
-                  <label>Organization</label>
-                  <input type="text" value={editFormData.organization || ''} onChange={e => setEditFormData({...editFormData, organization: e.target.value})} className="modern-input" />
-                </div>
-                <div className="form-group">
-                  <label>Department</label>
-                  <input type="text" value={editFormData.department || ''} onChange={e => setEditFormData({...editFormData, department: e.target.value})} className="modern-input" />
-                </div>
-                <div className="form-group">
-                  <label>Branch</label>
-                  <input type="text" value={editFormData.branch || ''} onChange={e => setEditFormData({...editFormData, branch: e.target.value})} className="modern-input" />
-                </div>
-                <div className="form-group">
-                  <label>Job Title</label>
-                  <input type="text" value={editFormData.job_title || ''} onChange={e => setEditFormData({...editFormData, job_title: e.target.value})} className="modern-input" />
+                  <label>Mobile Number</label>
+                  <input type="text" value={editFormData.mobileNumber || ''} onChange={e => setEditFormData({...editFormData, mobileNumber: e.target.value})} required className="modern-input" />
                 </div>
                 <div className="form-group">
                   <label>Emergency Contact</label>
                   <input type="text" value={editFormData.emergency_contact || ''} onChange={e => setEditFormData({...editFormData, emergency_contact: e.target.value})} className="modern-input" />
                 </div>
+                <div className="form-group">
+                  <label>DS Division</label>
+                  <select 
+                    value={editFormData.ds_division || ''} 
+                    onChange={e => setEditFormData({...editFormData, ds_division: e.target.value})} 
+                    required 
+                    className="modern-select"
+                  >
+                    <option value="">Select Division</option>
+                    {DS_DIVISIONS.map(ds => (
+                      <option key={ds} value={ds}>{ds}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="field-label">Languages</label>
+                  <div className="checkbox-group" style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                    {['Sinhala', 'Tamil', 'English'].map(lang => (
+                      <label key={lang} className="checkbox-item" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={(editFormData.languages || []).includes(lang)} 
+                          onChange={() => handleLanguageToggle(lang)} 
+                        /> 
+                        {lang}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Vehicle Type</label>
+                  <select value={editFormData.vehicleType || 'None'} onChange={e => setEditFormData({...editFormData, vehicleType: e.target.value})} className="modern-select">
+                    <option value="None">None</option>
+                    <option value="Motorbike">Motorbike</option>
+                    <option value="Car">Car</option>
+                    <option value="Three Wheel">Three Wheel</option>
+                  </select>
+                </div>
+                {editFormData.vehicleType && editFormData.vehicleType !== 'None' && (
+                  <div className="form-group">
+                    <label>Vehicle Number</label>
+                    <input type="text" value={editFormData.vehicleNumber || ''} onChange={e => setEditFormData({...editFormData, vehicleNumber: e.target.value})} className="modern-input" placeholder="Ex: CP-ABC-1234" />
+                  </div>
+                )}
               </div>
               <div className="modal-footer" style={{marginTop: '20px', padding: '20px 0 0 0'}}>
                 <button type="button" className="close-btn-secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</button>

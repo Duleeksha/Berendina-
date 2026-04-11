@@ -50,93 +50,192 @@ export const getDashboardStats = async (req, res) => {
 };
 
 export const getReportData = async (req, res) => {
-  const { startDate, endDate, project, district, status } = req.query;
+  const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
-    let query = `SELECT * FROM beneficiary WHERE 1=1`;
-    const params = [];
+    let query = "";
+    let params = [];
     let pIdx = 1;
 
-    if (project && project !== "") { 
-      query += ` AND LOWER(TRIM(ben_project)) = LOWER(TRIM($${pIdx++}))`; 
-      params.push(project); 
-    }
-    if (district && district !== "") { 
-      query += ` AND LOWER(TRIM(ben_district)) = LOWER(TRIM($${pIdx++}))`; 
-      params.push(district); 
-    }
-    if (status && status !== "") { 
-      query += ` AND LOWER(TRIM(ben_status)) = LOWER(TRIM($${pIdx++}))`; 
-      params.push(status); 
-    }
-    if (startDate && startDate !== "") { 
-      query += ` AND created_at >= $${pIdx++}::timestamp`; 
-      params.push(startDate); 
-    }
-    if (endDate && endDate !== "") { 
-      query += ` AND created_at < ($${pIdx++}::date + interval '1 day')`; 
-      params.push(endDate); 
+    // Base filtering logic for shared parameters
+    const getFilters = (tablePrefix = "", includeDate = true) => {
+      let filterPart = "";
+      if (project && project !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(project); 
+      }
+      if (district && district !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_district)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(district); 
+      }
+      if (status && status !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(status); 
+      }
+      if (includeDate) {
+        if (startDate && startDate !== "") { 
+          filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; 
+          params.push(startDate); 
+        }
+        if (endDate && endDate !== "") { 
+          filterPart += ` AND ${tablePrefix}created_at < ($${pIdx++}::date + interval '1 day')`; 
+          params.push(endDate); 
+        }
+      }
+      return filterPart;
+    };
+
+    switch (reportType) {
+      case 'progress':
+        query = `
+          SELECT ph.history_id, b.ben_name, b.ben_project, ph.progress_value, ph.update_date, ph.comment
+          FROM progress_history ph
+          JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id
+          WHERE 1=1 ${getFilters('b.')}
+          ORDER BY ph.update_date DESC
+        `;
+        break;
+      
+      case 'visits':
+        query = `
+          SELECT fv.visit_id, fv.visit_date, fv.beneficiary_name, 
+                 TRIM(CONCAT(u.first_name, ' ', u.last_name)) as officer_name, 
+                 fv.status, fv.notes
+          FROM field_visits fv
+          LEFT JOIN user_table u ON fv.officer_id = u.user_id
+          LEFT JOIN beneficiary b ON fv.beneficiary_id = b.beneficiary_id
+          WHERE 1=1 ${getFilters('b.')}
+          ORDER BY fv.visit_date DESC
+        `;
+        break;
+
+      case 'resources':
+        query = `
+          SELECT r.resource_id, r.res_name as resource_name, r.type, 
+                 b.ben_name as beneficiary_name, r.quantity, r.status, r.condition
+          FROM resource r
+          LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id
+          WHERE 1=1 ${getFilters('b.', false)}
+          ORDER BY r.resource_id DESC
+        `;
+        break;
+
+      case 'performance':
+        query = `
+          SELECT TO_CHAR(created_at, 'Month YYYY') as period, 
+                 COUNT(*) as total_added,
+                 COUNT(CASE WHEN ben_status = 'Active' THEN 1 END) as active_now,
+                 COUNT(CASE WHEN ben_status = 'Pending' THEN 1 END) as pending_now
+          FROM beneficiary
+          WHERE 1=1 ${getFilters()}
+          GROUP BY period, TO_CHAR(created_at, 'YYYY-MM')
+          ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC
+        `;
+        break;
+
+      default:
+        query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
     }
 
     const result = await pool.query(query, params);
-    
-    // Aggregate data for Metric Cards
     const rows = result.rows || [];
-    const stats = {
-      total: rows.length,
-      active: rows.filter(r => (r.ben_status || '').toLowerCase() === 'active').length,
-      inactive: rows.filter(r => (r.ben_status || '').toLowerCase() === 'inactive').length,
-      pending: rows.filter(r => (r.ben_status || '').toLowerCase() === 'pending').length
-    };
+
+    // Different stats based on report type
+    let stats = { total: rows.length };
+    
+    if (!reportType || reportType === 'default') {
+      stats = {
+        total: rows.length,
+        active: rows.filter(r => (r.ben_status || '').toLowerCase() === 'active').length,
+        inactive: rows.filter(r => (r.ben_status || '').toLowerCase() === 'inactive').length,
+        pending: rows.filter(r => (r.ben_status || '').toLowerCase() === 'pending').length
+      };
+    } else if (reportType === 'progress') {
+      const avgProgress = rows.length > 0 ? rows.reduce((acc, r) => acc + (r.progress_value || 0), 0) / rows.length : 0;
+      stats.avgProgress = Math.round(avgProgress);
+    } else if (reportType === 'visits') {
+      stats.completed = rows.filter(r => (r.status || '').toLowerCase() === 'completed').length;
+      stats.scheduled = rows.filter(r => (r.status || '').toLowerCase() === 'scheduled').length;
+    }
 
     res.json({ rows, stats });
   } catch (error) {
     console.error("Report Fetch Error:", error);
-    res.status(500).json({ 
-      message: 'Server error fetching reports', 
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    res.status(500).json({ message: 'Server error fetching reports', details: error.message });
   }
 };
 
 export const exportPDF = async (req, res) => {
-  const { startDate, endDate, project, district, status } = req.query;
+  const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
-    let query = `SELECT * FROM beneficiary WHERE 1=1`;
-    const params = [];
+    let query = "";
+    let params = [];
     let pIdx = 1;
-    if (project) { query += ` AND ben_project = $${pIdx++}`; params.push(project); }
-    if (district) { query += ` AND ben_district = $${pIdx++}`; params.push(district); }
-    if (status) { query += ` AND LOWER(ben_status) = LOWER($${pIdx++})`; params.push(status); }
-    if (startDate) { query += ` AND created_at >= $${pIdx++}`; params.push(startDate); }
-    if (endDate) { query += ` AND created_at <= $${pIdx++}`; params.push(endDate); }
+
+    const getFilters = (tablePrefix = "", includeDate = true) => {
+      let filterPart = "";
+      if (project) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; params.push(project); }
+      if (district) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_district)) = LOWER(TRIM($${pIdx++}))`; params.push(district); }
+      if (status) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; params.push(status); }
+      if (includeDate) {
+        if (startDate) { filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; params.push(startDate); }
+        if (endDate) { filterPart += ` AND ${tablePrefix}created_at < ($${pIdx++}::date + interval '1 day')`; params.push(endDate); }
+      }
+      return filterPart;
+    };
+
+    let title = "Beneficiary Report";
+    let headers = [['Name', 'NIC', 'DS Division', 'Project', 'Status']];
+    let mapper = (b) => [b.ben_name, b.ben_nic, b.ben_district, b.ben_project, b.ben_status];
+
+    switch (reportType) {
+      case 'progress':
+        title = "Beneficiary Progress Report";
+        headers = [['Name', 'Project', 'Progress %', 'Update Date', 'Comment']];
+        mapper = (r) => [r.ben_name, r.ben_project, `${r.progress_value}%`, new Date(r.update_date).toLocaleDateString(), r.comment];
+        query = `SELECT ph.*, b.ben_name, b.ben_project FROM progress_history ph JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY ph.update_date DESC`;
+        break;
+      case 'visits':
+        title = "Field Visit Report";
+        headers = [['Date', 'Beneficiary', 'Officer', 'Status', 'Notes']];
+        mapper = (r) => [new Date(r.visit_date).toLocaleDateString(), r.beneficiary_name, r.officer_name, r.status, r.notes];
+        query = `SELECT fv.*, TRIM(CONCAT(u.first_name, ' ', u.last_name)) as officer_name FROM field_visits fv LEFT JOIN user_table u ON fv.officer_id = u.user_id LEFT JOIN beneficiary b ON fv.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY fv.visit_date DESC`;
+        break;
+      case 'resources':
+        title = "Resource Allocation Report";
+        headers = [['Resource', 'Type', 'Allocated To', 'Qty', 'Status']];
+        mapper = (r) => [r.resource_name, r.type, r.beneficiary_name || 'Unallocated', r.quantity, r.status];
+        query = `SELECT r.res_name as resource_name, r.type, b.ben_name as beneficiary_name, r.quantity, r.status FROM resource r LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY r.resource_id DESC`;
+        break;
+      case 'performance':
+        title = "Monthly Performance Summary";
+        headers = [['Period', 'Total Added', 'Active Now', 'Pending Now']];
+        mapper = (r) => [r.period, r.total_added, r.active_now, r.pending_now];
+        query = `SELECT TO_CHAR(created_at, 'Month YYYY') as period, COUNT(*) as total_added, COUNT(CASE WHEN ben_status = 'Active' THEN 1 END) as active_now, COUNT(CASE WHEN ben_status = 'Pending' THEN 1 END) as pending_now FROM beneficiary WHERE 1=1 ${getFilters()} GROUP BY period, TO_CHAR(created_at, 'YYYY-MM') ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC`;
+        break;
+      default:
+        query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
+    }
 
     const result = await pool.query(query, params);
     const doc = new jsPDF();
     
-    // Add title and metadata to PDF
     doc.setFontSize(20);
-    doc.text("Beneficiary Report", 14, 22);
+    doc.text(title, 14, 22);
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
     doc.text(`Total Records: ${result.rows.length}`, 14, 35);
     
-    const tableData = result.rows.map(b => [b.ben_name, b.ben_nic, b.ben_district, b.ben_project, b.ben_status]);
     doc.autoTable({ 
       startY: 45,
-      head: [['Name', 'NIC', 'DS Division', 'Project', 'Status']], 
-      body: tableData,
+      head: headers, 
+      body: result.rows.map(mapper),
       headStyles: { fillStyle: '#2563eb' }
     });
 
     const buffer = Buffer.from(doc.output('arraybuffer'));
     res.setHeader('Content-Type', 'application/pdf');
-    if (req.query.preview === 'true') {
-      res.setHeader('Content-Disposition', 'inline; filename=filtered_report.pdf');
-    } else {
-      res.setHeader('Content-Disposition', 'attachment; filename=filtered_report.pdf');
-    }
+    res.setHeader('Content-Disposition', `${req.query.preview === 'true' ? 'inline' : 'attachment'}; filename=report.pdf`);
     res.send(buffer);
   } catch (error) {
     console.error("PDF Export Error:", error);
@@ -145,43 +244,95 @@ export const exportPDF = async (req, res) => {
 };
 
 export const exportExcel = async (req, res) => {
-  const { startDate, endDate, project, district, status } = req.query;
+  const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
-    let query = `SELECT * FROM beneficiary WHERE 1=1`;
-    const params = [];
+    let query = "";
+    let params = [];
     let pIdx = 1;
-    if (project) { query += ` AND ben_project = $${pIdx++}`; params.push(project); }
-    if (district) { query += ` AND ben_district = $${pIdx++}`; params.push(district); }
-    if (status) { query += ` AND LOWER(ben_status) = LOWER($${pIdx++})`; params.push(status); }
-    if (startDate) { query += ` AND created_at >= $${pIdx++}`; params.push(startDate); }
-    if (endDate) { query += ` AND created_at <= $${pIdx++}`; params.push(endDate); }
 
-    const result = await pool.query(query, params);
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Beneficiaries');
-    
-    worksheet.columns = [
+    const getFilters = (tablePrefix = "", includeDate = true) => {
+      let filterPart = "";
+      if (project) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; params.push(project); }
+      if (district) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_district)) = LOWER(TRIM($${pIdx++}))`; params.push(district); }
+      if (status) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; params.push(status); }
+      if (includeDate) {
+        if (startDate) { filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; params.push(startDate); }
+        if (endDate) { filterPart += ` AND ${tablePrefix}created_at < ($${pIdx++}::date + interval '1 day')`; params.push(endDate); }
+      }
+      return filterPart;
+    };
+
+    let columns = [
       { header: 'Name', key: 'name', width: 25 },
       { header: 'NIC', key: 'nic', width: 15 },
       { header: 'DS Division', key: 'district', width: 15 },
       { header: 'Project', key: 'project', width: 20 },
       { header: 'Status', key: 'status', width: 10 }
     ];
+    let mapper = (b) => ({ name: b.ben_name, nic: b.ben_nic, district: b.ben_district, project: b.ben_project, status: b.ben_status });
+
+    switch (reportType) {
+      case 'progress':
+        columns = [
+          { header: 'Name', key: 'name', width: 25 },
+          { header: 'Project', key: 'project', width: 20 },
+          { header: 'Progress %', key: 'progress', width: 15 },
+          { header: 'Update Date', key: 'date', width: 15 },
+          { header: 'Comment', key: 'comment', width: 40 }
+        ];
+        mapper = (r) => ({ name: r.ben_name, project: r.ben_project, progress: r.progress_value, date: new Date(r.update_date).toLocaleDateString(), comment: r.comment });
+        query = `SELECT ph.*, b.ben_name, b.ben_project FROM progress_history ph JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY ph.update_date DESC`;
+        break;
+      case 'visits':
+        columns = [
+          { header: 'Date', key: 'date', width: 15 },
+          { header: 'Beneficiary', key: 'beneficiary', width: 25 },
+          { header: 'Officer', key: 'officer', width: 25 },
+          { header: 'Status', key: 'status', width: 15 },
+          { header: 'Notes', key: 'notes', width: 40 }
+        ];
+        mapper = (r) => ({ date: new Date(r.visit_date).toLocaleDateString(), beneficiary: r.beneficiary_name, officer: r.officer_name, status: r.status, notes: r.notes });
+        query = `SELECT fv.*, TRIM(CONCAT(u.first_name, ' ', u.last_name)) as officer_name FROM field_visits fv LEFT JOIN user_table u ON fv.officer_id = u.user_id LEFT JOIN beneficiary b ON fv.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY fv.visit_date DESC`;
+        break;
+      case 'resources':
+        columns = [
+          { header: 'Resource', key: 'resource', width: 25 },
+          { header: 'Type', key: 'type', width: 15 },
+          { header: 'Allocated To', key: 'beneficiary', width: 25 },
+          { header: 'Qty', key: 'qty', width: 10 },
+          { header: 'Status', key: 'status', width: 15 }
+        ];
+        mapper = (r) => ({ resource: r.resource_name, type: r.type, beneficiary: r.beneficiary_name || 'Unallocated', qty: r.quantity, status: r.status });
+        query = `SELECT r.res_name as resource_name, r.type, b.ben_name as beneficiary_name, r.quantity, r.status FROM resource r LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY r.resource_id DESC`;
+        break;
+      case 'performance':
+        columns = [
+          { header: 'Period', key: 'period', width: 20 },
+          { header: 'Total Added', key: 'added', width: 15 },
+          { header: 'Active Now', key: 'active', width: 15 },
+          { header: 'Pending Now', key: 'pending', width: 15 }
+        ];
+        mapper = (r) => ({ period: r.period, added: r.total_added, active: r.active_now, pending: r.pending_now });
+        query = `SELECT TO_CHAR(created_at, 'Month YYYY') as period, COUNT(*) as total_added, COUNT(CASE WHEN ben_status = 'Active' THEN 1 END) as active_now, COUNT(CASE WHEN ben_status = 'Pending' THEN 1 END) as pending_now FROM beneficiary WHERE 1=1 ${getFilters()} GROUP BY period, TO_CHAR(created_at, 'YYYY-MM') ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC`;
+        break;
+      default:
+        query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
+    }
+
+    const result = await pool.query(query, params);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Report');
+    
+    worksheet.columns = columns;
 
     // Style the header
     worksheet.getRow(1).font = { bold: true };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
 
-    result.rows.forEach(b => worksheet.addRow({ 
-      name: b.ben_name, 
-      nic: b.ben_nic, 
-      district: b.ben_district, 
-      project: b.ben_project, 
-      status: b.ben_status 
-    }));
+    result.rows.forEach(r => worksheet.addRow(mapper(r)));
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=filtered_report.xlsx');
+    res.setHeader('Content-Disposition', 'attachment; filename=report.xlsx');
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {

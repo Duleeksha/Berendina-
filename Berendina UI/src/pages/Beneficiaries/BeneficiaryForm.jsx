@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './BeneficiaryForm.css';
+import { DS_DIVISIONS } from '../../constants/locations';
 
 const BeneficiaryForm = () => {
   const navigate = useNavigate();
@@ -152,11 +153,9 @@ const BeneficiaryForm = () => {
                 <label>DS Divisions</label>
                 <select name="district" className="modern-select" value={formData.district || ''} onChange={handleChange}>
                   <option value="">Select Location</option>
-                  <option value="Ambagamuwa">Ambagamuwa</option>
-                  <option value="Hanguranketha">Hanguranketha</option>
-                  <option value="Kothmale">Kothmale</option>
-                  <option value="Nuwara Eliya">Nuwara Eliya</option>
-                  <option value="Walapane">Walapane</option>
+                  {DS_DIVISIONS.map(ds => (
+                    <option key={ds} value={ds}>{ds}</option>
+                  ))}
                 </select>
 
               </div>
