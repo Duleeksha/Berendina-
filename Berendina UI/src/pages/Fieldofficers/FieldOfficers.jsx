@@ -370,7 +370,7 @@ const FieldOfficers = () => {
                 <div className="modal-avatar" style={{ 
                   background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
                   width: '50px', height: '50px', borderRadius: '12px', color: 'white',
-                  display: 'flex', alignItems: 'center', justify: 'center', fontSize: '20px', fontWeight: 'bold'
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'
                 }}>
                   {(selectedOfficer.officerName || 'U').charAt(0)}
                 </div>

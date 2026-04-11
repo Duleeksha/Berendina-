@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import ExcelJS from 'exceljs';
 
 export const getDashboardStats = async (req, res) => {
@@ -50,54 +50,142 @@ export const getDashboardStats = async (req, res) => {
 };
 
 export const getReportData = async (req, res) => {
-  const { month, year, project, district } = req.query;
+  const { startDate, endDate, project, district, status } = req.query;
+  try {
+    let query = `SELECT * FROM beneficiary WHERE 1=1`;
+    const params = [];
+    let pIdx = 1;
+
+    if (project && project !== "") { 
+      query += ` AND LOWER(TRIM(ben_project)) = LOWER(TRIM($${pIdx++}))`; 
+      params.push(project); 
+    }
+    if (district && district !== "") { 
+      query += ` AND LOWER(TRIM(ben_district)) = LOWER(TRIM($${pIdx++}))`; 
+      params.push(district); 
+    }
+    if (status && status !== "") { 
+      query += ` AND LOWER(TRIM(ben_status)) = LOWER(TRIM($${pIdx++}))`; 
+      params.push(status); 
+    }
+    if (startDate && startDate !== "") { 
+      query += ` AND created_at >= $${pIdx++}::timestamp`; 
+      params.push(startDate); 
+    }
+    if (endDate && endDate !== "") { 
+      query += ` AND created_at < ($${pIdx++}::date + interval '1 day')`; 
+      params.push(endDate); 
+    }
+
+    const result = await pool.query(query, params);
+    
+    // Aggregate data for Metric Cards
+    const rows = result.rows || [];
+    const stats = {
+      total: rows.length,
+      active: rows.filter(r => (r.ben_status || '').toLowerCase() === 'active').length,
+      inactive: rows.filter(r => (r.ben_status || '').toLowerCase() === 'inactive').length,
+      pending: rows.filter(r => (r.ben_status || '').toLowerCase() === 'pending').length
+    };
+
+    res.json({ rows, stats });
+  } catch (error) {
+    console.error("Report Fetch Error:", error);
+    res.status(500).json({ 
+      message: 'Server error fetching reports', 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+export const exportPDF = async (req, res) => {
+  const { startDate, endDate, project, district, status } = req.query;
   try {
     let query = `SELECT * FROM beneficiary WHERE 1=1`;
     const params = [];
     let pIdx = 1;
     if (project) { query += ` AND ben_project = $${pIdx++}`; params.push(project); }
     if (district) { query += ` AND ben_district = $${pIdx++}`; params.push(district); }
-    
-    const result = await pool.query(query, params);
-    res.json(result.rows);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+    if (status) { query += ` AND LOWER(ben_status) = LOWER($${pIdx++})`; params.push(status); }
+    if (startDate) { query += ` AND created_at >= $${pIdx++}`; params.push(startDate); }
+    if (endDate) { query += ` AND created_at <= $${pIdx++}`; params.push(endDate); }
 
-export const exportPDF = async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM beneficiary');
+    const result = await pool.query(query, params);
     const doc = new jsPDF();
+    
+    // Add title and metadata to PDF
+    doc.setFontSize(20);
+    doc.text("Beneficiary Report", 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Total Records: ${result.rows.length}`, 14, 35);
+    
     const tableData = result.rows.map(b => [b.ben_name, b.ben_nic, b.ben_district, b.ben_project, b.ben_status]);
-    doc.autoTable({ head: [['Name', 'NIC', 'District', 'Project', 'Status']], body: tableData });
+    doc.autoTable({ 
+      startY: 45,
+      head: [['Name', 'NIC', 'DS Division', 'Project', 'Status']], 
+      body: tableData,
+      headStyles: { fillStyle: '#2563eb' }
+    });
+
     const buffer = Buffer.from(doc.output('arraybuffer'));
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=beneficiaries.pdf');
+    if (req.query.preview === 'true') {
+      res.setHeader('Content-Disposition', 'inline; filename=filtered_report.pdf');
+    } else {
+      res.setHeader('Content-Disposition', 'attachment; filename=filtered_report.pdf');
+    }
     res.send(buffer);
   } catch (error) {
+    console.error("PDF Export Error:", error);
     res.status(500).json({ message: 'PDF Export failed' });
   }
 };
 
 export const exportExcel = async (req, res) => {
+  const { startDate, endDate, project, district, status } = req.query;
   try {
-    const result = await pool.query('SELECT * FROM beneficiary');
+    let query = `SELECT * FROM beneficiary WHERE 1=1`;
+    const params = [];
+    let pIdx = 1;
+    if (project) { query += ` AND ben_project = $${pIdx++}`; params.push(project); }
+    if (district) { query += ` AND ben_district = $${pIdx++}`; params.push(district); }
+    if (status) { query += ` AND LOWER(ben_status) = LOWER($${pIdx++})`; params.push(status); }
+    if (startDate) { query += ` AND created_at >= $${pIdx++}`; params.push(startDate); }
+    if (endDate) { query += ` AND created_at <= $${pIdx++}`; params.push(endDate); }
+
+    const result = await pool.query(query, params);
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Beneficiaries');
+    
     worksheet.columns = [
       { header: 'Name', key: 'name', width: 25 },
       { header: 'NIC', key: 'nic', width: 15 },
-      { header: 'District', key: 'district', width: 15 },
+      { header: 'DS Division', key: 'district', width: 15 },
       { header: 'Project', key: 'project', width: 20 },
       { header: 'Status', key: 'status', width: 10 }
     ];
-    result.rows.forEach(b => worksheet.addRow({ name: b.ben_name, nic: b.ben_nic, district: b.ben_district, project: b.ben_project, status: b.ben_status }));
+
+    // Style the header
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+
+    result.rows.forEach(b => worksheet.addRow({ 
+      name: b.ben_name, 
+      nic: b.ben_nic, 
+      district: b.ben_district, 
+      project: b.ben_project, 
+      status: b.ben_status 
+    }));
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=beneficiaries.xlsx');
+    res.setHeader('Content-Disposition', 'attachment; filename=filtered_report.xlsx');
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
+    console.error("Excel Export Error:", error);
     res.status(500).json({ message: 'Excel Export failed' });
   }
 };
