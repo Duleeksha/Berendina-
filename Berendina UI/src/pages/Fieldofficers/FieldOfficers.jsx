@@ -124,7 +124,13 @@ const FieldOfficers = () => {
           vehicleNumber: fullData.vehicleNumber || '',
           gender: fullData.gender || '',
           emergency_contact: fullData.emergency_contact || '',
-          languages: fullData.languages ? fullData.languages.split(', ') : []
+          languages: fullData.languages ? fullData.languages.split(', ') : [],
+          // Preserve these fields to prevent data loss on update
+          organization: fullData.organization || '',
+          employee_id: fullData.employee_id || '',
+          department: fullData.department || '',
+          branch: fullData.branch || '',
+          job_title: fullData.job_title || ''
         });
         setIsEditModalOpen(true);
       } else {
@@ -172,7 +178,7 @@ const FieldOfficers = () => {
       if (response.ok) {
         alert('Officer updated successfully');
         setIsEditModalOpen(false);
-        fetchAnalytics();
+        await fetchAnalytics();
       }
     } catch (err) {
       console.error('Update error:', err);
@@ -288,69 +294,68 @@ const FieldOfficers = () => {
             <p>Fetching performance data...</p>
           </div>
         ) : (
-          <div className="officers-grid">
+          <div className="beneficiary-grid">
             {filteredData.length > 0 ? (
               filteredData.map((officer, index) => {
                 const officerProjects = officer.projects || [];
                 const totalBeneficiaries = officerProjects.reduce((sum, p) => sum + (p.beneficiaries?.length || 0), 0);
-                const isTopPerformer = index === 0 && (officerProjects.length > 0 || officer.totalVisits > 0);
                 const isBusy = (officer.totalVisits || 0) >= 4;
+                const statusLabel = isBusy ? 'Busy' : 'Available';
+                const statusClass = isBusy ? 'inactive' : 'active';
                 const uniqueId = officer.officerId || `officer-${index}`;
                 
                 return (
-                  <div key={uniqueId} className={`officer-card ${isTopPerformer ? 'top-performer' : (isBusy ? 'busy-card' : '')}`} onClick={() => openModal(officer)}>
-                    <div className="officer-badges">
-                      {isTopPerformer && <span className="badge badge-star">Star Performer</span>}
-                      {isBusy ? <span className="badge badge-busy">Busy</span> : <span className="badge badge-new">Available</span>}
-                    </div>
-                    
-                    <div className="officer-header">
-                      <div className="officer-header-top">
-                        <div className="officer-avatar-wrapper">
-                          <div className="officer-avatar" style={{ 
-                            background: isTopPerformer 
-                              ? 'linear-gradient(135deg, #fbbf24, #f59e0b)' 
-                              : (isBusy ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #10b981, #059669)'),
-                            color: 'white'
-                          }}>
-                            {(officer.officerName || 'U').charAt(0)}
-                          </div>
-                          {officer.vehicleType && officer.vehicleType !== 'None' && (
-                            <div className="vehicle-badge" title={`${officer.vehicleType}: ${officer.vehicleNumber || 'No plate'}`}>
-                              {officer.vehicleType === 'Bike' ? '🏍️' : (officer.vehicleType === 'Car' ? '🚗' : '🚲')}
-                            </div>
-                          )}
-                          <div className="officer-info-main">
-                            <h3 className="officer-name">{officer.officerName || 'Unnamed Officer'}</h3>
-                            <div className="officer-stats-pills">
-                               <div className="stat-pill">📂 {officerProjects.length} Projects</div>
-                               <div className="stat-pill">👥 {totalBeneficiaries} Bens</div>
-                            </div>
-                          </div>
+                  <div key={uniqueId} className="beneficiary-card" onClick={() => openModal(officer)}>
+                    <div className="card-status-accent" style={{ 
+                      background: isBusy ? '#ef4444' : '#10b981' 
+                    }}></div>
+                    <div className="card-content">
+                      <div className="card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                           <div className="mini-avatar" style={{
+                             width: '32px', height: '32px', borderRadius: '8px', 
+                             background: isBusy ? '#fee2e2' : '#dcfce7',
+                             color: isBusy ? '#b91c1c' : '#15803d',
+                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px'
+                           }}>
+                             {(officer.officerName || 'U').charAt(0)}
+                           </div>
+                           <h3 style={{ margin: 0, fontSize: '18px' }}>{officer.officerName}</h3>
+                        </div>
+                        <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
+                      </div>
+                      
+                      <div className="card-details">
+                        <div className="detail-item">
+                          <span className="label">DS Division</span>
+                          <span className="value">{officer.dsDivision || 'Not Set'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">Workload</span>
+                          <span className="value">{officerProjects.length} Proj / {totalBeneficiaries} Bens</span>
                         </div>
                       </div>
 
-                      <div className="officer-metrics">
-                        <div className="metric-box">
-                          <span className="metric-value">{officer.totalVisits || 0}</span>
-                          <span className="metric-label">Field Visits</span>
+                      <div className="card-progress">
+                        <div className="progress-info">
+                          <span>Field Visits</span>
+                          <span>{officer.totalVisits || 0} Total</span>
                         </div>
-                        <div className="metric-box">
-                          <span className="metric-value">{officer.futureVisits?.length || 0}</span>
-                          <span className="metric-label">Upcoming</span>
+                        <div className="progress-track">
+                          <div className="progress-bar-fill" style={{ 
+                            width: `${Math.min((officer.totalVisits || 0) * 20, 100)}%`,
+                            background: isBusy ? '#ef4444' : '#3b82f6'
+                          }}></div>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
+                          📅 {officer.futureVisits?.length || 0} Upcoming Visits
                         </div>
                       </div>
 
-                      {currentUser?.role === 'admin' && (
-                        <div className="card-admin-actions" onClick={e => e.stopPropagation()} style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
-                           <button className="action-btn-schedule" onClick={() => openScheduleModal(officer)} style={{flex: 1, padding: '8px 10px', fontSize: '0.8rem'}}>📅 Schedule</button>
-                           <button className="action-btn-edit" onClick={() => handleEdit(officer)} style={{flex: 1, padding: '8px 10px', fontSize: '0.8rem'}}>✏️ Edit</button>
-                           <button className="action-btn-delete" onClick={(e) => handleDeleteClick(e, officer.officerId)} style={{flex: 1, padding: '8px 10px', fontSize: '0.8rem'}}>🗑️ Delete</button>
-                        </div>
-                      )}
-
-                      <div className="card-action-hint">
-                        View Detailed Portfolio & Schedule →
+                      <div className="card-actions" onClick={e => e.stopPropagation()}>
+                        <button className="action-btn-schedule" onClick={() => openScheduleModal(officer)}>Schedule</button>
+                        <button className="action-btn-edit" onClick={() => handleEdit(officer)}>Edit</button>
+                        <button className="action-btn-delete" onClick={(e) => handleDeleteClick(e, officer.officerId)}>Delete</button>
                       </div>
                     </div>
                   </div>

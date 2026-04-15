@@ -18,7 +18,6 @@ const Register = () => {
     confirmPassword: '',
     organization: '',
     employee_id: '',
-    department: '',
     branch: '',
     job_title: '',
     gender: '',
@@ -215,21 +214,11 @@ const Register = () => {
                 </div>
                 <div className="form-row">
                     <div className="form-group">
-                        <select name="department" className="input-field select-field" onChange={handleChange}>
-                            <option value="">Department</option>
-                            <option value="Operations">Operations</option>
-                            <option value="Finance">Finance</option>
-                            <option value="HR">HR</option>
-                            <option value="IT">IT Support</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
                         <select name="branch" className="input-field select-field" onChange={handleChange}>
-                            <option value="">Branch Office</option>
-                            <option value="HQ">Head Office (Colombo)</option>
-                            <option value="Trincomalee">Trincomalee</option>
-                            <option value="Batticaloa">Batticaloa</option>
-                            <option value="Gampaha">Gampaha</option>
+                            <option value="">DS Division</option>
+                            {DS_DIVISIONS.map(ds => (
+                                <option key={ds} value={ds}>{ds}</option>
+                            ))}
                         </select>
                     </div>
                 </div>

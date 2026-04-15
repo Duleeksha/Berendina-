@@ -59,14 +59,6 @@ export const getReportData = async (req, res) => {
     // Base filtering logic for shared parameters
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
-      if (project && project !== "") { 
-        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; 
-        params.push(project); 
-      }
-      if (district && district !== "") { 
-        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_district)) = LOWER(TRIM($${pIdx++}))`; 
-        params.push(district); 
-      }
       if (status && status !== "") { 
         filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; 
         params.push(status); 
@@ -87,7 +79,7 @@ export const getReportData = async (req, res) => {
     switch (reportType) {
       case 'progress':
         query = `
-          SELECT ph.history_id, b.ben_name, b.ben_project, ph.progress_value, ph.update_date, ph.comment
+          SELECT ph.history_id, b.ben_first_name || ' ' || b.ben_last_name as ben_name, b.ben_project, ph.progress_value, ph.update_date, ph.comment
           FROM progress_history ph
           JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id
           WHERE 1=1 ${getFilters('b.')}
@@ -111,7 +103,7 @@ export const getReportData = async (req, res) => {
       case 'resources':
         query = `
           SELECT r.resource_id, r.res_name as resource_name, r.type, 
-                 b.ben_name as beneficiary_name, r.quantity, r.status, r.condition
+                 b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, r.quantity, r.status, r.condition
           FROM resource r
           LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id
           WHERE 1=1 ${getFilters('b.', false)}
@@ -174,7 +166,6 @@ export const exportPDF = async (req, res) => {
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
       if (project) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; params.push(project); }
-      if (district) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_district)) = LOWER(TRIM($${pIdx++}))`; params.push(district); }
       if (status) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; params.push(status); }
       if (includeDate) {
         if (startDate) { filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; params.push(startDate); }
@@ -185,26 +176,23 @@ export const exportPDF = async (req, res) => {
 
     let title = "Beneficiary Report";
     let headers = [['Name', 'NIC', 'DS Division', 'Project', 'Status']];
-    let mapper = (b) => [b.ben_name, b.ben_nic, b.ben_district, b.ben_project, b.ben_status];
+    let mapper = (b) => [b.firstName + ' ' + b.lastName, b.ben_nic, b.ben_ds_division, b.ben_project, b.ben_status];
 
     switch (reportType) {
       case 'progress':
         title = "Beneficiary Progress Report";
         headers = [['Name', 'Project', 'Progress %', 'Update Date', 'Comment']];
         mapper = (r) => [r.ben_name, r.ben_project, `${r.progress_value}%`, new Date(r.update_date).toLocaleDateString(), r.comment];
-        query = `SELECT ph.*, b.ben_name, b.ben_project FROM progress_history ph JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY ph.update_date DESC`;
+        query = `SELECT ph.*, b.ben_first_name || ' ' || b.ben_last_name as ben_name, b.ben_project FROM progress_history ph JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY ph.update_date DESC`;
         break;
       case 'visits':
-        title = "Field Visit Report";
-        headers = [['Date', 'Beneficiary', 'Officer', 'Status', 'Notes']];
-        mapper = (r) => [new Date(r.visit_date).toLocaleDateString(), r.beneficiary_name, r.officer_name, r.status, r.notes];
         query = `SELECT fv.*, TRIM(CONCAT(u.first_name, ' ', u.last_name)) as officer_name FROM field_visits fv LEFT JOIN user_table u ON fv.officer_id = u.user_id LEFT JOIN beneficiary b ON fv.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY fv.visit_date DESC`;
         break;
       case 'resources':
         title = "Resource Allocation Report";
         headers = [['Resource', 'Type', 'Allocated To', 'Qty', 'Status']];
         mapper = (r) => [r.resource_name, r.type, r.beneficiary_name || 'Unallocated', r.quantity, r.status];
-        query = `SELECT r.res_name as resource_name, r.type, b.ben_name as beneficiary_name, r.quantity, r.status FROM resource r LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY r.resource_id DESC`;
+        query = `SELECT r.res_name as resource_name, r.type, b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, r.quantity, r.status FROM resource r LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY r.resource_id DESC`;
         break;
       case 'performance':
         title = "Monthly Performance Summary";
@@ -213,7 +201,7 @@ export const exportPDF = async (req, res) => {
         query = `SELECT TO_CHAR(created_at, 'Month YYYY') as period, COUNT(*) as total_added, COUNT(CASE WHEN ben_status = 'Active' THEN 1 END) as active_now, COUNT(CASE WHEN ben_status = 'Pending' THEN 1 END) as pending_now FROM beneficiary WHERE 1=1 ${getFilters()} GROUP BY period, TO_CHAR(created_at, 'YYYY-MM') ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC`;
         break;
       default:
-        query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
+        query = `SELECT *, ben_first_name as "firstName", ben_last_name as "lastName" FROM beneficiary WHERE 1=1 ${getFilters()}`;
     }
 
     const result = await pool.query(query, params);
@@ -253,7 +241,6 @@ export const exportExcel = async (req, res) => {
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
       if (project) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; params.push(project); }
-      if (district) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_district)) = LOWER(TRIM($${pIdx++}))`; params.push(district); }
       if (status) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; params.push(status); }
       if (includeDate) {
         if (startDate) { filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; params.push(startDate); }
@@ -265,11 +252,11 @@ export const exportExcel = async (req, res) => {
     let columns = [
       { header: 'Name', key: 'name', width: 25 },
       { header: 'NIC', key: 'nic', width: 15 },
-      { header: 'DS Division', key: 'district', width: 15 },
+      { header: 'DS Division', key: 'dsDivision', width: 15 },
       { header: 'Project', key: 'project', width: 20 },
       { header: 'Status', key: 'status', width: 10 }
     ];
-    let mapper = (b) => ({ name: b.ben_name, nic: b.ben_nic, district: b.ben_district, project: b.ben_project, status: b.ben_status });
+    let mapper = (b) => ({ name: b.firstName + ' ' + b.lastName, nic: b.ben_nic, dsDivision: b.ben_ds_division, project: b.ben_project, status: b.ben_status });
 
     switch (reportType) {
       case 'progress':
@@ -281,7 +268,7 @@ export const exportExcel = async (req, res) => {
           { header: 'Comment', key: 'comment', width: 40 }
         ];
         mapper = (r) => ({ name: r.ben_name, project: r.ben_project, progress: r.progress_value, date: new Date(r.update_date).toLocaleDateString(), comment: r.comment });
-        query = `SELECT ph.*, b.ben_name, b.ben_project FROM progress_history ph JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY ph.update_date DESC`;
+        query = `SELECT ph.*, b.ben_first_name || ' ' || b.ben_last_name as ben_name, b.ben_project FROM progress_history ph JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY ph.update_date DESC`;
         break;
       case 'visits':
         columns = [
@@ -303,7 +290,7 @@ export const exportExcel = async (req, res) => {
           { header: 'Status', key: 'status', width: 15 }
         ];
         mapper = (r) => ({ resource: r.resource_name, type: r.type, beneficiary: r.beneficiary_name || 'Unallocated', qty: r.quantity, status: r.status });
-        query = `SELECT r.res_name as resource_name, r.type, b.ben_name as beneficiary_name, r.quantity, r.status FROM resource r LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY r.resource_id DESC`;
+        query = `SELECT r.res_name as resource_name, r.type, b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, r.quantity, r.status FROM resource r LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY r.resource_id DESC`;
         break;
       case 'performance':
         columns = [
@@ -316,7 +303,7 @@ export const exportExcel = async (req, res) => {
         query = `SELECT TO_CHAR(created_at, 'Month YYYY') as period, COUNT(*) as total_added, COUNT(CASE WHEN ben_status = 'Active' THEN 1 END) as active_now, COUNT(CASE WHEN ben_status = 'Pending' THEN 1 END) as pending_now FROM beneficiary WHERE 1=1 ${getFilters()} GROUP BY period, TO_CHAR(created_at, 'YYYY-MM') ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC`;
         break;
       default:
-        query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
+        query = `SELECT *, ben_first_name as "firstName", ben_last_name as "lastName" FROM beneficiary WHERE 1=1 ${getFilters()}`;
     }
 
     const result = await pool.query(query, params);
@@ -366,7 +353,7 @@ export const getOfficerAnalytics = async (req, res) => {
         v.beneficiary_name AS visit_ben_name,
         v.visit_date,
         v.status AS visit_status,
-        b.ben_name AS actual_ben_name,
+        b.ben_first_name || ' ' || b.ben_last_name AS actual_ben_name,
         b.ben_project AS project_name,
         b.ben_status AS status
       FROM field_visits v
@@ -374,17 +361,43 @@ export const getOfficerAnalytics = async (req, res) => {
     `);
 
     const visits = visitsRes.rows;
+
+    // 3. Get all assigned beneficiaries directly from beneficiary table
+    const beneficiariesRes = await pool.query(`
+      SELECT assigned_officer_id, 
+             ben_first_name || ' ' || ben_last_name AS name, 
+             ben_project AS project_name, 
+             ben_status AS status
+      FROM beneficiary
+      WHERE assigned_officer_id IS NOT NULL
+    `);
+    const allBeneficiaries = beneficiariesRes.rows;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // Structure the data: Officer -> Projects -> Beneficiaries
     const structuredData = officers.map(officer => {
       const officerVisits = visits.filter(v => Number(v.officer_id) === Number(officer.user_id));
+      const assignedBens = allBeneficiaries.filter(b => Number(b.assigned_officer_id) === Number(officer.user_id));
       
       // Group by project
       const projectsMap = {};
       const futureVisits = [];
 
+      // First, add all directly assigned beneficiaries
+      assignedBens.forEach(b => {
+        const projName = b.project_name || "Unassigned";
+        if (!projectsMap[projName]) {
+          projectsMap[projName] = { name: projName, beneficiaries: [] };
+        }
+        projectsMap[projName].beneficiaries.push({
+          name: b.name,
+          status: b.status || 'Active'
+        });
+      });
+
+      // Second, process visits for future scheduling and catching any missing ben info
       officerVisits.forEach(v => {
         const visitDate = v.visit_date ? new Date(v.visit_date) : null;
         const benName = v.actual_ben_name || v.visit_ben_name;
@@ -399,15 +412,16 @@ export const getOfficerAnalytics = async (req, res) => {
           });
         }
 
+        // Add to projects list ONLY IF NOT already added (to handle field visit data)
         const projName = v.project_name || "Unassigned/Field Visit";
         if (!projectsMap[projName]) {
           projectsMap[projName] = { name: projName, beneficiaries: [] };
         }
-        // Avoid duplicate beneficiaries in the same project list for this officer
+        
         if (!projectsMap[projName].beneficiaries.find(b => b.name === benName)) {
           projectsMap[projName].beneficiaries.push({
             name: benName,
-            status: v.status || 'Pending'
+            status: v.status || 'Active'
           });
         }
       });

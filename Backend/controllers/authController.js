@@ -204,6 +204,14 @@ export const updateOfficer = async (req, res) => {
   try {
     await client.query('BEGIN');
     
+    // Fetch existing data first to prevent accidental null overwrites for missing fields
+    const currentRes = await client.query('SELECT u.*, o.* FROM user_table u LEFT JOIN officer_details o ON u.user_id = o.user_id WHERE u.user_id = $1', [id]);
+    if (currentRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Officer not found' });
+    }
+    const current = currentRes.rows[0];
+
     // Update user_table
     await client.query(
       `UPDATE user_table SET 
@@ -211,17 +219,35 @@ export const updateOfficer = async (req, res) => {
         employee_id = $4, department = $5, branch = $6, 
         job_title = $7, gender = $8 
       WHERE user_id = $9`,
-      [firstName, lastName, organization, employee_id, department, branch, job_title, gender, id]
+      [
+        firstName !== undefined ? firstName : current.first_name, 
+        lastName !== undefined ? lastName : current.last_name, 
+        organization !== undefined ? organization : current.organization, 
+        employee_id !== undefined ? employee_id : current.employee_id, 
+        department !== undefined ? department : current.department, 
+        branch !== undefined ? branch : current.branch, 
+        job_title !== undefined ? job_title : current.job_title, 
+        gender !== undefined ? gender : current.gender, 
+        id
+      ]
     );
 
     // Update officer_details
-    const languagesString = Array.isArray(languages) ? languages.join(', ') : languages;
+    const languagesString = Array.isArray(languages) ? languages.join(', ') : (languages !== undefined ? languages : current.languages);
     await client.query(
       `UPDATE officer_details SET 
         mobile_no = $1, ds_division = $2, vehicle_type = $3, 
         vehicle_no = $4, languages = $5, emergency_contact = $6 
       WHERE user_id = $7`,
-      [mobileNumber, ds_division, vehicleType, vehicleNumber, languagesString, emergency_contact, id]
+      [
+        mobileNumber !== undefined ? mobileNumber : current.mobile_no, 
+        ds_division !== undefined ? ds_division : current.ds_division, 
+        vehicleType !== undefined ? vehicleType : current.vehicle_type, 
+        vehicleNumber !== undefined ? vehicleNumber : current.vehicle_no, 
+        languagesString, 
+        emergency_contact !== undefined ? emergency_contact : current.emergency_contact, 
+        id
+      ]
     );
 
     await client.query('COMMIT');

@@ -4,11 +4,151 @@
   width: calc(100vw - 260px);
   max-width: calc(100vw - 260px);
   padding: 40px 60px;
-  background-color: #f8fafc; /* Lighter, cleaner background */
+  background-color: #f8fafc;
   min-height: 100vh;
   box-sizing: border-box;
-  font-family: 'Outfit', 'Inter', sans-serif; /* Modern, premium font stack */
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
+
+/* --- RE-USING BENEFICIARY DESIGN SYSTEM --- */
+.beneficiary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+  margin-top: 10px;
+}
+
+.beneficiary-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  position: relative;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.beneficiary-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: #3b82f6;
+}
+
+.card-status-accent {
+  width: 6px;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.card-content {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 100px;
+  text-transform: uppercase;
+}
+
+.status-badge.active { background: #dcfce7; color: #15803d; }
+.status-badge.inactive { background: #fee2e2; color: #b91c1c; }
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+
+.card-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.detail-item .label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.detail-item .value {
+  font-size: 14px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.card-progress {
+  margin-bottom: 20px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.card-progress .progress-track {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-progress .progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 10px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.card-actions button {
+  flex: 1;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e2e8f0;
+}
+
+.action-btn-schedule { background: #f0fdf4; color: #16a34a; }
+.action-btn-schedule:hover { background: #16a34a; color: white; }
+
+.action-btn-edit { background: #f8fafc; color: #64748b; }
+.action-btn-edit:hover { background: #64748b; color: white; }
+
+.action-btn-delete { background: #fff1f2; color: #e11d48; }
+.action-btn-delete:hover { background: #e11d48; color: white; }
 
 /* Header */
 .page-header {

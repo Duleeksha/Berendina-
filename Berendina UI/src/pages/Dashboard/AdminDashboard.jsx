@@ -209,11 +209,7 @@ const AdminDashboard = () => {
                                      <span>{selectedUser.employee_id || 'N/A'}</span>
                                  </div>
                                  <div className="detail-item">
-                                     <label>Department</label>
-                                     <span>{selectedUser.department || 'N/A'}</span>
-                                 </div>
-                                 <div className="detail-item">
-                                     <label>Branch</label>
+                                     <label>DS Division</label>
                                      <span>{selectedUser.branch || 'N/A'}</span>
                                  </div>
                                  <div className="detail-item">

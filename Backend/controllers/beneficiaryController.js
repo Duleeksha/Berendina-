@@ -5,14 +5,43 @@ export const getBeneficiaries = async (req, res) => {
   const { project } = req.query;
   try {
     let query = `
-      SELECT b.beneficiary_id AS id, b.ben_name AS name, b.ben_contac_no AS contact, b.ben_project AS project, b.ben_status AS status, COALESCE(b.ben_progress, 0) AS progress, b.ben_nic AS nic, b.ben_dob AS dob, b.ben_gender AS gender, b.ben_address AS address, b.ben_district AS district, b.ben_ds_division AS "dsDivision", b.ben_marital_status AS "maritalStatus", b.ben_family_members AS "familyMembers", b.ben_monthly_income AS "monthlyIncome", b.ben_occupation AS occupation, b.documents
+      SELECT b.beneficiary_id AS id, 
+             b.ben_first_name AS "firstName", 
+             b.ben_last_name AS "lastName", 
+             b.ben_first_name || ' ' || b.ben_last_name AS name,
+             b.ben_contac_no AS contact, b.ben_project AS project, b.ben_status AS status, 
+             COALESCE(b.ben_progress, 0) AS progress, b.ben_nic AS nic, b.ben_dob AS dob, 
+             b.ben_gender AS gender, b.ben_address AS address, 
+             b.ben_ds_division AS "dsDivision", b.ben_marital_status AS "maritalStatus", 
+             b.ben_family_members AS "familyMembers", b.ben_monthly_income AS "monthlyIncome", 
+             b.ben_occupation AS occupation, b.documents, b.assigned_officer_id,
+             u.first_name || ' ' || u.last_name AS assigned_officer_name
       FROM beneficiary b
+      LEFT JOIN user_table u ON b.assigned_officer_id = u.user_id
     `;
     const params = [];
+    let whereClauses = [];
+
     if (project) {
-        query += ` WHERE REGEXP_REPLACE(LOWER(b.ben_project), '\\s+', '', 'g') = REGEXP_REPLACE(LOWER($1), '\\s+', '', 'g')`;
         params.push(project);
+        whereClauses.push(`REGEXP_REPLACE(LOWER(b.ben_project), '\\s+', '', 'g') = REGEXP_REPLACE(LOWER($${params.length}), '\\s+', '', 'g')`);
     }
+
+    if (req.query.officerId && req.query.officerId !== 'undefined') {
+        const officerId = parseInt(req.query.officerId);
+        if (!isNaN(officerId)) {
+            params.push(officerId);
+            whereClauses.push(`b.assigned_officer_id = $${params.length}`);
+            console.log(`[BeneficiaryFilter] Applying strict filter for officerId: ${officerId}`);
+        } else {
+            console.warn(`[BeneficiaryFilter] Invalid officerId received: ${req.query.officerId}`);
+        }
+    }
+
+    if (whereClauses.length > 0) {
+        query += ` WHERE ` + whereClauses.join(' AND ');
+    }
+
     query += ` ORDER BY b.beneficiary_id DESC;`;
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -23,25 +52,29 @@ export const getBeneficiaries = async (req, res) => {
 
 export const addBeneficiary = async (req, res) => {
   const { 
-    name, nic, dob, gender, address, contact, district, dsDivision, 
-    maritalStatus, familyMembers, monthlyIncome, occupation, project, status 
+    firstName, lastName, nic, dob, gender, address, contact, dsDivision, 
+    maritalStatus, familyMembers, monthlyIncome, occupation, project, status,
+    assigned_officer_id
   } = req.body;
   const documents = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'beneficiaries'))) : [];
 
   try {
     const query = `
       INSERT INTO beneficiary (
-        ben_name, ben_nic, ben_dob, ben_gender, ben_address, ben_contac_no, 
-        ben_district, ben_ds_division, ben_marital_status, ben_family_members, 
-        ben_monthly_income, ben_occupation, ben_project, ben_status, ben_progress, documents
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
+        ben_first_name, ben_last_name, ben_nic, ben_dob, ben_gender, ben_address, ben_contac_no, 
+        ben_ds_division, ben_marital_status, ben_family_members, 
+        ben_monthly_income, ben_occupation, ben_project, ben_status, ben_progress, documents,
+        assigned_officer_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) 
       RETURNING *;
     `;
     const values = [
-      name || "", nic || "", dob || null, gender || "", address || "", contact || "", 
-      district || "", dsDivision || "", maritalStatus || "", parseInt(familyMembers) || 0, 
-      parseInt(monthlyIncome) || 0, occupation || "", project || "", status || 'Active', 
-      0, documents
+      firstName || "", lastName || "", nic || "", dob || null, gender || "", address || "", contact || "", 
+      dsDivision || "", maritalStatus || "", 
+      familyMembers ? parseInt(familyMembers) : 0, 
+      monthlyIncome ? parseFloat(monthlyIncome) : 0, 
+      occupation || "", project || "", status || 'Active', 
+      0, documents, assigned_officer_id || null
     ];
     const result = await pool.query(query, values);
     res.status(201).json({ message: 'Beneficiary added!', data: result.rows[0] });
@@ -54,8 +87,9 @@ export const addBeneficiary = async (req, res) => {
 export const updateBeneficiary = async (req, res) => {
   const { id } = req.params;
   const { 
-    name, nic, dob, gender, address, contact, district, dsDivision, 
-    maritalStatus, familyMembers, monthlyIncome, occupation, project, status 
+    firstName, lastName, nic, dob, gender, address, contact, dsDivision, 
+    maritalStatus, familyMembers, monthlyIncome, occupation, project, status,
+    assigned_officer_id
   } = req.body;
   const newDocs = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'beneficiaries'))) : [];
 
@@ -64,36 +98,43 @@ export const updateBeneficiary = async (req, res) => {
     if (newDocs.length > 0) {
       query = `
         UPDATE beneficiary 
-        SET ben_name=$1, ben_nic=$2, ben_dob=$3, ben_gender=$4, ben_address=$5, 
-            ben_contac_no=$6, ben_district=$7, ben_ds_division=$8, ben_marital_status=$9, 
+        SET ben_first_name=$1, ben_last_name=$2, ben_nic=$3, ben_dob=$4, ben_gender=$5, ben_address=$6, 
+            ben_contac_no=$7, ben_ds_division=$8, ben_marital_status=$9, 
             ben_family_members=$10, ben_monthly_income=$11, ben_occupation=$12, 
-            ben_project=$13, ben_status=$14, 
-            documents = array_cat(COALESCE(documents, ARRAY[]::TEXT[]), $15) 
-        WHERE beneficiary_id=$16 RETURNING *;
+            ben_project=$13, ben_status=$14, assigned_officer_id=$15,
+            documents = array_cat(COALESCE(documents, ARRAY[]::TEXT[]), $16) 
+        WHERE beneficiary_id=$17 RETURNING *;
       `;
-      values = [
-        name || "", nic || "", dob || null, gender || "", address || "", contact || "", 
-        district || "", dsDivision || "", maritalStatus || "", parseInt(familyMembers) || 0, 
-        parseInt(monthlyIncome) || 0, occupation || "", project || "", status || 'active', 
-        newDocs, id
+        values = [
+        firstName || "", lastName || "", nic || "", dob || null, gender || "", address || "", contact || "", 
+        dsDivision || "", maritalStatus || "", 
+        familyMembers ? parseInt(familyMembers) : 0, 
+        monthlyIncome ? parseFloat(monthlyIncome) : 0, 
+        occupation || "", project || "", status || 'active', 
+        assigned_officer_id || null, newDocs, id
       ];
     } else {
       query = `
         UPDATE beneficiary 
-        SET ben_name=$1, ben_nic=$2, ben_dob=$3, ben_gender=$4, ben_address=$5, 
-            ben_contac_no=$6, ben_district=$7, ben_ds_division=$8, ben_marital_status=$9, 
+        SET ben_first_name=$1, ben_last_name=$2, ben_nic=$3, ben_dob=$4, ben_gender=$5, ben_address=$6, 
+            ben_contac_no=$7, ben_ds_division=$8, ben_marital_status=$9, 
             ben_family_members=$10, ben_monthly_income=$11, ben_occupation=$12, 
-            ben_project=$13, ben_status=$14 
-        WHERE beneficiary_id=$15 RETURNING *;
+            ben_project=$13, ben_status=$14, assigned_officer_id=$15
+        WHERE beneficiary_id=$16 RETURNING *;
       `;
       values = [
-        name || "", nic || "", dob || null, gender || "", address || "", contact || "", 
-        district || "", dsDivision || "", maritalStatus || "", parseInt(familyMembers) || 0, 
-        parseInt(monthlyIncome) || 0, occupation || "", project || "", status || 'active', 
-        id
+        firstName || "", lastName || "", nic || "", dob || null, gender || "", address || "", contact || "", 
+        dsDivision || "", maritalStatus || "", 
+        familyMembers ? parseInt(familyMembers) : 0, 
+        monthlyIncome ? parseFloat(monthlyIncome) : 0, 
+        occupation || "", project || "", status || 'active', 
+        assigned_officer_id || null, id
       ];
     }
     const result = await pool.query(query, values);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Beneficiary not found or no changes made' });
+    }
     res.json({ message: 'Beneficiary updated!', data: result.rows[0] });
   } catch (error) {
     console.error("Update Beneficiary Error:", error);

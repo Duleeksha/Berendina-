@@ -8,6 +8,7 @@ const Beneficiaries = () => {
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [projectList, setProjectList] = useState([]);
+  const [officerList, setOfficerList] = useState([]);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,8 +18,8 @@ const Beneficiaries = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [selectedBen, setSelectedBen] = useState({
-    name: '', nic: '', dob: '', gender: '', contact: '', 
-    district: '', dsDivision: '', address: '', maritalStatus: '', 
+    firstName: '', lastName: '', name: '', nic: '', dob: '', gender: '', contact: '', 
+    dsDivision: '', address: '', maritalStatus: '', 
     familyMembers: '', monthlyIncome: '', occupation: '', project: '', status: 'active',
     documents: []
   });
@@ -29,15 +30,36 @@ const Beneficiaries = () => {
   const [history, setHistory] = useState([]);
   const [newProgress, setNewProgress] = useState({ value: 0, comment: '' });
 
+  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const isOfficer = currentUser?.role === 'officer';
+
   const fetchData = async () => {
     setLoading(true);
-    try {
-      const [benRes, projRes] = await Promise.all([
-        fetch('http://localhost:5000/api/beneficiaries'),
-        fetch('http://localhost:5000/api/projects')
+      const officerId = currentUser?.id;
+      if (isOfficer && !officerId) {
+        console.error('[Beneficiaries] Missing officer ID for filtering');
+        setLoading(false);
+        return;
+      }
+
+      const benUrl = isOfficer 
+        ? `http://localhost:5000/api/beneficiaries?officerId=${officerId}` 
+        : 'http://localhost:5000/api/beneficiaries';
+      
+      console.log(`[Beneficiaries] Fetching data from: ${benUrl}`);
+        
+      const [benRes, projRes, offRes] = await Promise.all([
+        fetch(benUrl),
+        fetch('http://localhost:5000/api/projects'),
+        fetch('http://localhost:5000/api/auth/officers')
       ]);
-      if (benRes.ok) setBeneficiaries(await benRes.json());
+      if (benRes.ok) {
+        const data = await benRes.json();
+        console.log(`[Beneficiaries] Received ${data.length} records`);
+        setBeneficiaries(data);
+      }
       if (projRes.ok) setProjectList(await projRes.json());
+      if (offRes.ok) setOfficerList(await offRes.json());
     } catch (err) {
       console.error('Network error:', err);
     } finally {
@@ -106,7 +128,7 @@ const Beneficiaries = () => {
       if (response.ok) {
         alert("Beneficiary profile updated successfully!");
         setIsModalOpen(false);
-        fetchData();
+        await fetchData();
       } else {
         const errorData = await response.json();
         alert(`Error: ${errorData.message}`);
@@ -177,10 +199,17 @@ const Beneficiaries = () => {
     }
   };
 
-  const filteredBeneficiaries = beneficiaries.filter(ben =>
-    ben.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ben.contact?.includes(searchTerm)
-  );
+  const filteredBeneficiaries = beneficiaries.filter(ben => {
+    const matchesSearch = ben.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ben.contact?.includes(searchTerm);
+    
+    // Redundant safety filter for officers: even if backend fails to filter, frontend will hide unassigned records
+    if (isOfficer) {
+      return matchesSearch && ben.assigned_officer_id === currentUser?.id;
+    }
+    
+    return matchesSearch;
+  });
 
   return (
     <div className="beneficiaries-page-content">
@@ -208,49 +237,99 @@ const Beneficiaries = () => {
           </div>
         </div>
 
-        <div className="table-responsive">
-          {loading ? (
+        {loading ? (
              <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
           ) : (
-            <table className="modern-table">
-              <thead>
-                <tr>
-                  <th>NAME</th><th>CONTACT</th><th>PROJECT</th><th>STATUS</th><th>DOCS</th><th>PROGRESS</th><th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBeneficiaries.map(ben => (
-                  <tr key={ben.id} onClick={() => handleRowClick(ben)} className="clickable-row">
-                    <td className="font-medium" style={{ color: '#1e293b' }}>{ben.name}</td>
-                    <td>{ben.contact}</td>
-                    <td>{ben.project || 'Unassigned'}</td>
-                    <td><span className={`status-badge ${ben.status?.toLowerCase()}`}>{ben.status}</span></td>
-                    <td>{ben.documents?.length || 0} files</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {ben.progress}%
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleProgressClick(ben); }}
-                          style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
-                        >
-                          Update
-                        </button>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="action-group" style={{display: 'flex', gap: '8px'}}>
-                        <button className="action-btn-view" onClick={(e) => handleEditClick(e, ben)}>Edit</button>
-                        <button className="action-btn-delete" onClick={(e) => promptDelete(e, ben)} style={{
-                          backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'
-                        }}>Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            isOfficer ? (
+              <div className="beneficiary-grid">
+                {filteredBeneficiaries.length > 0 ? (
+                  filteredBeneficiaries.map(ben => (
+                    <div key={ben.id} className="beneficiary-card" onClick={() => handleRowClick(ben)}>
+                       <div className="card-status-accent" style={{ 
+                         background: ben.status?.toLowerCase() === 'active' ? '#10b981' : (ben.status?.toLowerCase() === 'pending' ? '#f59e0b' : '#ef4444') 
+                       }}></div>
+                       <div className="card-content">
+                         <div className="card-header">
+                           <h3>{ben.name}</h3>
+                           <span className={`status-badge ${ben.status?.toLowerCase()}`}>{ben.status}</span>
+                         </div>
+                         <div className="card-details">
+                           <div className="detail-item">
+                             <span className="label">DS Division</span>
+                             <span className="value">{ben.dsDivision || 'Not Specified'}</span>
+                           </div>
+                           <div className="detail-item">
+                             <span className="label">Project</span>
+                             <span className="value">{ben.project || 'Unassigned'}</span>
+                           </div>
+                         </div>
+                         <div className="card-progress">
+                            <div className="progress-info">
+                              <span>Progress</span>
+                              <span>{ben.progress}%</span>
+                            </div>
+                            <div className="progress-track">
+                               <div className="progress-bar-fill" style={{ width: `${ben.progress}%` }}></div>
+                            </div>
+                         </div>
+                         <div className="card-actions" onClick={e => e.stopPropagation()}>
+                           <button className="action-btn-view" onClick={(e) => handleEditClick(e, ben)}>Update</button>
+                           <button className="action-btn-history" onClick={(e) => handleProgressClick(ben)}>History</button>
+                         </div>
+                       </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">No beneficiaries assigned yet.</div>
+                )}
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="modern-table">
+                  <thead>
+                    <tr>
+                      <th>NAME</th><th>CONTACT</th><th>PROJECT</th><th>OFFICER</th><th>STATUS</th><th>DOCS</th><th>PROGRESS</th><th>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBeneficiaries.map(ben => (
+                      <tr key={ben.id} onClick={() => handleRowClick(ben)} className="clickable-row">
+                        <td className="font-medium" style={{ color: '#1e293b' }}>{ben.name}</td>
+                        <td>{ben.contact}</td>
+                        <td>{ben.project || 'Unassigned'}</td>
+                        <td>
+                            <span className="officer-badge" style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                👤 {ben.assigned_officer_name || 'Not Assigned'}
+                            </span>
+                        </td>
+                        <td><span className={`status-badge ${ben.status?.toLowerCase()}`}>{ben.status}</span></td>
+                        <td>{ben.documents?.length || 0} files</td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {ben.progress}%
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleProgressClick(ben); }}
+                              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+                            >
+                              Update
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="action-group" style={{display: 'flex', gap: '8px'}}>
+                            <button className="action-btn-view" onClick={(e) => handleEditClick(e, ben)}>Edit</button>
+                            <button className="action-btn-delete" onClick={(e) => promptDelete(e, ben)} style={{
+                              backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'
+                            }}>Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
           )}
-        </div>
       </div>
 
       {/* BENEFICIARY DETAIL MODAL (VIEW MODE) */}
@@ -271,9 +350,15 @@ const Beneficiaries = () => {
               {/* Personal Section */}
               <div className="profile-section">
                 <h3>Personal Information</h3>
-                <div className="info-group">
-                  <label>Full Name</label>
-                  <span>{selectedBen.name}</span>
+                <div className="info-row">
+                  <div className="info-group">
+                    <label>First Name</label>
+                    <span>{selectedBen.firstName}</span>
+                  </div>
+                  <div className="info-group">
+                    <label>Last Name</label>
+                    <span>{selectedBen.lastName}</span>
+                  </div>
                 </div>
                 <div className="info-row">
                   <div className="info-group">
@@ -302,11 +387,7 @@ const Beneficiaries = () => {
                 <h3>Location & Status</h3>
                 <div className="info-row">
                    <div className="info-group">
-                     <label>DS Divisions</label>
-                     <span>{selectedBen.district}</span>
-                   </div>
-                   <div className="info-group">
-                     <label>DS Divisions</label>
+                     <label>DS Division</label>
                      <span>{selectedBen.dsDivision || 'N/A'}</span>
                    </div>
                 </div>
@@ -323,6 +404,12 @@ const Beneficiaries = () => {
                      <label>Current Status</label>
                      <span className={`status-badge ${selectedBen.status?.toLowerCase()}`}>{selectedBen.status}</span>
                    </div>
+                </div>
+                <div className="info-group" style={{ marginTop: '10px' }}>
+                    <label>Assigned Field Officer</label>
+                    <span className="officer-tag" style={{ display: 'inline-block', padding: '4px 8px', backgroundColor: '#f1f5f9', borderRadius: '4px', fontSize: '0.85rem' }}>
+                        🚜 {selectedBen.assigned_officer_name || 'Not assigned'}
+                    </span>
                 </div>
               </div>
 
@@ -383,7 +470,7 @@ const Beneficiaries = () => {
           <div className="modal-content" style={{
             background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto'
           }}>
-            <h2 style={{ marginBottom: '20px' }}>Progress History: {selectedBen.name}</h2>
+            <h2 style={{ marginBottom: '20px' }}>Progress History: {selectedBen.firstName} {selectedBen.lastName}</h2>
             
             <form onSubmit={handleProgressSubmit} style={{ marginBottom: '30px', background: '#f8fafc', padding: '20px', borderRadius: '12px' }}>
               <h3 style={{ fontSize: '1rem', marginBottom: '15px' }}>New Update</h3>
@@ -458,11 +545,17 @@ const Beneficiaries = () => {
               {/* SECTION: Personal Information */}
               <div style={{ marginBottom: '25px', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
                 <h3 style={{ fontSize: '1rem', fontBold: '700', marginBottom: '15px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Personal Information</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '15px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
                   <div>
-                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>Full Name</label>
-                    <input type="text" name="name" value={selectedBen.name} onChange={handleInputChange} className="modern-input" required />
+                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>First Name</label>
+                    <input type="text" name="firstName" value={selectedBen.firstName} onChange={handleInputChange} className="modern-input" required />
                   </div>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>Last Name</label>
+                    <input type="text" name="lastName" value={selectedBen.lastName} onChange={handleInputChange} className="modern-input" required />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
                   <div>
                     <label style={{ fontSize: '0.85rem', color: '#64748b' }}>NIC Number</label>
                     <input type="text" name="nic" value={selectedBen.nic} onChange={handleInputChange} className="modern-input" />
@@ -492,20 +585,9 @@ const Beneficiaries = () => {
               {/* SECTION: Location & Assignment */}
               <div style={{ marginBottom: '25px', padding: '20px', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
                 <h3 style={{ fontSize: '1rem', fontBold: '700', marginBottom: '15px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location & Program</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '15px' }}>
                   <div>
-                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>DS Divisions</label>
-                    <select name="district" value={selectedBen.district} onChange={handleInputChange} className="modern-select">
-                      <option value="">Select Location</option>
-                      <option value="Ambagamuwa">Ambagamuwa</option>
-                      <option value="Hanguranketha">Hanguranketha</option>
-                      <option value="Kothmale">Kothmale</option>
-                      <option value="Nuwara Eliya">Nuwara Eliya</option>
-                      <option value="Walapane">Walapane</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>DS Divisions</label>
+                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>DS Division</label>
                     <input type="text" name="dsDivision" value={selectedBen.dsDivision || ''} onChange={handleInputChange} className="modern-input" placeholder="e.g. Maharagama" />
                   </div>
                 </div>
@@ -519,6 +601,15 @@ const Beneficiaries = () => {
                     <select name="project" value={selectedBen.project} onChange={handleInputChange} className="modern-select">
                       <option value="">Select Project</option>
                       {projectList.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', color: '#64748b' }}>Field Officer</label>
+                    <select name="assigned_officer_id" value={selectedBen.assigned_officer_id || ''} onChange={handleInputChange} className="modern-select">
+                        <option value="">Unassigned</option>
+                        {officerList.map(off => (
+                            <option key={off.id} value={off.id}>{off.firstName} {off.lastName}</option>
+                        ))}
                     </select>
                   </div>
                   <div>
@@ -621,7 +712,7 @@ const Beneficiaries = () => {
              <div style={{fontSize: '50px', marginBottom: '20px'}}>⚠️</div>
              <h2 style={{color: '#111827', marginBottom: '10px'}}>Are you sure?</h2>
              <p style={{color: '#6b7280', marginBottom: '30px', fontSize: '15px'}}>
-               Do you really want to delete <strong>{deletingBen.name}</strong>? This action cannot be undone.
+               Do you really want to delete <strong>{deletingBen.firstName} {deletingBen.lastName}</strong>? This action cannot be undone.
              </p>
              <div style={{display: 'flex', gap: '15px', justifyContent: 'center'}}>
                <button 

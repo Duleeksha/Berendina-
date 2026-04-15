@@ -9,15 +9,17 @@ const BeneficiaryForm = () => {
   const isEditMode = !!id;
 
   const [projectList, setProjectList] = useState([]);
+  const [officerList, setOfficerList] = useState([]);
   const [formData, setFormData] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const projParam = params.get('project');
     return {
-      name: '', nic: '', dob: '', gender: '', contact: '', 
-      address: '', district: '', dsDivision: '', maritalStatus: '', 
+      firstName: '', lastName: '', nic: '', dob: '', gender: '', contact: '', 
+      address: '', dsDivision: '', maritalStatus: '', 
       familyMembers: '', monthlyIncome: '', occupation: '', 
       project: projParam || '', 
-      status: 'active'
+      status: 'active',
+      assigned_officer_id: ''
     };
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -34,14 +36,28 @@ const BeneficiaryForm = () => {
         console.error("Error fetching projects:", error);
       }
     };
+
+    const fetchOfficers = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/officers');
+        if (response.ok) {
+          const data = await response.json();
+          setOfficerList(data);
+        }
+      } catch (error) {
+        console.error("Error fetching officers:", error);
+      }
+    };
+
     fetchProjects();
+    fetchOfficers();
   }, []);
 
   useEffect(() => {
     if (isEditMode) {
       const fetchBen = async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/auth/beneficiaries`);
+          const response = await fetch(`http://localhost:5000/api/beneficiaries`);
           if (response.ok) {
             const data = await response.json();
             const ben = data.find(b => b.id.toString() === id);
@@ -58,6 +74,42 @@ const BeneficiaryForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Real-time NIC Check
+    if (name === 'nic' && value.length >= 10 && !isEditMode) {
+        checkExistingNIC(value);
+    }
+  };
+
+  const checkExistingNIC = async (nic) => {
+    try {
+        const response = await fetch(`http://localhost:5000/api/beneficiaries/nic/${nic}`);
+        if (response.ok) {
+            const existingBen = await response.json();
+            if (window.confirm(`A beneficiary with NIC ${nic} already exists (${existingBen.ben_first_name} ${existingBen.ben_last_name}). Would you like to load their details?`)) {
+                setFormData({
+                    ...existingBen,
+                    id: existingBen.beneficiary_id,
+                    firstName: existingBen.ben_first_name,
+                    lastName: existingBen.ben_last_name,
+                    nic: existingBen.ben_nic,
+                    dob: existingBen.ben_dob?.split('T')[0],
+                    gender: existingBen.ben_gender,
+                    contact: existingBen.ben_contac_no,
+                    address: existingBen.ben_address,
+                    dsDivision: existingBen.ben_ds_division,
+                    maritalStatus: existingBen.ben_marital_status,
+                    familyMembers: existingBen.ben_family_members,
+                    monthlyIncome: existingBen.ben_monthly_income,
+                    occupation: existingBen.ben_occupation,
+                    project: '', // Let them pick new project
+                    status: 'active'
+                });
+            }
+        }
+    } catch (err) {
+        console.error("NIC check error:", err);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -118,8 +170,12 @@ const BeneficiaryForm = () => {
             <h3>Personal Information</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Full Name</label>
-                <input type="text" name="name" className="modern-input" value={formData.name || ''} onChange={handleChange} required />
+                <label>First Name</label>
+                <input type="text" name="firstName" className="modern-input" value={formData.firstName || ''} onChange={handleChange} required />
+              </div>
+              <div className="form-group">
+                <label>Last Name</label>
+                <input type="text" name="lastName" className="modern-input" value={formData.lastName || ''} onChange={handleChange} required />
               </div>
               <div className="form-group">
                 <label>National ID (NIC)</label>
@@ -150,16 +206,14 @@ const BeneficiaryForm = () => {
                 <input type="text" name="contact" className="modern-input" value={formData.contact || ''} onChange={handleChange} required />
               </div>
               <div className="form-group">
-                <label>DS Divisions</label>
-                <select name="district" className="modern-select" value={formData.district || ''} onChange={handleChange}>
-                  <option value="">Select Location</option>
+                <label>DS Division</label>
+                <select name="dsDivision" className="modern-select" value={formData.dsDivision || ''} onChange={handleChange}>
+                  <option value="">Select Division</option>
                   {DS_DIVISIONS.map(ds => (
                     <option key={ds} value={ds}>{ds}</option>
                   ))}
                 </select>
-
               </div>
-
             </div>
             <div className="form-group" style={{ marginTop: '20px' }}>
               <label>Exact Address (Door No, Street, Village)</label>
@@ -222,6 +276,15 @@ const BeneficiaryForm = () => {
                 <select name="project" className="modern-select" value={formData.project || ''} onChange={handleChange} required>
                   <option value="">Select Project</option>
                   {projectList.map((proj) => <option key={proj.id} value={proj.name}>{proj.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Assigned Field Officer</label>
+                <select name="assigned_officer_id" className="modern-select" value={formData.assigned_officer_id || ''} onChange={handleChange} required>
+                  <option value="">Select Officer</option>
+                  {officerList.map((off) => (
+                    <option key={off.id} value={off.id}>{off.firstName} {off.lastName}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
