@@ -158,7 +158,7 @@ export const resetPassword = async (req, res) => {
 export const getOfficers = async (req, res) => {
   try {
     const query = `
-      SELECT u.user_id AS id, u.first_name AS "firstName", u.last_name AS "lastName", u.email, o.mobile_no, o.ds_division, o.languages
+      SELECT u.user_id AS id, u.first_name AS "firstName", u.last_name AS "lastName", u.email, o.mobile_no, o.ds_division, o.ds_division AS "dsDivision", o.languages, o.is_available AS "isAvailable"
       FROM user_table u
       LEFT JOIN officer_details o ON u.user_id = o.user_id
       WHERE u.role = 'officer' AND u.status = 'Active';
@@ -175,7 +175,7 @@ export const getOfficerById = async (req, res) => {
   try {
     const query = `
       SELECT u.user_id AS id, u.first_name AS "firstName", u.last_name AS "lastName", u.email, u.employee_id, u.organization, u.department, u.branch, u.job_title, u.gender,
-             o.mobile_no AS "mobileNumber", o.ds_division, o.vehicle_type AS "vehicleType", o.vehicle_no AS "vehicleNumber", o.languages, o.emergency_contact
+             o.mobile_no AS "mobileNumber", o.ds_division, o.ds_division AS "dsDivision", o.vehicle_type AS "vehicleType", o.vehicle_no AS "vehicleNumber", o.languages, o.emergency_contact, o.is_available AS "isAvailable"
       FROM user_table u
       LEFT JOIN officer_details o ON u.user_id = o.user_id
       WHERE u.user_id = $1;
@@ -281,5 +281,51 @@ export const deleteOfficer = async (req, res) => {
     res.status(500).json({ message: 'Server error during deletion' });
   } finally {
     client.release();
+  }
+};
+
+export const updateOfficerAvailability = async (req, res) => {
+  const { id } = req.params;
+  const { isAvailable, updatedByRole } = req.body;
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    await client.query(
+      'UPDATE officer_details SET is_available = $1 WHERE user_id = $2',
+      [isAvailable, id]
+    );
+
+    // If Admin sets to unavailable, trigger notification
+    if (updatedByRole === 'admin' && isAvailable === false) {
+      const message = "Your duty status was updated to 'Unavailable' by an Administrator.";
+      await client.query(
+        'INSERT INTO notification (user_id, message, sent_at, read_status) VALUES ($1, $2, NOW(), FALSE)',
+        [id, message]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Availability updated successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Update Availability Error:', err);
+    res.status(500).json({ message: 'Server error' });
+  } finally {
+    client.release();
+  }
+};
+
+export const getNotifications = async (req, res) => {
+  const { userId } = req.query; // Simple retrieval for demo
+  try {
+    const result = await pool.query(
+      'SELECT * FROM notification WHERE user_id = $1 ORDER BY sent_at DESC LIMIT 20',
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error retrieving notifications' });
   }
 };

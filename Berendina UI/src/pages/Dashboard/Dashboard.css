@@ -14,6 +14,35 @@
   font-family: 'Segoe UI', sans-serif;
 }
 
+/* --- COMPLETED VISITS SECTION --- */
+.completed-section {
+  border: 1px solid #eef2f6 !important;
+  background: #fcfcfc !important;
+}
+
+.completed-section h3 {
+  color: #0081c9 !important;
+}
+
+.completed-list {
+  max-height: 280px !important;
+  overflow-y: auto;
+}
+
+.completed-item {
+  border-left: 4px solid #10b981 !important;
+  background: white !important;
+  opacity: 0.9;
+}
+
+.empty-state-text {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 20px 0;
+  font-style: italic;
+}
+
 /* Header */
 .dashboard-header {
   display: flex;

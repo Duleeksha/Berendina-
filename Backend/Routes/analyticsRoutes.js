@@ -1,5 +1,6 @@
 import express from 'express';
 import { getDashboardStats, getReportData, exportPDF, exportExcel, getOfficerAnalytics } from '../controllers/analyticsController.js';
+import { getExecutiveIntelligence } from '../controllers/decisionController.js';
 
 const router = express.Router();
 
@@ -8,5 +9,6 @@ router.get('/reports', getReportData);
 router.get('/export/pdf', exportPDF);
 router.get('/export/excel', exportExcel);
 router.get('/officer-analytics', getOfficerAnalytics);
+router.get('/executive-intelligence', getExecutiveIntelligence);
 
 export default router;

@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area 
+} from 'recharts';
 import './ReportGenerator.css';
 import { DS_DIVISIONS } from '../../constants/locations';
 
@@ -22,6 +26,7 @@ const ReportGenerator = () => {
     completed: 0,
     scheduled: 0
   });
+  const [inteData, setInteData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState([]);
 
@@ -42,11 +47,23 @@ const ReportGenerator = () => {
     setLoading(true);
     try {
       const query = new URLSearchParams(filters).toString();
-      const response = await fetch(`http://localhost:5000/api/analytics/reports?${query}`);
-      if (response.ok) {
-        const data = await response.json();
-        setReportData(data.rows || []);
-        setReportStats(data.stats || { total: 0 });
+      
+      // Handle Executive Intelligence specially
+      if (filters.reportType === 'executive') {
+        const response = await fetch(`http://localhost:5000/api/analytics/executive-intelligence?${query}`);
+        if (response.ok) {
+          const data = await response.json();
+          setInteData(data);
+          setReportStats({ total: data.projectHealth.length });
+        }
+      } else {
+        const response = await fetch(`http://localhost:5000/api/analytics/reports?${query}`);
+        if (response.ok) {
+          const data = await response.json();
+          setReportData(data.rows || []);
+          setReportStats(data.stats || { total: 0 });
+          setInteData(null); // Reset intelligence view
+        }
       }
     } catch (error) {
       console.error("Report generation error:", error);
@@ -121,6 +138,8 @@ const ReportGenerator = () => {
   // Dynamic Table Rows
   const renderTableRows = (data, i) => {
     switch (filters.reportType) {
+      // (Pre-existing renderTableRows code omitted for brevity but preserved in the tool call)
+      // I'll include the actual cases here to ensure correctness.
       case 'progress':
         return (
           <tr key={data.history_id || i}>
@@ -195,6 +214,113 @@ const ReportGenerator = () => {
     }
   };
 
+  const renderExecutiveDashboard = () => {
+    if (!inteData) return null;
+
+    const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+    return (
+      <div className="executive-dashboard">
+        <div className="intelligence-grid">
+          {/* Project Health Radar */}
+          <div className="intel-card full-width">
+            <div className="intel-header">
+              <h3>Project Strategic Pulse</h3>
+              <p>Aggregated beneficiary progress per social mission</p>
+            </div>
+            <div className="health-metrics-row">
+              {inteData.projectHealth.map((p, idx) => (
+                <div key={idx} className="health-indicator">
+                  <div className="circular-progress" style={{ 
+                    '--p': p.health_score, 
+                    '--c': p.health_score > 70 ? '#10b981' : p.health_score > 40 ? '#f59e0b' : '#ef4444' 
+                  }}>
+                    <span className="percent">{p.health_score}%</span>
+                  </div>
+                  <span className="project-name">{p.name}</span>
+                  <span className="total-ben">{p.beneficiary_count} Members</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Charts Row */}
+          <div className="intel-card">
+            <h3>Officer Load Heatmap</h3>
+            <div style={{ height: '300px', width: '100%', marginTop: '20px' }}>
+              <ResponsiveContainer>
+                <BarChart data={inteData.officerLoad}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" tick={{fontSize: 10}} />
+                  <YAxis />
+                  <Tooltip cursor={{fill: '#f8fafc'}} />
+                  <Bar dataKey="active_cases" fill="#2563eb" radius={[5, 5, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="intel-card">
+            <h3>Resource Allocation Flow</h3>
+            <div style={{ height: '300px', width: '100%', marginTop: '20px' }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={inteData.resourceStats}
+                    dataKey="stock"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                  >
+                    {inteData.resourceStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Suggested Actions Sidebar */}
+          <div className="intel-card risk-panel">
+            <div className="intel-header" style={{ marginBottom: '15px' }}>
+              <h3 style={{ color: '#ef4444' }}>⚠️ Strategic Risks</h3>
+            </div>
+            <div className="risk-metric">
+              <span>Overdue Field Visits</span>
+              <strong style={{ color: '#ef4444' }}>{inteData.risks.overdueVisits}</strong>
+            </div>
+            <div className="risk-metric">
+              <span>Stagnant Progress (&gt;30 days)</span>
+              <strong style={{ color: '#f59e0b' }}>{inteData.risks.stagnantBeneficiaries}</strong>
+            </div>
+
+            <div className="suggested-actions-container" style={{ marginTop: '30px' }}>
+              <h4 style={{ fontSize: '14px', color: '#111827', marginBottom: '15px', borderBottom: '1px solid #eef2f6', paddingBottom: '10px' }}>
+                🚀 Guided Strategic Actions
+              </h4>
+              <div className="action-list">
+                {inteData.suggestedActions.map((action, idx) => (
+                  <div key={idx} className={`suggestion-item ${action.type}`}>
+                    <div className="suggestion-title">{action.title}</div>
+                    <p>{action.message}</p>
+                    <button className="action-trigger">Initiate: {action.suggestion}</button>
+                  </div>
+                ))}
+                {inteData.suggestedActions.length === 0 && (
+                  <p style={{ color: '#10b981', fontSize: '13px' }}>✅ No critical risks identified. Operations stable.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="report-page-content">
       <div className="page-header">
@@ -253,6 +379,7 @@ const ReportGenerator = () => {
             <label>Report Goal</label>
             <select name="reportType" value={filters.reportType} onChange={handleFilterChange} className="modern-select" style={{ border: '2px solid #2563eb', fontWeight: 'bold' }}>
               <option value="default">Beneficiary Smart List</option>
+              <option value="executive">Executive Intelligence & Decisions</option>
               <option value="progress">Beneficiary Progress History</option>
               <option value="visits">Field Visit Detailed Report</option>
               <option value="resources">Resource Allocation Summary</option>
@@ -303,49 +430,55 @@ const ReportGenerator = () => {
         </div>
       </div>
 
-      {/* REPORT PREVIEW TABLE */}
+      {/* REPORT PREVIEW TABLE / EXECUTIVE DASHBOARD */}
       <div className="report-preview-container">
-        <div className="preview-header">
-          <h3>
-             {filters.reportType === 'default' ? 'Report Preview' : 
-              filters.reportType === 'progress' ? 'Beneficiary Progress Tracking' :
-              filters.reportType === 'visits' ? 'Recent Field Visit Activity' :
-              filters.reportType === 'resources' ? 'Resource Utilization Overview' :
-              'Periodic Performance Metrics'}
-          </h3>
-          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>
-            Showing {reportData.length} records based on selection
-          </span>
-        </div>
+        {filters.reportType === 'executive' ? (
+          renderExecutiveDashboard()
+        ) : (
+          <>
+            <div className="preview-header">
+              <h3>
+                {filters.reportType === 'default' ? 'Report Preview' : 
+                  filters.reportType === 'progress' ? 'Beneficiary Progress Tracking' :
+                  filters.reportType === 'visits' ? 'Recent Field Visit Activity' :
+                  filters.reportType === 'resources' ? 'Resource Utilization Overview' :
+                  'Periodic Performance Metrics'}
+              </h3>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>
+                Showing {reportData.length} records based on selection
+              </span>
+            </div>
 
-        <div className="table-responsive">
-          <table className="modern-table">
-            <thead>
-              {renderTableHeaders()}
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                   <td colSpan="10" style={{ textAlign: 'center', padding: '50px' }}>
-                     <div className="loading-spinner" style={{ margin: '0 auto 15px' }}></div>
-                     Calculating report data...
-                   </td>
-                </tr>
-              ) : reportData.length > 0 ? (
-                reportData.map((data, i) => renderTableRows(data, i))
-              ) : (
-                <tr>
-                   <td colSpan="10">
-                     <div className="report-empty-state">
-                        <span className="empty-icon">📊</span>
-                        <p>No data matches the selected criteria.<br/>Adjust filters and click <strong>Generate Report</strong> to download summary.</p>
-                     </div>
-                   </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            <div className="table-responsive">
+              <table className="modern-table">
+                <thead>
+                  {renderTableHeaders()}
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="10" style={{ textAlign: 'center', padding: '50px' }}>
+                        <div className="loading-spinner" style={{ margin: '0 auto 15px' }}></div>
+                        Calculating report data...
+                      </td>
+                    </tr>
+                  ) : reportData.length > 0 ? (
+                    reportData.map((data, i) => renderTableRows(data, i))
+                  ) : (
+                    <tr>
+                      <td colSpan="10">
+                        <div className="report-empty-state">
+                            <span className="empty-icon">📊</span>
+                            <p>No data matches the selected criteria.<br/>Adjust filters and click <strong>Generate Report</strong> to download summary.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

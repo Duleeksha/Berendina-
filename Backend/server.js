@@ -32,15 +32,20 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// 2. Test Route 
-app.get("/users", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM resource");
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
-  }
+// --- ERROR HANDLING ---
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ message: `Route ${req.method} ${req.url} not found` });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('SERVER ERROR:', err);
+  res.status(500).json({ 
+    message: 'Internal Server Error', 
+    error: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 // Server Start

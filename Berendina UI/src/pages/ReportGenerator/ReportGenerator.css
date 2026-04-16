@@ -152,3 +152,170 @@
     padding: 20px;
   }
 }
+
+/* --- EXECUTIVE INTELLIGENCE DASHBOARD --- */
+.intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr) 350px;
+  gap: 25px;
+}
+
+.intel-card {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f1f5f9;
+}
+
+.intel-card.full-width {
+  grid-column: span 3;
+}
+
+.intel-header h3 {
+  font-size: 20px;
+  color: #111827;
+  margin: 0;
+}
+
+.intel-header p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 5px 0 0;
+}
+
+/* Health Metrics Row */
+.health-metrics-row {
+  display: flex;
+  gap: 40px;
+  padding: 20px 0;
+  overflow-x: auto;
+}
+
+.health-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 120px;
+}
+
+.circular-progress {
+  --w: 90px;
+  width: var(--w);
+  height: var(--w);
+  border-radius: 50%;
+  display: grid;
+  place-content: center;
+  background: conic-gradient(var(--c) calc(var(--p) * 1%), #f1f5f9 0);
+  position: relative;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.circular-progress::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+.circular-progress .percent {
+  position: relative;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.project-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.total-ben {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Risk Panel & Suggestions */
+.risk-panel {
+  grid-row: span 2;
+  background: linear-gradient(180deg, #ffffff 0%, #fef2f2 100%);
+  border: 1px solid #fee2e2;
+}
+
+.risk-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+  font-size: 13px;
+  color: #475569;
+}
+
+.suggestion-item {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  transition: all 0.2s;
+}
+
+.suggestion-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px -3px rgba(0,0,0,0.05);
+}
+
+.suggestion-item.risk { border-left: 4px solid #ef4444; }
+.suggestion-item.warning { border-left: 4px solid #f59e0b; }
+.suggestion-item.resource { border-left: 4px solid #3b82f6; }
+
+.suggestion-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 5px;
+}
+
+.suggestion-item p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.action-trigger {
+  width: 100%;
+  padding: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-trigger:hover {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+@media (max-width: 1400px) {
+  .intelligence-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .risk-panel, .intel-card.full-width {
+    grid-column: span 2;
+  }
+}

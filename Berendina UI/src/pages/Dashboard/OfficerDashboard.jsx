@@ -65,8 +65,28 @@ const OfficerDashboard = () => {
     }
   };
 
+  const handleCompleteVisit = async (visitId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/visits/${visitId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
+      if (response.ok) {
+        setIsModalOpen(false);
+        fetchVisits(); // Real-time UI sync
+      } else {
+        alert('Failed to update visit status.');
+      }
+    } catch (error) {
+      console.error('Error completing visit:', error);
+      alert('Network error. Please try again.');
+    }
+  };
+
   // Process data for charts vs upcoming list
   const upcomingVisits = visits.filter(v => v.status === 'scheduled').slice(0, 5);
+  const completedVisits = visits.filter(v => v.status === 'completed');
   
   // Dummy data for chart since we don't have historical counts in current schema easily
   const myVisitsData = [
@@ -213,7 +233,31 @@ const OfficerDashboard = () => {
                                 {visit.date}
                             </div>
                         </div>
-                      )) : <p>No upcoming visits.</p>
+                      )) : <p className="empty-state-text">No upcoming visits.</p>
+                    )}
+                </div>
+            </div>
+
+            <div className="panel-card completed-section" style={{marginTop: '25px', background: '#fcfcfc', border: '1px solid #eef2f6'}}>
+                <div className="panel-header">
+                    <h3 style={{color: '#0081c9'}}>✅ Completed Visits</h3>
+                </div>
+                
+                <div className="approval-list completed-list" style={{maxHeight: '300px'}}>
+                    {loading ? <p>Loading...</p> : (
+                      completedVisits.length > 0 ? completedVisits.map(visit => (
+                        <div key={visit.id} className="approval-item completed-item" style={{opacity: 0.85, background: 'white'}}>
+                            <div className="user-details-row">
+                                <div className="avatar-placeholder" style={{background: '#dcfce7', color: '#16a34a'}}>
+                                    ✔
+                                </div>
+                                <div className="user-text">
+                                    <h4 style={{textDecoration: 'none'}}>{visit.beneficiary}</h4>
+                                    <p style={{fontSize: '11px'}}>Finished on {visit.date}</p>
+                                </div>
+                            </div>
+                        </div>
+                      )) : <p className="empty-state-text">No completed visits to show.</p>
                     )}
                 </div>
             </div>
@@ -289,7 +333,7 @@ const OfficerDashboard = () => {
               </div>
             </div>
 
-            <div style={{borderTop: '1px solid #e5e7eb', paddingTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
+            <div style={{borderTop: '1px solid #e5e7eb', paddingTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
               <div>
                 <label style={{display: 'block', fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase'}}>Visit Date</label>
                 <div style={{color: '#4b5563', fontWeight: 500}}>{selectedVisit.date}</div>
@@ -300,16 +344,31 @@ const OfficerDashboard = () => {
               </div>
             </div>
 
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              style={{
-                width: '100%', marginTop: '25px', padding: '12px', background: '#2563eb',
-                color: 'white', borderRadius: '12px', border: 'none', fontWeight: 600,
-                cursor: 'pointer', transition: 'background 0.2s'
-              }}
-            >
-              Close Details
-            </button>
+            <div style={{display: 'flex', gap: '15px'}}>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                style={{
+                  flex: 1, padding: '12px', background: '#f3f4f6',
+                  color: '#4b5563', borderRadius: '12px', border: 'none', fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+              {selectedVisit.status !== 'completed' && (
+                <button 
+                  onClick={() => handleCompleteVisit(selectedVisit.id)}
+                  style={{
+                    flex: 2, padding: '12px', background: '#10b981',
+                    color: 'white', borderRadius: '12px', border: 'none', fontWeight: 600,
+                    cursor: 'pointer', transition: 'background 0.2s',
+                    boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  Mark as Completed
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

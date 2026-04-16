@@ -336,7 +336,7 @@ export const getOfficerAnalytics = async (req, res) => {
              u.first_name, u.last_name, u.email, u.employee_id, u.organization, u.department, u.branch, u.job_title, u.gender,
              TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS name,
              u.created_at,
-             od.mobile_no, od.ds_division, od.vehicle_type, od.vehicle_no, od.languages, od.emergency_contact
+             od.mobile_no, od.ds_division, od.vehicle_type, od.vehicle_no, od.languages, od.emergency_contact, od.is_available
       FROM user_table u
       LEFT JOIN officer_details od ON u.user_id = od.user_id
       WHERE TRIM(LOWER(u.role)) = 'officer' AND u.status = 'Active'
@@ -440,11 +440,12 @@ export const getOfficerAnalytics = async (req, res) => {
         job_title: officer.job_title,
         gender: officer.gender,
         mobileNumber: officer.mobile_no,
-        ds_division: officer.ds_division,
+        dsDivision: officer.ds_division,
         vehicleType: officer.vehicle_type,
         vehicleNumber: officer.vehicle_no,
         languages: officer.languages,
         emergency_contact: officer.emergency_contact,
+        isAvailable: officer.is_available,
         totalVisits: officerVisits.length,
         projects: Object.values(projectsMap),
         futureVisits: futureVisits.sort((a, b) => new Date(a.date) - new Date(b.date)),

@@ -11,6 +11,7 @@ const FieldOfficers = () => {
   const [selectedOfficer, setSelectedOfficer] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [redirectMessage, setRedirectMessage] = useState(location.state?.message || null);
+  const [activeTab, setActiveTab] = useState('available'); // 'available' or 'unavailable'
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -196,6 +197,38 @@ const FieldOfficers = () => {
     }
   };
 
+  const toggleAvailability = async (officerId, currentStatus, e) => {
+    e.stopPropagation();
+    
+    // Optimistic UI Update
+    const previousData = [...analyticsData];
+    setAnalyticsData(prev => prev.map(off => 
+      off.officerId === officerId ? { ...off, isAvailable: !currentStatus } : off
+    ));
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/auth/officers/${officerId}/availability`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isAvailable: !currentStatus, updatedByRole: 'admin' })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update availability');
+      }
+      // Reload counts/data silently in background
+      const res = await fetch('http://localhost:5000/api/analytics/officer-analytics');
+      if (res.ok) {
+        const data = await res.json();
+        setAnalyticsData(data.filter(o => o.status !== 'pending' && o.officerId));
+      }
+    } catch (error) {
+      console.error('Error toggling availability:', error);
+      // Rollback on error
+      setAnalyticsData(previousData);
+      alert('Error updating availability. Please try again.');
+    }
+  };
+
   const openScheduleModal = (officer) => {
     setSelectedOfficer(officer);
     setScheduleData({
@@ -245,6 +278,13 @@ const FieldOfficers = () => {
     (item?.officerName || 'Unknown').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const tabFilteredData = filteredData.filter(off => 
+    activeTab === 'available' ? off.isAvailable !== false : off.isAvailable === false
+  );
+
+  const availableCount = filteredData.filter(off => off.isAvailable !== false).length;
+  const unavailableCount = filteredData.filter(off => off.isAvailable === false).length;
+
   const openModal = (officer) => {
     setSelectedOfficer(officer);
     setIsModalOpen(true);
@@ -288,6 +328,21 @@ const FieldOfficers = () => {
           </div>
         </div>
 
+        <div className="dashboard-tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'available' ? 'active' : ''}`}
+            onClick={() => setActiveTab('available')}
+          >
+            Available <span className="tab-count">{availableCount}</span>
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'unavailable' ? 'active' : ''}`}
+            onClick={() => setActiveTab('unavailable')}
+          >
+            Unavailable <span className="tab-count">{unavailableCount}</span>
+          </button>
+        </div>
+
         {loading ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
@@ -295,19 +350,33 @@ const FieldOfficers = () => {
           </div>
         ) : (
           <div className="beneficiary-grid">
-            {filteredData.length > 0 ? (
-              filteredData.map((officer, index) => {
+            {tabFilteredData.length > 0 ? (
+              tabFilteredData.map((officer, index) => {
                 const officerProjects = officer.projects || [];
                 const totalBeneficiaries = officerProjects.reduce((sum, p) => sum + (p.beneficiaries?.length || 0), 0);
                 const isBusy = (officer.totalVisits || 0) >= 4;
-                const statusLabel = isBusy ? 'Busy' : 'Available';
-                const statusClass = isBusy ? 'inactive' : 'active';
+                
+                // Status Logic
+                let statusLabel = 'Available';
+                let statusClass = 'active';
+                let accentColor = '#10b981';
+
+                if (officer.isAvailable === false) {
+                  statusLabel = 'Unavailable';
+                  statusClass = 'inactive';
+                  accentColor = '#64748b';
+                } else if (isBusy) {
+                  statusLabel = 'Busy';
+                  statusClass = 'inactive'; // or a new 'busy' class
+                  accentColor = '#ef4444';
+                }
+
                 const uniqueId = officer.officerId || `officer-${index}`;
                 
                 return (
                   <div key={uniqueId} className="beneficiary-card" onClick={() => openModal(officer)}>
                     <div className="card-status-accent" style={{ 
-                      background: isBusy ? '#ef4444' : '#10b981' 
+                      background: accentColor 
                     }}></div>
                     <div className="card-content">
                       <div className="card-header">
@@ -322,7 +391,31 @@ const FieldOfficers = () => {
                            </div>
                            <h3 style={{ margin: 0, fontSize: '18px' }}>{officer.officerName}</h3>
                         </div>
-                        <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <button 
+                            onClick={(e) => toggleAvailability(officer.officerId, officer.isAvailable, e)}
+                            style={{
+                              background: officer.isAvailable ? '#dcfce7' : '#f1f5f9',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '5px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                            title={officer.isAvailable ? 'Status: Active - Click to set Unavailable' : 'Status: Unavailable - Click to set Available'}
+                          >
+                             <div style={{
+                               width: '10px',
+                               height: '10px',
+                               borderRadius: '50%',
+                               background: officer.isAvailable ? '#10b981' : '#64748b'
+                             }}></div>
+                          </button>
+                          <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
+                        </div>
                       </div>
                       
                       <div className="card-details">
@@ -551,9 +644,20 @@ const FieldOfficers = () => {
             <form onSubmit={handleScheduleSubmit} className="admin-form" style={{padding: '30px'}}>
               <div className="form-group">
                 <label>Target Project</label>
-                <select className="modern-select" value={scheduleData.projectId} onChange={(e) => handleProjectChange(e.target.value)} required>
+                <select 
+                  className="modern-select" 
+                  value={scheduleData.projectId} 
+                  onChange={(e) => handleProjectChange(e.target.value)} 
+                  required
+                >
                   <option value="">Select Project</option>
-                  {(projects || []).map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  {selectedOfficer?.projects && selectedOfficer.projects.length > 0 ? (
+                    selectedOfficer.projects.map((p, idx) => (
+                      <option key={idx} value={p.name}>{p.name}</option>
+                    ))
+                  ) : (
+                    <option disabled>No projects assigned to this officer</option>
+                  )}
                 </select>
               </div>
               <div className="form-group">

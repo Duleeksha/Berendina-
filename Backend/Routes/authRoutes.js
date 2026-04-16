@@ -2,7 +2,8 @@ import express from 'express';
 import { 
   register, login, getPendingUsers, approveUser, 
   sendOTP, verifyOTP, resetPassword, getOfficers, 
-  getOfficerById, updateOfficer, deleteOfficer 
+  getOfficerById, updateOfficer, deleteOfficer,
+  updateOfficerAvailability, getNotifications
 } from '../controllers/authController.js';
 import { upload } from '../middleware/upload.js';
 
@@ -19,5 +20,7 @@ router.get('/officers', getOfficers);
 router.get('/officers/:id', getOfficerById);
 router.put('/officers/:id', updateOfficer);
 router.delete('/officers/:id', deleteOfficer);
+router.put('/officers/:id/availability', updateOfficerAvailability);
+router.get('/notifications', getNotifications);
 
 export default router;

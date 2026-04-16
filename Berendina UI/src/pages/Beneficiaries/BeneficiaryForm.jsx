@@ -280,13 +280,27 @@ const BeneficiaryForm = () => {
               </div>
               <div className="form-group">
                 <label>Assigned Field Officer</label>
-                <select name="assigned_officer_id" className="modern-select" value={formData.assigned_officer_id || ''} onChange={handleChange} required>
-                  <option value="">Select Officer</option>
-                  {officerList.map((off) => (
-                    <option key={off.id} value={off.id}>{off.firstName} {off.lastName}</option>
-                  ))}
+                <select 
+                  name="assigned_officer_id" 
+                  className="modern-select" 
+                  value={formData.assigned_officer_id || ''} 
+                  onChange={handleChange} 
+                  required 
+                  disabled={!formData.dsDivision}
+                >
+                  <option value="">{formData.dsDivision ? 'Select Officer' : 'Select DS Division first'}</option>
+                  {officerList
+                    .filter(off => off.dsDivision === formData.dsDivision && off.isAvailable !== false)
+                    .map((off) => (
+                      <option key={off.id} value={off.id}>{off.firstName} {off.lastName}</option>
+                    ))
+                  }
                 </select>
+                {formData.dsDivision && officerList.filter(off => off.ds_division === formData.dsDivision).length === 0 && (
+                  <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '5px' }}>No field officers found in this division.</p>
+                )}
               </div>
+
               <div className="form-group">
                 <label>Current Status</label>
                 <select name="status" className="modern-select" value={formData.status || 'active'} onChange={handleChange}>

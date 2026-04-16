@@ -8,6 +8,8 @@ const FieldVisits = () => {
   const [officers, setOfficers] = useState([]);
   const [selectedOfficerId, setSelectedOfficerId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
 
   // Modals
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -44,7 +46,16 @@ const FieldVisits = () => {
     return user ? JSON.parse(user) : null;
   }, []);
 
+  const filteredOfficers = React.useMemo(() => {
+    return (officers || []).filter(off => {
+      const isOffAvailable = off.isAvailable !== false;
+      const fullName = `${off.firstName || ''} ${off.lastName || ''}`.toLowerCase();
+      return isOffAvailable && fullName.includes(searchTerm.toLowerCase());
+    });
+  }, [officers, searchTerm]);
+
   const fetchVisits = useCallback(async (officerId) => {
+
     setLoading(true);
     try {
       let url = 'http://localhost:5000/api/visits';
@@ -266,7 +277,18 @@ const FieldVisits = () => {
       <div className="calendar-container">
         {currentUser?.role === 'admin' && (
           <div className="content-card officer-sidebar">
-            <h3>Select Officer</h3>
+            <div className="sidebar-header">
+              <h3>Select Officer</h3>
+              <div className="search-box">
+                <input 
+                  type="text" 
+                  placeholder="Search Field Officer..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+            </div>
             <div className="officer-selector">
               <div 
                 className={`officer-item ${!selectedOfficerId ? 'active' : ''}`}
@@ -275,22 +297,29 @@ const FieldVisits = () => {
                 <div className="officer-avatar">All</div>
                 <strong>All Field Officers</strong>
               </div>
-              {(officers || []).map(off => (
-                <div 
-                  key={off.id} 
-                  className={`officer-item ${selectedOfficerId === off.id ? 'active' : ''}`}
-                  onClick={() => handleOfficerSelect(off.id)}
-                >
-                  <div className="officer-avatar">{off?.firstName?.[0] || '?'}</div>
-                  <div>
-                    <strong>{off?.firstName || ''} {off?.lastName || ''}</strong>
-                    <div style={{fontSize: '0.75rem', opacity: 0.8}}>{off?.district || ''}</div>
+              {filteredOfficers.length > 0 ? (
+                filteredOfficers.map(off => (
+                  <div 
+                    key={off.id} 
+                    className={`officer-item ${selectedOfficerId === off.id ? 'active' : ''}`}
+                    onClick={() => handleOfficerSelect(off.id)}
+                  >
+                    <div className="officer-avatar">{off?.firstName?.[0] || '?'}</div>
+                    <div>
+                      <strong>{off?.firstName || ''} {off?.lastName || ''}</strong>
+                      <div style={{fontSize: '0.75rem', opacity: 0.8}}>{off?.district || ''}</div>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="no-results-msg">
+                  No Field Officer found
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
+
 
         <div className="content-card calendar-section">
            <div className="calendar-header-nav">

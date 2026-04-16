@@ -35,6 +35,7 @@ const Beneficiaries = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    try {
       const officerId = currentUser?.id;
       if (isOfficer && !officerId) {
         console.error('[Beneficiaries] Missing officer ID for filtering');
