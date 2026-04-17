@@ -8,7 +8,7 @@ const Sidebar = ({ currentUser, onLogout }) => {
   const location = useLocation();
 
   // --- FIX START ---
-  const storedUser = JSON.parse(localStorage.getItem('user'));
+  const storedUser = JSON.parse(sessionStorage.getItem('user'));
   const effectiveUser = currentUser || storedUser;
   // --- FIX END ---
 
@@ -25,7 +25,7 @@ const Sidebar = ({ currentUser, onLogout }) => {
       fetch(`http://localhost:5000/api/auth/officers/${userId}`)
         .then(res => res.json())
         .then(data => setIsAvailable(data.isAvailable !== false))
-        .catch(err => console.error('Fetch availability error:', err));
+        .catch(err => { /* fetch availability silent fail */ });
 
       // Fetch notifications to check for admin updates
       fetch(`http://localhost:5000/api/auth/notifications?userId=${userId}`)
@@ -34,7 +34,7 @@ const Sidebar = ({ currentUser, onLogout }) => {
           const unread = data.some(n => !n.read_status && n.message.includes('Administrator'));
           if (unread) setHasNotification(true);
         })
-        .catch(err => console.error('Fetch notifications error:', err));
+        .catch(err => { /* fetch notifications silent fail */ });
     }
   }, [userId, userRole]);
 
@@ -51,7 +51,7 @@ const Sidebar = ({ currentUser, onLogout }) => {
         setIsAvailable(nextStatus);
       }
     } catch (err) {
-      console.error('Toggle status error:', err);
+      alert('Error: Could not update status.');
     }
   };
 

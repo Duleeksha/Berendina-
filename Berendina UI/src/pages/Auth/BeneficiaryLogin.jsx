@@ -14,14 +14,13 @@ const BeneficiaryLogin = () => {
             const response = await fetch(`http://localhost:5000/api/beneficiaries/nic/${nic}`);
             if (response.ok) {
                 const data = await response.json();
-                localStorage.setItem('beneficiary', JSON.stringify(data));
+                sessionStorage.setItem('beneficiary', JSON.stringify(data));
                 navigate('/beneficiary-portal');
             } else {
                 alert("Invalid NIC or Beneficiary not registered.");
             }
         } catch (error) {
-            console.error("Login error:", error);
-            alert("Connection error");
+            alert("Login System: Unable to connect to the server. Please check your network and try again.");
         } finally {
             setLoading(false);
         }

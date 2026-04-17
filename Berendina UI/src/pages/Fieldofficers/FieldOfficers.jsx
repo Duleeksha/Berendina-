@@ -35,7 +35,7 @@ const FieldOfficers = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [officerToDelete, setOfficerToDelete] = useState(null);
 
-  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const currentUser = JSON.parse(sessionStorage.getItem('user'));
 
   const fetchAnalytics = async () => {
     setLoading(true);
@@ -47,7 +47,7 @@ const FieldOfficers = () => {
         setAnalyticsData(data.filter(o => o.status !== 'pending' && o.officerId));
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+       alert('System Error: Unable to retrieve officer performance metrics.');
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,7 @@ const FieldOfficers = () => {
         setProjects(data);
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
+       // Silently fail for project list
     }
   };
 
@@ -87,7 +87,7 @@ const FieldOfficers = () => {
         setBeneficiaries(data);
       }
     } catch (error) {
-      console.error('Error fetching beneficiaries for project:', error);
+       alert("Error: Could not load beneficiaries for this project.");
     }
   };
 
@@ -106,13 +106,11 @@ const FieldOfficers = () => {
 
   const handleEdit = async (officer) => {
     const officerId = officer.officerId || officer.user_id || officer.id;
-    console.log("Fetching Full Profile for Officer ID:", officerId);
     
     try {
       const response = await fetch(`http://localhost:5000/api/auth/officers/${officerId}`);
       if (response.ok) {
         const fullData = await response.json();
-        console.log("Full Profile Data Received:", fullData);
         
         setEditFormData({
           id: fullData.id,
@@ -135,12 +133,10 @@ const FieldOfficers = () => {
         });
         setIsEditModalOpen(true);
       } else {
-        console.error('Failed to fetch officer profile');
         alert('Could not load officer details. Please try again.');
       }
     } catch (err) {
-      console.error('Error fetching officer profile:', err);
-      alert('Error connecting to server.');
+      alert('Error: Connection to the officer database failed.');
     }
   };
 
@@ -163,7 +159,7 @@ const FieldOfficers = () => {
         fetchAnalytics();
       }
     } catch (err) {
-      console.error('Delete error:', err);
+      alert("Error: Failed to delete the officer record. Check your connection.");
     }
   };
 
@@ -182,7 +178,7 @@ const FieldOfficers = () => {
         await fetchAnalytics();
       }
     } catch (err) {
-      console.error('Update error:', err);
+      alert("Error: Failed to save updated officer information.");
     } finally {
       setIsSaving(false);
     }
@@ -222,7 +218,6 @@ const FieldOfficers = () => {
         setAnalyticsData(data.filter(o => o.status !== 'pending' && o.officerId));
       }
     } catch (error) {
-      console.error('Error toggling availability:', error);
       // Rollback on error
       setAnalyticsData(previousData);
       alert('Error updating availability. Please try again.');
@@ -268,7 +263,7 @@ const FieldOfficers = () => {
         fetchAnalytics();
       }
     } catch (err) {
-      console.error('Schedule error:', err);
+       alert("Error: Failed to register the scheduled visit on the server.");
     } finally {
       setIsSaving(false);
     }

@@ -4,7 +4,7 @@ import './Beneficiaries.css';
 
 const BeneficiaryPortal = () => {
     const [beneficiary, setBeneficiary] = useState(() => {
-        const stored = localStorage.getItem('beneficiary');
+        const stored = sessionStorage.getItem('beneficiary');
         return stored ? JSON.parse(stored) : null;
     });
     const navigate = useNavigate();
@@ -21,7 +21,7 @@ const BeneficiaryPortal = () => {
         <div className="beneficiary-portal-container" style={{padding: '40px', maxWidth: '1200px', margin: '0 auto'}}>
             <nav style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
                 <h1>Welcome, {beneficiary.ben_name}</h1>
-                <button onClick={() => { localStorage.removeItem('beneficiary'); navigate('/beneficiary-login'); }} className="action-btn-delete">Logout</button>
+                <button onClick={() => { sessionStorage.removeItem('beneficiary'); navigate('/beneficiary-login'); }} className="action-btn-delete">Logout</button>
             </nav>
 
             <div className="portal-grid" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px'}}>

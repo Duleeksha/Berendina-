@@ -9,7 +9,7 @@ const BeneficiaryForm = () => {
   const isEditMode = !!id;
 
   const currentUser = (() => {
-    const user = localStorage.getItem('user');
+    const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   })();
 
@@ -37,9 +37,9 @@ const BeneficiaryForm = () => {
           const data = await response.json();
           setProjectList(data);
         }
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      }
+    } catch (error) {
+       // Silently fail for non-critical project list
+    }
     };
 
     const fetchOfficers = async () => {
@@ -49,9 +49,9 @@ const BeneficiaryForm = () => {
           const data = await response.json();
           setOfficerList(data);
         }
-      } catch (error) {
-        console.error("Error fetching officers:", error);
-      }
+    } catch (error) {
+       // Silently fail
+    }
     };
 
     fetchProjects();
@@ -69,7 +69,7 @@ const BeneficiaryForm = () => {
             if (ben) setFormData(ben);
           }
         } catch (error) {
-          console.error("Error loading beneficiary:", error);
+           alert("Error: Failed to load existing beneficiary data for editing.");
         }
       };
       fetchBen();
@@ -113,7 +113,7 @@ const BeneficiaryForm = () => {
             }
         }
     } catch (err) {
-        console.error("NIC check error:", err);
+        // Silently fail for background validation check
     }
   };
 
@@ -154,8 +154,7 @@ const BeneficiaryForm = () => {
         alert(`Error: ${result.message}`);
       }
     } catch (error) {
-      console.error("Submission error:", error);
-      alert("Failed to connect to the server.");
+      alert("Critical Error: Failed to submit the beneficiary form. Please check your internet connection.");
     }
   };
 
@@ -280,7 +279,9 @@ const BeneficiaryForm = () => {
                 <label>Assigned Project</label>
                 <select name="project" className="modern-select" value={formData.project || ''} onChange={handleChange} required>
                   <option value="">Select Project</option>
-                  {projectList.map((proj) => <option key={proj.id} value={proj.name}>{proj.name}</option>)}
+                  {projectList
+                    .filter(proj => proj.status === 'Active' || proj.id === formData.project_id) // Show active projects, and the current project if editing
+                    .map((proj) => <option key={proj.id} value={proj.name}>{proj.name}</option>)}
                 </select>
               </div>
               <div className="form-group">

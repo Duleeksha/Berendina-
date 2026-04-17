@@ -62,7 +62,7 @@ const Login = ({ onLogin }) => {
         password: passwordTrimmed
       });
       
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      sessionStorage.setItem('user', JSON.stringify(response.data.user));
       if (onLogin) {
         onLogin(response.data.user);
       }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Beneficiaries.css';
+import { PROJECT_MILESTONES, getMilestoneFromValue } from '../../utils/progressConstants';
 
 const Beneficiaries = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const Beneficiaries = () => {
   const [history, setHistory] = useState([]);
   const [newProgress, setNewProgress] = useState({ value: 0, comment: '' });
 
-  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const currentUser = JSON.parse(sessionStorage.getItem('user'));
   const isOfficer = currentUser?.role === 'officer';
 
   const fetchData = async () => {
@@ -38,7 +39,7 @@ const Beneficiaries = () => {
     try {
       const officerId = currentUser?.id;
       if (isOfficer && !officerId) {
-        console.error('[Beneficiaries] Missing officer ID for filtering');
+        alert('Authentication Error: Your officer ID was not found. Please re-login.');
         setLoading(false);
         return;
       }
@@ -47,7 +48,6 @@ const Beneficiaries = () => {
         ? `http://localhost:5000/api/beneficiaries?officerId=${officerId}` 
         : 'http://localhost:5000/api/beneficiaries';
       
-      console.log(`[Beneficiaries] Fetching data from: ${benUrl}`);
         
       const [benRes, projRes, offRes] = await Promise.all([
         fetch(benUrl),
@@ -56,13 +56,12 @@ const Beneficiaries = () => {
       ]);
       if (benRes.ok) {
         const data = await benRes.json();
-        console.log(`[Beneficiaries] Received ${data.length} records`);
         setBeneficiaries(data);
       }
       if (projRes.ok) setProjectList(await projRes.json());
       if (offRes.ok) setOfficerList(await offRes.json());
     } catch (err) {
-      console.error('Network error:', err);
+      alert("Network Error: Could not connect to the beneficiary database.");
     } finally {
       setLoading(false);
     }
@@ -87,13 +86,18 @@ const Beneficiaries = () => {
 
   const handleProgressClick = async (ben) => {
     setSelectedBen(ben);
-    setNewProgress({ value: ben.progress || 0, comment: '' });
+    const currentMilestone = getMilestoneFromValue(ben.progress || 0);
+    setNewProgress({ 
+        value: ben.progress || 0, 
+        comment: '',
+        phaseLabel: currentMilestone.label
+    });
     setIsHistoryModalOpen(true);
     try {
       const res = await fetch(`http://localhost:5000/api/beneficiaries/${ben.id}/history`);
       if (res.ok) setHistory(await res.json());
     } catch (err) {
-      console.error('Error fetching history:', err);
+       // Non-critical background fetch
     }
   };
 
@@ -135,8 +139,7 @@ const Beneficiaries = () => {
         alert(`Error: ${errorData.message}`);
       }
     } catch (err) {
-      console.error("Update error:", err);
-      alert("Error connecting to server");
+      alert("Error: Connection to the server was lost while updating. Please check your internet.");
     } finally {
       setIsUpdating(false);
     }
@@ -164,14 +167,12 @@ const Beneficiaries = () => {
           const errorData = await response.json();
           alert(`Error: ${errorData.message}`);
         } else {
-          console.error("Server returned non-JSON error:", response.status);
-          alert(`Server Error (${response.status}). Please restart the backend server.`);
+          alert(`Server Error (${response.status}). Please try again later.`);
         }
       }
 
     } catch (error) {
-      console.error('Error deleting beneficiary:', error);
-      alert('Error connecting to the server.');
+      alert('Error: Unable to delete the beneficiary due to a server connection failure.');
     } finally {
       setIsDeleting(false);
     }
@@ -193,8 +194,7 @@ const Beneficiaries = () => {
         fetchData();
       }
     } catch (err) {
-      console.error("Progress update error:", err);
-      alert("Error connecting to server");
+      alert("Error: Failed to process progress update. Please try again.");
     } finally {
       setIsUpdating(false);
     }
@@ -266,16 +266,24 @@ const Beneficiaries = () => {
                          </div>
                          <div className="card-progress">
                             <div className="progress-info">
-                              <span>Progress</span>
-                              <span>{ben.progress}%</span>
+                              <span>Overall Progress</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: '700', color: '#1d4ed8' }}>{ben.progress}%</span>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleProgressClick(ben); }}
+                                  style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline', padding: 0 }}
+                                >
+                                  Update
+                                </button>
+                              </div>
                             </div>
                             <div className="progress-track">
                                <div className="progress-bar-fill" style={{ width: `${ben.progress}%` }}></div>
                             </div>
                          </div>
                          <div className="card-actions" onClick={e => e.stopPropagation()}>
-                           <button className="action-btn-view" onClick={(e) => handleEditClick(e, ben)}>Update</button>
-                           <button className="action-btn-history" onClick={(e) => handleProgressClick(ben)}>History</button>
+                           <button className="action-btn-view" onClick={(e) => handleEditClick(e, ben)}>Edit Profile</button>
+                           <button className="action-btn-history" onClick={(e) => handleProgressClick(ben)}>Update Progress</button>
                          </div>
                        </div>
                     </div>
@@ -469,37 +477,66 @@ const Beneficiaries = () => {
           zIndex: 1000
         }}>
           <div className="modal-content" style={{
-            background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto'
+            background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto'
           }}>
-            <h2 style={{ marginBottom: '20px' }}>Progress History: {selectedBen.firstName} {selectedBen.lastName}</h2>
+            <h2 style={{ marginBottom: '20px' }}>Project Progress: {selectedBen.name || (selectedBen.firstName + ' ' + selectedBen.lastName)}</h2>
             
-            <form onSubmit={handleProgressSubmit} style={{ marginBottom: '30px', background: '#f8fafc', padding: '20px', borderRadius: '12px' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: '15px' }}>New Update</h3>
-              <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '5px' }}>Progress (%)</label>
-                  <input 
-                    type="number" 
-                    min="0" max="100"
-                    value={newProgress.value}
-                    onChange={(e) => setNewProgress({...newProgress, value: e.target.value})}
-                    className="modern-input"
-                    required
-                  />
-                </div>
-                <div style={{ flex: 2 }}>
-                  <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '5px' }}>Comment</label>
-                  <input 
-                    type="text"
-                    placeholder="Brief update note..."
-                    value={newProgress.comment}
-                    onChange={(e) => setNewProgress({...newProgress, comment: e.target.value})}
-                    className="modern-input"
-                  />
-                </div>
+            <form onSubmit={handleProgressSubmit} style={{ marginBottom: '30px', background: '#f8fafc', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: '15px', color: '#1e293b' }}>Update Project Phase</h3>
+              
+              <div className="milestone-selector" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '20px' }}>
+                {PROJECT_MILESTONES.map(m => (
+                  <button
+                    key={m.label}
+                    type="button"
+                    onClick={() => setNewProgress({...newProgress, value: m.value, phaseLabel: m.label})}
+                    style={{
+                      padding: '12px 8px',
+                      borderRadius: '8px',
+                      border: '2px solid',
+                      borderColor: newProgress.value === m.value ? '#3b82f6' : '#e2e8f0',
+                      background: newProgress.value === m.value ? '#eff6ff' : 'white',
+                      color: newProgress.value === m.value ? '#1d4ed8' : '#64748b',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.1rem' }}>
+                      {m.value === 5 && '📝'}
+                      {m.value === 25 && '📚'}
+                      {m.value === 50 && '📦'}
+                      {m.value === 80 && '🔍'}
+                      {m.value === 100 && '🎓'}
+                    </span>
+                    {m.label.split('. ')[1]}
+                    <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{m.value}%</span>
+                  </button>
+                ))}
               </div>
-              <button type="submit" disabled={isUpdating} className="save-btn" style={{ width: '100%' }}>
-                {isUpdating ? 'Saving...' : 'Update Progress'}
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Progress Note / Comment</label>
+                <textarea 
+                  placeholder="Why is it changing? E.g. 'Completed the entrepreneurship course'"
+                  value={newProgress.comment}
+                  onChange={(e) => setNewProgress({...newProgress, comment: e.target.value})}
+                  className="modern-input"
+                  style={{ minHeight: '80px', paddingTop: '10px' }}
+                />
+              </div>
+              
+              <div style={{ padding: '10px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fef3c7', marginBottom: '20px', fontSize: '0.8rem', color: '#92400e' }}>
+                💡 <strong>Current Phase:</strong> {newProgress.phaseLabel || 'Not Set'} ({newProgress.value}%)
+              </div>
+
+              <button type="submit" disabled={isUpdating} className="save-btn" style={{ width: '100%', padding: '14px' }}>
+                {isUpdating ? 'Saving Update...' : 'Confirm Phase Update'}
               </button>
             </form>
 

@@ -45,8 +45,7 @@ const ProjectForm = () => {
         alert(`Error saving project: ${errorData.message}`);
       }
     } catch (error) {
-      console.error("Error submitting project:", error);
-      alert("Failed to connect to the server. Please try again.");
+      alert("Submission Error: Connection to the server was lost. Please check your internet and try again.");
     }
   };
 

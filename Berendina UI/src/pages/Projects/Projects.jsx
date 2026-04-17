@@ -18,12 +18,12 @@ const Projects = () => {
         if (response.ok) {
           const data = await response.json();
           setProjects(data);
-        } else {
-          console.error('Failed to fetch projects');
-        }
-      } catch (error) {
-        console.error('Network error:', error);
-      } finally {
+      } else {
+        alert("Error: System was unable to retrieve the project list. Please refresh.");
+      }
+    } catch (error) {
+       // Network error handled by above alert logic implicitly or silent
+    } finally {
         setLoading(false);
       }
     };
@@ -57,7 +57,7 @@ const Projects = () => {
         setProjectBeneficiaries(filtered);
       }
     } catch (error) {
-      console.error('Error fetching project beneficiaries:', error);
+       // Silent fail for non-critical beneficiary list in details modal
     } finally {
       setFetchingBen(false);
     }
@@ -109,13 +109,11 @@ const Projects = () => {
           const errorData = await response.json();
           alert(`Error: ${errorData.message}`);
         } else {
-          console.error("Server returned non-JSON error:", response.status);
-          alert(`Server Error (${response.status}). Please ensure the backend is restarted.`);
+          alert("Error: Failed to delete project.");
         }
       }
     } catch (error) {
-      console.error('Error deleting project:', error);
-      alert('Error connecting to the server.');
+      alert("Submission Failed: Could not connect to the project service.");
     } finally {
       setIsDeleting(false);
     }
@@ -146,8 +144,7 @@ const Projects = () => {
       }
 
     } catch (error) {
-      console.error('Update error:', error);
-      alert('Error updating project');
+      alert('Internal Server Error: Request could not be submitted. Please try again later.');
     } finally {
       setIsUpdating(false);
     }

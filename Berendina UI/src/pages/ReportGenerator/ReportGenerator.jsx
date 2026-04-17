@@ -34,7 +34,9 @@ const ReportGenerator = () => {
     fetch('http://localhost:5000/api/projects')
       .then(res => res.json())
       .then(data => setProjects(data))
-      .catch(err => console.error("Error fetching projects:", err));
+      .catch(err => {
+        // Non-critical data fetch failure
+      });
   }, []);
 
   const handleFilterChange = (e) => {
@@ -66,7 +68,7 @@ const ReportGenerator = () => {
         }
       }
     } catch (error) {
-      console.error("Report generation error:", error);
+      alert("Error: Failed to generate the report. Please check your filters and try again.");
     } finally {
       setLoading(false);
     }
@@ -222,23 +224,30 @@ const ReportGenerator = () => {
     return (
       <div className="executive-dashboard">
         <div className="intelligence-grid">
-          {/* Project Health Radar */}
+          {/* Project Strategic Pulse */}
           <div className="intel-card full-width">
             <div className="intel-header">
               <h3>Project Strategic Pulse</h3>
-              <p>Aggregated beneficiary progress per social mission</p>
+              <p>Performance relative to mission timelines and beneficiary targets.</p>
             </div>
             <div className="health-metrics-row">
               {inteData.projectHealth.map((p, idx) => (
                 <div key={idx} className="health-indicator">
                   <div className="circular-progress" style={{ 
                     '--p': p.health_score, 
-                    '--c': p.health_score > 70 ? '#10b981' : p.health_score > 40 ? '#f59e0b' : '#ef4444' 
+                    '--c': p.health_score > 80 ? '#10b981' : p.health_score > 50 ? '#f59e0b' : '#ef4444' 
                   }}>
                     <span className="percent">{p.health_score}%</span>
                   </div>
-                  <span className="project-name">{p.name}</span>
-                  <span className="total-ben">{p.beneficiary_count} Members</span>
+                  <div className="project-intel">
+                    <span className="project-name">{p.name}</span>
+                    <div className="intel-substats">
+                      <span>Actual: <strong>{p.progress}%</strong></span>
+                      <span style={{ color: '#94a3b8' }}> | </span>
+                      <span>Target: <strong>{p.expected_progress}%</strong></span>
+                    </div>
+                    <span className="total-ben">{p.beneficiary_count} Members</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -246,14 +255,28 @@ const ReportGenerator = () => {
 
           {/* Charts Row */}
           <div className="intel-card">
-            <h3>Officer Load Heatmap</h3>
+            <h3>Officer Efficiency & Load</h3>
             <div style={{ height: '300px', width: '100%', marginTop: '20px' }}>
               <ResponsiveContainer>
                 <BarChart data={inteData.officerLoad}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" tick={{fontSize: 10}} />
                   <YAxis />
-                  <Tooltip cursor={{fill: '#f8fafc'}} />
+                  <Tooltip 
+                    cursor={{fill: '#f8fafc'}} 
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="custom-tooltip" style={{ background: '#fff', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
+                            <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{payload[0].payload.name}</p>
+                            <p style={{ color: '#2563eb' }}>Active Cases: {payload[0].payload.active_cases}</p>
+                            <p style={{ color: '#10b981' }}>Completion Rate: {Math.round((payload[0].payload.completed_visits / (payload[0].payload.total_visits || 1)) * 100)}%</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                   <Bar dataKey="active_cases" fill="#2563eb" radius={[5, 5, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -261,7 +284,7 @@ const ReportGenerator = () => {
           </div>
 
           <div className="intel-card">
-            <h3>Resource Allocation Flow</h3>
+            <h3>Supply Chain Velocity</h3>
             <div style={{ height: '300px', width: '100%', marginTop: '20px' }}>
               <ResponsiveContainer>
                 <PieChart>
@@ -273,6 +296,7 @@ const ReportGenerator = () => {
                     cy="50%"
                     innerRadius={60}
                     outerRadius={80}
+                    paddingAngle={5}
                   >
                     {inteData.resourceStats.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -281,37 +305,48 @@ const ReportGenerator = () => {
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
+              <div className="resource-legend" style={{ marginTop: '10px', fontSize: '12px', color: '#64748b' }}>
+                <p>Total Allocations: <strong>{inteData.resourceStats.reduce((a,b) => a + (parseInt(b.total_allocated) || 0), 0)} units</strong></p>
+              </div>
             </div>
           </div>
 
-          {/* Suggested Actions Sidebar */}
+          {/* Strategic Risks & Actions Panel */}
           <div className="intel-card risk-panel">
             <div className="intel-header" style={{ marginBottom: '15px' }}>
-              <h3 style={{ color: '#ef4444' }}>⚠️ Strategic Risks</h3>
+              <h3 style={{ color: '#ef4444' }}>⚠️ Strategic Risks Radar</h3>
             </div>
-            <div className="risk-metric">
-              <span>Overdue Field Visits</span>
-              <strong style={{ color: '#ef4444' }}>{inteData.risks.overdueVisits}</strong>
-            </div>
-            <div className="risk-metric">
-              <span>Stagnant Progress (&gt;30 days)</span>
-              <strong style={{ color: '#f59e0b' }}>{inteData.risks.stagnantBeneficiaries}</strong>
+            
+            <div className="risk-grid">
+                <div className="risk-item">
+                <span className="risk-label">Overdue Visits</span>
+                <strong className={inteData.risks.overdueVisits > 0 ? 'risk-high' : ''}>{inteData.risks.overdueVisits}</strong>
+                </div>
+                <div className="risk-item">
+                <span className="risk-label">Stagnant Caseload</span>
+                <strong className={inteData.risks.stagnantBeneficiaries > 0 ? 'risk-med' : ''}>{inteData.risks.stagnantBeneficiaries}</strong>
+                </div>
             </div>
 
-            <div className="suggested-actions-container" style={{ marginTop: '30px' }}>
+            <div className="suggested-actions-container" style={{ marginTop: '25px' }}>
               <h4 style={{ fontSize: '14px', color: '#111827', marginBottom: '15px', borderBottom: '1px solid #eef2f6', paddingBottom: '10px' }}>
-                🚀 Guided Strategic Actions
+                🚀 Strategic Guidance & Recommended Actions
               </h4>
               <div className="action-list">
                 {inteData.suggestedActions.map((action, idx) => (
                   <div key={idx} className={`suggestion-item ${action.type}`}>
+                    <div className="suggestion-badge">{action.type.toUpperCase()}</div>
                     <div className="suggestion-title">{action.title}</div>
                     <p>{action.message}</p>
-                    <button className="action-trigger">Initiate: {action.suggestion}</button>
+                    <div className="action-footer">
+                        <button className="action-trigger">Initiate: {action.suggestion}</button>
+                    </div>
                   </div>
                 ))}
                 {inteData.suggestedActions.length === 0 && (
-                  <p style={{ color: '#10b981', fontSize: '13px' }}>✅ No critical risks identified. Operations stable.</p>
+                  <div className="success-state">
+                    <p>✅ All operational metrics are within strategic bounds. No immediate intervention required.</p>
+                  </div>
                 )}
               </div>
             </div>

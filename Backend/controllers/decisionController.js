@@ -6,37 +6,76 @@ import pool from '../config/db.js';
 export const getExecutiveIntelligence = async (req, res) => {
   try {
     const { district, project } = req.query;
+    
+    // Base filters for sub-queries
+    let filterClause = "";
     let params = [];
     let pIdx = 1;
 
-    // --- 1. PROJECT HEALTH (Avg Progress per Project) ---
-    // Join latest progress with project names
+    if (project && project !== "") {
+      filterClause += ` AND LOWER(TRIM(b.ben_project)) = LOWER(TRIM($${pIdx++}))`;
+      params.push(project);
+    }
+    if (district && district !== "") {
+      filterClause += ` AND LOWER(TRIM(b.ben_district)) = LOWER(TRIM($${pIdx++}))`;
+      params.push(district);
+    }
+
+    // --- 1. PROJECT STRATEGIC PULSE (Refined Health) ---
     const healthRes = await pool.query(`
       WITH LatestProgress AS (
         SELECT DISTINCT ON (beneficiary_id) beneficiary_id, progress_value, update_date
         FROM progress_history
         ORDER BY beneficiary_id, update_date DESC
+      ),
+      ProjectMetrics AS (
+        SELECT 
+          p.project_name as name,
+          p.start_date,
+          p.end_date,
+          COUNT(b.beneficiary_id) as beneficiary_count,
+          AVG(COALESCE(lp.progress_value, 0)) as avg_prog
+        FROM project p
+        LEFT JOIN beneficiary b ON p.project_name = b.ben_project
+        LEFT JOIN LatestProgress lp ON b.beneficiary_id = lp.beneficiary_id
+        WHERE 1=1 ${filterClause.replace(/b\./g, 'p.project_name = b.ben_project AND b.')}
+        GROUP BY p.project_id, p.project_name, p.start_date, p.end_date
       )
       SELECT 
-        b.ben_project as name, 
-        ROUND(AVG(COALESCE(lp.progress_value, 0))) as health_score,
-        COUNT(b.beneficiary_id) as beneficiary_count
-      FROM beneficiary b
-      LEFT JOIN LatestProgress lp ON b.beneficiary_id = lp.beneficiary_id
-      WHERE b.ben_project IS NOT NULL
-      GROUP BY b.ben_project
-      ORDER BY health_score ASC
-    `);
+        name,
+        beneficiary_count,
+        ROUND(COALESCE(avg_prog, 0)) as progress,
+        CASE 
+          WHEN start_date IS NULL OR end_date IS NULL THEN 100
+          WHEN end_date <= start_date THEN 100
+          WHEN CURRENT_DATE < start_date THEN 0
+          WHEN CURRENT_DATE > end_date THEN 100
+          ELSE ROUND(
+            ( (CURRENT_DATE - start_date)::float / NULLIF(end_date - start_date, 0) ) * 100
+          )
+        END as expected_progress
+      FROM ProjectMetrics
+      WHERE (beneficiary_count > 0)
+    `, params);
 
-    // --- 2. RISK RADAR (Identify Bottlenecks) ---
-    // a. Overdue Visits
+    const healthData = healthRes.rows.map(p => {
+      const progress = Number(p.progress) || 0;
+      const expected = Math.max(1, Number(p.expected_progress) || 0); 
+      const health_score = expected > 0 
+        ? Math.min(100, Math.round((progress / expected) * 100))
+        : 100;
+      return { ...p, health_score, progress, expected_progress: expected };
+    });
+
+    // --- 2. RISK RADAR ---
     const overdueRes = await pool.query(`
       SELECT COUNT(*) as count 
-      FROM field_visits 
-      WHERE status ILIKE 'scheduled' AND visit_date < CURRENT_DATE
-    `);
+      FROM field_visits v
+      JOIN beneficiary b ON v.beneficiary_id = b.beneficiary_id
+      WHERE v.status ILIKE 'scheduled' AND v.visit_date < CURRENT_DATE
+      ${filterClause}
+    `, params);
 
-    // b. Stagnant Beneficiaries (No update in 30 days)
     const stagnantRes = await pool.query(`
       SELECT COUNT(*) as count
       FROM beneficiary b
@@ -44,77 +83,90 @@ export const getExecutiveIntelligence = async (req, res) => {
         SELECT beneficiary_id FROM progress_history 
         WHERE update_date >= CURRENT_DATE - INTERVAL '30 days'
       ) AND b.ben_status ILIKE 'active'
-    `);
+      ${filterClause}
+    `, params);
 
-    // --- 3. OFFICER LOAD HEATMAP ---
+    // --- 3. OFFICER DYNAMIC LOAD & EFFICIENCY ---
     const loadRes = await pool.query(`
       SELECT 
         TRIM(CONCAT(u.first_name, ' ', u.last_name)) as name,
-        COUNT(b.beneficiary_id) as active_cases
+        COUNT(DISTINCT b.beneficiary_id) as active_cases,
+        COUNT(DISTINCT CASE WHEN v.status = 'Completed' THEN v.visit_id END) as completed_visits,
+        COUNT(DISTINCT v.visit_id) as total_visits
       FROM user_table u
       LEFT JOIN beneficiary b ON u.user_id = b.assigned_officer_id
+      LEFT JOIN field_visits v ON u.user_id = v.officer_id
       WHERE u.role ILIKE 'officer' AND u.status = 'Active'
-      GROUP BY name
+      ${filterClause}
+      GROUP BY u.user_id, name
       ORDER BY active_cases DESC
-    `);
+    `, params);
 
-    // --- 4. RESOURCE VELOCITY (Stock Ratio) ---
+    // --- 4. RESOURCE VELOCITY (Modern Sync) ---
     const resourceRes = await pool.query(`
       SELECT 
-        res_name as name, 
-        quantity as stock,
-        (SELECT COUNT(*) FROM resource WHERE res_name = r.res_name AND allocated_to IS NOT NULL) as allocated
-      FROM resource r
-    `);
+        inv.item_name as name, 
+        COALESCE(inv.available_stock, 0) as stock,
+        COALESCE(inv.total_stock, 1) as total_stock,
+        COUNT(a.allocation_id) as allocation_count,
+        COALESCE(SUM(a.quantity), 0) as total_allocated
+      FROM resource_inventory inv
+      LEFT JOIN resource_allocations a ON inv.inventory_id = a.inventory_id
+      LEFT JOIN beneficiary b ON a.beneficiary_id = b.beneficiary_id
+      WHERE 1=1 ${filterClause}
+      GROUP BY inv.inventory_id, inv.item_name, inv.available_stock, inv.total_stock
+    `, params);
 
-    // --- 5. GENERATE SMART ACTIONS ---
+    // --- 5. GENERATE GUIDED STRATEGIC ACTIONS ---
     const actions = [];
     
-    // Project Logic
-    healthRes.rows.forEach(p => {
-      if (p.health_score < 30 && p.beneficiary_count > 5) {
+    // a. Project Intervention logic
+    healthData.forEach(p => {
+      if (p.health_score < 50 && p.expected_progress > 40) {
         actions.push({
-          id: `proj-${p.name}`,
           type: 'risk',
-          title: `Stagnant Project: ${p.name}`,
-          message: `Project health is at ${p.health_score}%. Consider a mid-term review.`,
-          suggestion: 'Initiate Strategic Review'
+          title: `Project Stalling: ${p.name}`,
+          message: `${p.name} is at ${p.progress}% progress but should be at ${p.expected_progress}% based on timeline.`,
+          suggestion: 'Initiate Strategic Intervention'
         });
       }
     });
 
-    // Load Logic
-    const avgLoad = loadRes.rows.reduce((acc, o) => acc + parseInt(o.active_cases), 0) / (loadRes.rows.length || 1);
+    // b. Workload Rebalancing
+    const loads = loadRes.rows.map(r => parseInt(r.active_cases) || 0);
+    const avgLoad = loads.length > 0 ? loads.reduce((a,b) => a+b, 0) / loads.length : 1;
     loadRes.rows.forEach(o => {
-      if (o.active_cases > avgLoad * 1.5) {
+      const activeCases = parseInt(o.active_cases) || 0;
+      if (activeCases > avgLoad * 1.6) {
         actions.push({
-          id: `load-${o.name}`,
           type: 'warning',
-          title: `High Load: ${o.name}`,
-          message: `${o.name} is managing ${o.active_cases} cases (Avg is ${Math.round(avgLoad)}).`,
-          suggestion: 'Rebalance Workload'
+          title: `Efficiency Alert: ${o.name}`,
+          message: `${o.name} is carrying ${Math.round(activeCases / avgLoad * 100)}% of the average workload. Risk of burnout or delay.`,
+          suggestion: 'Redistribute Assignments'
         });
       }
     });
 
-    // Resource Logic
+    // c. Supply Chain / Procurement
     resourceRes.rows.forEach(r => {
-      if (r.stock < 10) {
+      const stock = Number(r.stock);
+      const total = Math.max(1, Number(r.total_stock));
+      const stockLevel = (stock / total) * 100;
+      if (stockLevel < 25) {
         actions.push({
-          id: `res-${r.name}`,
           type: 'resource',
-          title: `Low Stock: ${r.name}`,
-          message: `Only ${r.stock} items remaining in inventory.`,
-          suggestion: 'Procure Stock'
+          title: `Resource Depletion: ${r.name}`,
+          message: `${r.name} stock is at ${Math.round(stockLevel)}%. Predicted stock-out soon based on current mission velocity.`,
+          suggestion: 'Immediate Procurement'
         });
       }
     });
 
     res.json({
-      projectHealth: healthRes.rows,
+      projectHealth: healthData,
       risks: {
-        overdueVisits: parseInt(overdueRes.rows[0].count),
-        stagnantBeneficiaries: parseInt(stagnantRes.rows[0].count)
+        overdueVisits: parseInt(overdueRes.rows[0].count) || 0,
+        stagnantBeneficiaries: parseInt(stagnantRes.rows[0].count) || 0
       },
       officerLoad: loadRes.rows,
       resourceStats: resourceRes.rows,

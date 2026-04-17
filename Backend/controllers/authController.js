@@ -114,10 +114,18 @@ let otpStore = {};
 
 export const sendOTP = async (req, res) => {
   const { email } = req.body;
-  const otp = Math.floor(1000 + Math.random() * 9000).toString();
-  otpStore[email] = { otp, expires: Date.now() + 600000 };
+  if (!email) return res.status(400).json({ message: 'Email is required' });
 
   try {
+    // SECURITY: Check if user exists before sending OTP
+    const user = await pool.query('SELECT * FROM user_table WHERE email = $1', [email.toLowerCase().trim()]);
+    if (user.rows.length === 0) {
+      return res.status(404).json({ message: 'No account found with this email address.' });
+    }
+
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    otpStore[email] = { otp, expires: Date.now() + 600000, verified: false };
+
     await transporter.sendMail({
       from: '"Berendina System" <noreply@berendina.org>',
       to: email,
@@ -128,15 +136,18 @@ export const sendOTP = async (req, res) => {
     res.json({ message: 'OTP sent to your email.' });
   } catch (err) {
     console.error('Email error:', err);
-    res.status(500).json({ message: 'Error sending email' });
+    res.status(500).json({ message: 'Error processing request' });
   }
 };
 
 export const verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
   const entry = otpStore[email];
+  
   if (entry && entry.otp === otp && entry.expires > Date.now()) {
-    res.json({ message: 'OTP verified!' });
+    // Bridge to next step
+    entry.verified = true; 
+    res.json({ message: 'OTP verified! Proceed to reset password.' });
   } else {
     res.status(400).json({ message: 'Invalid or expired OTP' });
   }
@@ -144,13 +155,23 @@ export const verifyOTP = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   const { email, newPassword } = req.body;
+  
+  // SECURITY: Require verified OTP state
+  if (!otpStore[email] || !otpStore[email].verified) {
+    return res.status(403).json({ message: 'Unauthorized. Please verify OTP first.' });
+  }
+
   try {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(newPassword, salt);
     await pool.query('UPDATE user_table SET password_hash = $1 WHERE email = $2', [hash, email]);
-    delete otpStore[email];
+    
+    // Clear session
+    delete otpStore[email]; 
+    
     res.json({ message: 'Password reset successful!' });
   } catch (err) {
+    console.error('Reset error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };

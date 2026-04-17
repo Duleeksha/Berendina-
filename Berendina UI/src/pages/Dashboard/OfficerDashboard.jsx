@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import './Dashboard.css';
+import { PROJECT_MILESTONES, getMilestoneFromValue } from '../../utils/progressConstants';
 
 const OfficerDashboard = () => {
   const [visits, setVisits] = useState([]);
@@ -8,9 +9,12 @@ const OfficerDashboard = () => {
   const [newVisitCount, setNewVisitCount] = useState(0);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [localResourceConditions, setLocalResourceConditions] = useState({});
+  const [visitFeedback, setVisitFeedback] = useState('');
+  const [selectedPhase, setSelectedPhase] = useState(null);
 
   const currentUser = (() => {
-    const user = localStorage.getItem('user');
+    const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   })();
 
@@ -24,7 +28,7 @@ const OfficerDashboard = () => {
         setNewVisitCount(newOnes);
       }
     } catch (error) {
-      console.error('Error fetching dashboard visits:', error);
+      alert('Error fetching dashboard visits.');
     } finally {
       setLoading(false);
     }
@@ -48,47 +52,73 @@ const OfficerDashboard = () => {
         fetchVisits();
       }
     } catch (error) {
-      console.error('Error dismissing notifications:', error);
+       alert("Error: System failed to dismiss the notification.");
     }
   };
 
   const handleVisitClick = (visit) => {
     setSelectedVisit(visit);
+    setVisitFeedback(visit.feedback || '');
+    
+    const currentMilestone = getMilestoneFromValue(visit.beneficiary_progress || 0);
+    setSelectedPhase(currentMilestone);
+    
+    const initialConditions = {};
+    if (visit.allocated_resources) {
+        visit.allocated_resources.forEach(res => {
+            initialConditions[res.id] = { condition: res.condition || 'Functional', name: res.name };
+        });
+    }
+    setLocalResourceConditions(initialConditions);
     setIsModalOpen(true);
   };
 
   const handleBannerClick = () => {
     const newVisits = visits.filter(v => v.is_new);
     if (newVisits.length > 0) {
-      setSelectedVisit(newVisits[0]);
-      setIsModalOpen(true);
+      handleVisitClick(newVisits[0]);
     }
   };
 
   const handleCompleteVisit = async (visitId) => {
+    const resourceUpdates = Object.entries(localResourceConditions).map(([id, data]) => ({
+        id: parseInt(id),
+        name: data.name,
+        condition: data.condition
+    }));
+
     try {
+      const formData = new FormData();
+      formData.append('notes', selectedVisit.notes || '');
+      formData.append('feedback', visitFeedback);
+      formData.append('status', 'completed');
+      formData.append('resourceUpdates', JSON.stringify(resourceUpdates));
+      
+      if (selectedPhase) {
+        formData.append('beneficiaryProgress', selectedPhase.value);
+        formData.append('beneficiaryPhase', selectedPhase.label);
+      }
+
       const response = await fetch(`http://localhost:5000/api/visits/${visitId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'completed' })
+        body: formData
       });
       if (response.ok) {
         setIsModalOpen(false);
-        fetchVisits(); // Real-time UI sync
+        fetchVisits();
       } else {
         alert('Failed to update visit status.');
       }
     } catch (error) {
-      console.error('Error completing visit:', error);
+      alert("Registration Failed: Could not finalize the visit on the server.");
+    } finally {
       alert('Network error. Please try again.');
     }
   };
 
-  // Process data for charts vs upcoming list
   const upcomingVisits = visits.filter(v => v.status === 'scheduled').slice(0, 5);
   const completedVisits = visits.filter(v => v.status === 'completed');
   
-  // Dummy data for chart since we don't have historical counts in current schema easily
   const myVisitsData = [
     { name: 'Mon', visits: 2 }, { name: 'Tue', visits: 4 },
     { name: 'Wed', visits: 1 }, { name: 'Thu', visits: 5 },
@@ -97,8 +127,6 @@ const OfficerDashboard = () => {
 
   return (
     <div className="dashboard-content">
-      
-      {/* --- NOTIFICATION BANNER --- */}
       {newVisitCount > 0 && (
         <div style={{
           background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
@@ -117,7 +145,9 @@ const OfficerDashboard = () => {
           <div>
             <h4 style={{margin: 0, fontSize: '16px'}}>🔔 New Visits Assigned!</h4>
             <p style={{margin: '5px 0 0', fontSize: '14px', opacity: 0.9}}>
-              You have {newVisitCount} new field visit{newVisitCount > 1 ? 's' : ''} scheduled for you recently.
+              You have {newVisitCount} new assignment{newVisitCount > 1 ? 's' : ''}. 
+              Next: <b>{visits.find(v => v.is_new)?.beneficiary}</b> 
+              ({visits.find(v => v.is_new)?.allocated_resources?.length || 0} resources to audit).
             </p>
           </div>
           <button 
@@ -137,7 +167,6 @@ const OfficerDashboard = () => {
         </div>
       )}
 
-      {/* --- HEADER SECTION --- */}
       <div className="dashboard-header">
         <div>
           <h1>Officer Dashboard</h1>
@@ -148,7 +177,6 @@ const OfficerDashboard = () => {
         </div>
       </div>
 
-      {/* --- STATS CARDS --- */}
       <div className="stats-grid">
         <div className="stat-card blue">
           <div className="stat-icon">👥</div>
@@ -178,9 +206,7 @@ const OfficerDashboard = () => {
         </div>
       </div>
 
-      {/* --- MAIN GRID --- */}
       <div className="main-grid">
-        
         <div className="charts-section">
           <div className="chart-card">
             <div className="chart-header">
@@ -201,71 +227,48 @@ const OfficerDashboard = () => {
           </div>
         </div>
 
-        <div className="side-panel">
-            <div className="panel-card">
+        <div className="side-column" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="content-card upcoming-section" style={{ display: 'flex', flexDirection: 'column', maxHeight: '45vh', border: '1px solid #111827' }}>
                 <div className="panel-header">
-                    <h3>📅 Next 5 Visits</h3>
+                    <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#111827', fontWeight: 800 }}>📅 Upcoming Visits</h3>
                 </div>
-                
-                <div className="approval-list">
+                <div className="timeline-items" style={{ overflowY: 'auto', paddingRight: '5px' }}>
                     {loading ? <p>Loading visits...</p> : (
                       upcomingVisits.length > 0 ? upcomingVisits.map(visit => (
-                        <div key={visit.id} className="approval-item" onClick={() => handleVisitClick(visit)} style={{cursor: 'pointer'}}>
-                            <div className="user-details-row">
-                                <div className="avatar-placeholder" style={{background: '#f0fdf4', color: '#16a34a'}}>
-                                    📍
-                                </div>
-                                <div className="user-text">
-                                    <h4>{visit.beneficiary}</h4>
-                                    <p>{visit.address || visit.district}</p>
-                                </div>
-                            </div>
-                            <div style={{
-                                fontSize: '11px', 
-                                fontWeight: 'bold', 
-                                color: '#4b5563', 
-                                background: '#f3f4f6', 
-                                padding: '4px 8px', 
-                                borderRadius: '6px',
-                                textAlign: 'center',
-                                minWidth: '80px'
-                            }}>
-                                {visit.date}
+                        <div key={visit.id} className="timeline-item" onClick={() => handleVisitClick(visit)} style={{cursor: 'pointer'}}>
+                            <div className="timeline-date" style={{ color: '#111827', fontWeight: 700 }}>{new Date(visit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                            <div className="timeline-line"><div className="timeline-dot" style={{ background: '#111827' }}></div></div>
+                            <div className="timeline-details" style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb' }}>
+                                <div className="visit-beneficiary-name" style={{ fontSize: '13px', color: '#111827', fontWeight: 700 }}>{visit.beneficiary}</div>
+                                <div className="visit-location" style={{ fontSize: '11px', color: '#6b7280' }}>📍 {visit.address || visit.district}</div>
                             </div>
                         </div>
-                      )) : <p className="empty-state-text">No upcoming visits.</p>
+                      )) : <p className="empty-state-text" style={{ fontSize: '13px', textAlign: 'center' }}>No upcoming visits.</p>
                     )}
                 </div>
             </div>
 
-            <div className="panel-card completed-section" style={{marginTop: '25px', background: '#fcfcfc', border: '1px solid #eef2f6'}}>
+            <div className="content-card history-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, maxHeight: '40vh', background: '#fcfcfc' }}>
                 <div className="panel-header">
-                    <h3 style={{color: '#0081c9'}}>✅ Completed Visits</h3>
+                    <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#6b7280' }}>📊 Visit History</h3>
                 </div>
-                
-                <div className="approval-list completed-list" style={{maxHeight: '300px'}}>
+                <div className="timeline-items" style={{ overflowY: 'auto', paddingRight: '5px' }}>
                     {loading ? <p>Loading...</p> : (
                       completedVisits.length > 0 ? completedVisits.map(visit => (
-                        <div key={visit.id} className="approval-item completed-item" style={{opacity: 0.85, background: 'white'}}>
-                            <div className="user-details-row">
-                                <div className="avatar-placeholder" style={{background: '#dcfce7', color: '#16a34a'}}>
-                                    ✔
-                                </div>
-                                <div className="user-text">
-                                    <h4 style={{textDecoration: 'none'}}>{visit.beneficiary}</h4>
-                                    <p style={{fontSize: '11px'}}>Finished on {visit.date}</p>
-                                </div>
+                        <div key={visit.id} className="timeline-item" style={{ opacity: 0.8, cursor: 'pointer' }} onClick={() => handleVisitClick(visit)}>
+                            <div className="timeline-date">{new Date(visit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                            <div className="timeline-line"><div className="timeline-dot" style={{ background: '#94a3b8' }}></div></div>
+                            <div className="timeline-details" style={{ padding: '10px' }}>
+                                <div className="visit-beneficiary-name" style={{ fontSize: '13px' }}>{visit.beneficiary}</div>
                             </div>
                         </div>
-                      )) : <p className="empty-state-text">No completed visits to show.</p>
+                      )) : <p className="empty-state-text" style={{ fontSize: '13px', textAlign: 'center' }}>No completed visits yet.</p>
                     )}
                 </div>
             </div>
         </div>
-
       </div>
 
-      {/* --- BENEFICIARY INFORMATION MODAL --- */}
       {isModalOpen && selectedVisit && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
@@ -274,18 +277,16 @@ const OfficerDashboard = () => {
         }}>
           <div className="modal-content" style={{
             background: 'white', padding: '35px', borderRadius: '20px', 
-            width: '90%', maxWidth: '550px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            width: '90%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             position: 'relative', animation: 'modalSlideUp 0.3s ease-out'
           }}>
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              style={{
+            <button onClick={() => setIsModalOpen(false)} style={{
                 position: 'absolute', top: '20px', right: '20px', border: 'none', 
                 background: '#f3f4f6', borderRadius: '50%', width: '32px', height: '32px',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#6b7280', fontWeight: 'bold'
-              }}
-            >✕</button>
+              }}>✕</button>
 
             <div style={{textAlign: 'center', marginBottom: '25px'}}>
               <div style={{
@@ -310,27 +311,71 @@ const OfficerDashboard = () => {
 
             <div style={{background: '#f0f9ff', padding: '20px', borderRadius: '15px', marginBottom: '25px', border: '1px solid #bae6fd'}}>
               <label style={{display: 'block', fontSize: '12px', color: '#0369a1', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Assigned Project</label>
-              <div style={{color: '#0c4a6e', fontSize: '18px', fontWeight: 700}}>
-                {selectedVisit.project_name || 'No Project Assigned'}
+              <div style={{color: '#0c4a6e', fontSize: '18px', fontWeight: 700}}>{selectedVisit.project_name || 'No Project Assigned'}</div>
+            </div>
+
+            <div style={{marginBottom: '25px'}}>
+              <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em'}}>📋 Resource Audit (Verify Condition)</label>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                {selectedVisit.allocated_resources && selectedVisit.allocated_resources.length > 0 ? (
+                  selectedVisit.allocated_resources.map((res, i) => (
+                    <div key={i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0'
+                    }}>
+                        <div style={{fontWeight: 600, color: '#334155', fontSize: '14px'}}>📦 {res.name}</div>
+                        <div style={{display: 'flex', gap: '5px'}}>
+                            {['Functional', 'Repair', 'Damaged'].map(status => (
+                                <button key={status} onClick={() => setLocalResourceConditions(prev => ({ ...prev, [res.id]: { ...prev[res.id], condition: status } }))}
+                                    style={{
+                                        fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                                        background: localResourceConditions[res.id]?.condition === status ? (status === 'Functional' ? '#10b981' : (status === 'Repair' ? '#f59e0b' : '#ef4444')) : '#e2e8f0',
+                                        color: localResourceConditions[res.id]?.condition === status ? 'white' : '#64748b',
+                                        fontWeight: 600, transition: 'all 0.2s'
+                                    }}>{status}</button>
+                            ))}
+                        </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{color: '#9ca3af', fontSize: '14px', fontStyle: 'italic', background: '#f9fafb', padding: '15px', borderRadius: '12px', textAlign: 'center'}}>No resources allocated to this beneficiary.</div>
+                )}
               </div>
             </div>
 
             <div style={{marginBottom: '25px'}}>
-              <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase'}}>Allocated Resources</label>
-              <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
-                {selectedVisit.allocated_resources && selectedVisit.allocated_resources.length > 0 ? (
-                  selectedVisit.allocated_resources.map((res, i) => (
-                    <span key={i} style={{
-                      background: '#ecfdf5', color: '#059669', padding: '6px 12px', 
-                      borderRadius: '8px', fontSize: '13px', fontWeight: 600, border: '1px solid #a7f3d0'
+                <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Visit Feedback & Notes</label>
+                <textarea value={visitFeedback} onChange={(e) => setVisitFeedback(e.target.value)} placeholder="Enter visit observations..."
+                    style={{ width: '100%', height: '80px', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#1e293b', resize: 'none', display: 'block', outline: 'none' }} />
+            </div>
+
+            <div style={{marginBottom: '25px'}}>
+              <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em'}}>📈 Update Beneficiary Phase</label>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px'}}>
+                {PROJECT_MILESTONES.map(m => (
+                  <button key={m.label} onClick={() => setSelectedPhase(m)}
+                    style={{
+                      padding: '8px 4px', borderRadius: '8px', border: '2px solid',
+                      borderColor: selectedPhase?.value === m.value ? '#10b981' : '#f1f5f9',
+                      background: selectedPhase?.value === m.value ? '#ecfdf5' : '#f8fafc',
+                      color: selectedPhase?.value === m.value ? '#047857' : '#64748b',
+                      fontSize: '10px', fontWeight: 700, cursor: 'pointer',
+                      transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
                     }}>
-                      📦 {res}
+                    <span>
+                      {m.value === 5 && '📝'}
+                      {m.value === 25 && '📚'}
+                      {m.value === 50 && '📦'}
+                      {m.value === 80 && '🔍'}
+                      {m.value === 100 && '🎓'}
                     </span>
-                  ))
-                ) : (
-                  <span style={{color: '#9ca3af', fontSize: '14px', fontStyle: 'italic'}}>No resources allocated yet.</span>
-                )}
+                    {m.label.split('. ')[1]}
+                  </button>
+                ))}
               </div>
+              {selectedPhase && (
+                <div style={{marginTop: '10px', fontSize: '11px', color: '#059669', textAlign: 'center', fontWeight: 600}}>Selected: {selectedPhase.label} ({selectedPhase.value}%)</div>
+              )}
             </div>
 
             <div style={{borderTop: '1px solid #e5e7eb', paddingTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
@@ -345,28 +390,9 @@ const OfficerDashboard = () => {
             </div>
 
             <div style={{display: 'flex', gap: '15px'}}>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                style={{
-                  flex: 1, padding: '12px', background: '#f3f4f6',
-                  color: '#4b5563', borderRadius: '12px', border: 'none', fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Close
-              </button>
+              <button onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', background: '#f3f4f6', color: '#4b5563', borderRadius: '12px', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Close</button>
               {selectedVisit.status !== 'completed' && (
-                <button 
-                  onClick={() => handleCompleteVisit(selectedVisit.id)}
-                  style={{
-                    flex: 2, padding: '12px', background: '#10b981',
-                    color: 'white', borderRadius: '12px', border: 'none', fontWeight: 600,
-                    cursor: 'pointer', transition: 'background 0.2s',
-                    boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)'
-                  }}
-                >
-                  Mark as Completed
-                </button>
+                <button onClick={() => handleCompleteVisit(selectedVisit.id)} style={{ flex: 2, padding: '12px', background: '#10b981', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)' }}>Mark as Completed</button>
               )}
             </div>
           </div>

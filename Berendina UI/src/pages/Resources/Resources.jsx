@@ -12,7 +12,7 @@ const Resources = () => {
   const [loading, setLoading] = useState(true);
   
   // User Data
-  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const currentUser = JSON.parse(sessionStorage.getItem('user'));
   const isAdmin = currentUser?.role === 'admin';
 
   // Modal States
@@ -23,6 +23,7 @@ const Resources = () => {
   const [inventoryFormData, setInventoryFormData] = useState({
     inventory_id: null, name: '', category: 'General', total_stock: 0, unit: 'units', image: null
   });
+  const [viewingRequest, setViewingRequest] = useState(null);
 
   // Request Processing States
   const [processingRequest, setProcessingRequest] = useState(null);
@@ -46,7 +47,7 @@ const Resources = () => {
       if (benRes.ok) setBeneficiaries(await benRes.json());
       if (projRes.ok) setProjects(await projRes.json());
     } catch (error) {
-      console.error('Data loading error:', error);
+       alert('Unable to load resource data. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -84,8 +85,7 @@ const Resources = () => {
         alert('Failed: ' + err.message);
       }
     } catch (error) {
-       console.error('Process error:', error);
-       alert('Error connecting to the server');
+       alert('Operation Failed: Could not process the resource request. Please try again later.');
     } finally {
       setIsProcessingLoading(false);
     }
@@ -100,9 +100,11 @@ const Resources = () => {
       if (res.ok) {
         alert('Item returned to stock!');
         fetchData();
+      } else {
+        alert('Failed to return item. Please try again.');
       }
     } catch (error) {
-      console.error('Return error:', error);
+      alert("Error: Failed to register the returned item. Please check your connection.");
     }
   };
 
@@ -138,8 +140,7 @@ const Resources = () => {
         alert('Delete failed: ' + (err.message || 'Unknown error'));
       }
     } catch (err) {
-      console.error('Delete error:', err);
-      alert('Network error while deleting');
+      alert('Network error: Unable to delete the resource at this time.');
     } finally {
       setIsDeleting(false);
     }
@@ -177,7 +178,7 @@ const Resources = () => {
         alert('Failed: ' + err.message);
       }
     } catch (error) {
-      console.error('Add/Update inventory error:', error);
+      alert("Error: Failed to save the resource update. Please check the form and try again.");
     }
   };
 
@@ -289,7 +290,13 @@ const Resources = () => {
           </thead>
           <tbody>
             {requests.map(req => (
-              <tr key={req.id}>
+              <tr 
+                key={req.id} 
+                onClick={() => setViewingRequest(req)} 
+                style={{cursor: 'pointer', transition: 'background 0.2s'}}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
                 <td>{new Date(req.date).toLocaleDateString()}</td>
                 <td>{req.beneficiaryName}</td>
                 <td>{req.officerName}</td>
@@ -301,7 +308,7 @@ const Resources = () => {
                   </div>
                 </td>
                 <td><span className={`status-badge ${req.status.toLowerCase()}`}>{req.status}</span></td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   {isAdmin && req.status === 'Pending' && (
                     <div className="action-group" style={{display: 'flex', gap: '8px'}}>
                       <button className="action-btn-view" onClick={() => handleProcessRequest(req.id, 'Approved')}>Approve</button>
@@ -571,6 +578,62 @@ const Resources = () => {
                >
                  {isProcessingLoading ? 'Processing...' : `Confirm ${processingRequest.status === 'Approved' ? 'Approval' : 'Rejection'}`}
                </button>
+             </div>
+          </div>
+        </div>
+      )}
+      {/* Request Details View Modal */}
+      {viewingRequest && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+          backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(3px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000
+        }}>
+          <div className="modal-content" style={{
+            background: 'white', padding: '30px', borderRadius: '20px', width: '90%', maxWidth: '500px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #e2e8f0'
+          }}>
+             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+               <h2 style={{margin: 0, color: '#0f172a', fontSize: '20px'}}>Resource Request Details</h2>
+               <button onClick={() => setViewingRequest(null)} style={{background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>✕</button>
+             </div>
+
+             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px'}}>
+               <div style={{background: '#f8fafc', padding: '12px', borderRadius: '12px'}}>
+                 <label style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', display: 'block'}}>Beneficiary</label>
+                 <div style={{fontWeight: 700, color: '#1e293b'}}>{viewingRequest.beneficiaryName}</div>
+               </div>
+               <div style={{background: '#f8fafc', padding: '12px', borderRadius: '12px'}}>
+                 <label style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', display: 'block'}}>Status</label>
+                 <div style={{fontWeight: 700, color: viewingRequest.status === 'Approved' ? '#10b981' : (viewingRequest.status === 'Rejected' ? '#ef4444' : '#f59e0b')}}>
+                   {viewingRequest.status}
+                 </div>
+               </div>
+             </div>
+
+             <div style={{marginBottom: '20px'}}>
+               <label style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block'}}>Reason / Request Note</label>
+               <div style={{
+                 background: '#f0f9ff', padding: '15px', borderRadius: '12px', 
+                 borderLeft: '4px solid #0081c9', color: '#0c4a6e', lineHeight: '1.5', fontSize: '15px'
+               }}>
+                 {viewingRequest.note || "No reason provided for this request."}
+               </div>
+             </div>
+
+             <div style={{marginBottom: '25px'}}>
+               <label style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block'}}>Items Requested</label>
+               <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}>
+                 {viewingRequest.items.map((item, idx) => (
+                   <div key={idx} style={{background: 'white', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 600}}>
+                     📦 {item.name} <span style={{color: '#64748b', marginLeft: '5px'}}>×{item.qty}</span>
+                   </div>
+                 ))}
+               </div>
+             </div>
+
+             <div style={{textAlign: 'right', borderTop: '1px solid #f1f5f9', paddingTop: '20px'}}>
+               <button onClick={() => setViewingRequest(null)} style={{padding: '10px 25px', background: '#0f172a', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer'}}>Close Detail</button>
              </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FieldVisits.css';
+import { PROJECT_MILESTONES, getMilestoneFromValue } from '../../utils/progressConstants';
 
 const FieldVisits = () => {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ const FieldVisits = () => {
   const [visitResult, setVisitResult] = useState({ notes: '', feedback: '', status: 'completed' });
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [localResourceConditions, setLocalResourceConditions] = useState({});
+  const [selectedPhase, setSelectedPhase] = useState(null);
 
   // Schedule Visit State
   const [projects, setProjects] = useState([]);
@@ -42,7 +45,7 @@ const FieldVisits = () => {
   });
 
   const currentUser = React.useMemo(() => {
-    const user = localStorage.getItem('user');
+    const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   }, []);
 
@@ -66,9 +69,11 @@ const FieldVisits = () => {
       if (response.ok) {
         const data = await response.json();
         setVisits(data);
+      } else {
+        alert("System Message: Unable to load scheduled visits. Please try again.");
       }
     } catch (error) {
-      console.error('Network error:', error);
+      alert("Network Connection Error: Could not reach the server for visits.");
     } finally {
       setLoading(false);
     }
@@ -82,7 +87,7 @@ const FieldVisits = () => {
         setOfficers(data);
       }
     } catch (error) {
-      console.error('Error fetching officers:', error);
+       // Silently fail if non-critical, or add alert if preferred.
     }
   };
 
@@ -94,7 +99,7 @@ const FieldVisits = () => {
         setProjects(data);
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
+       // Non-critical data fetch
     }
   };
 
@@ -128,7 +133,7 @@ const FieldVisits = () => {
         setBeneficiaries(data);
       }
     } catch (error) {
-      console.error('Error fetching beneficiaries for project:', error);
+       alert("Error: Could not retrieve beneficiaries for the selected project.");
     }
   };
 
@@ -178,8 +183,7 @@ const FieldVisits = () => {
         alert(`Schedule failed: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Schedule error:', error);
-      alert('Error connecting to the server. Please try again.');
+      alert('Error: Unable to connect to the scheduling service. Check your connection.');
     } finally {
       setIsSaving(false);
     }
@@ -187,6 +191,20 @@ const FieldVisits = () => {
 
   const handleOpenRecordModal = (visit) => {
     setSelectedVisit(visit);
+    
+    // Initialize audit state
+    const initialConditions = {};
+    if (visit.allocated_resources) {
+        visit.allocated_resources.forEach(res => {
+            initialConditions[res.id] = { condition: res.condition || 'Functional', name: res.name };
+        });
+    }
+    setLocalResourceConditions(initialConditions);
+
+    // Initialize phase
+    const currentMilestone = getMilestoneFromValue(visit.beneficiary_progress || 0);
+    setSelectedPhase(currentMilestone);
+
     setVisitResult({
       notes: visit.notes || '',
       feedback: visit.feedback || '',
@@ -201,11 +219,23 @@ const FieldVisits = () => {
 
   const handleSubmitResult = async (e) => {
     e.preventDefault();
+    const resourceUpdates = Object.entries(localResourceConditions).map(([id, data]) => ({
+        id: parseInt(id),
+        name: data.name,
+        condition: data.condition
+    }));
+
     setIsSaving(true);
     const formData = new FormData();
     formData.append('notes', visitResult.notes);
     formData.append('feedback', visitResult.feedback);
     formData.append('status', visitResult.status);
+    formData.append('resourceUpdates', JSON.stringify(resourceUpdates));
+    
+    if (selectedPhase) {
+      formData.append('beneficiaryProgress', selectedPhase.value);
+      formData.append('beneficiaryPhase', selectedPhase.label);
+    }
     selectedPhotos.forEach(p => formData.append('photos', p));
 
     try {
@@ -219,7 +249,7 @@ const FieldVisits = () => {
         fetchVisits(selectedOfficerId);
       }
     } catch (error) {
-       console.error('Save result error:', error);
+       alert("Error: Failed to finalize the visit results on the server.");
     } finally {
       setIsSaving(false);
     }
@@ -259,6 +289,9 @@ const FieldVisits = () => {
     setSelectedDayLabel(`${monthNames[viewDate.getMonth()]} ${day}, ${year}`);
     setIsDayDetailsModalOpen(true);
   };
+
+  const activeVisits = (visits || []).filter(v => v.status === 'scheduled' || v.status === 'pending');
+  const completedHistory = (visits || []).filter(v => v.status === 'completed' || v.status === 'cancelled');
 
   return (
     <div className="field-visits-page-content">
@@ -338,12 +371,13 @@ const FieldVisits = () => {
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
                 const dateStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const hasVisit = (visits || []).some(v => getNormalizedDate(v.date) === dateStr);
+                const dayVisits = (visits || []).filter(v => getNormalizedDate(v.date) === dateStr);
+                const hasActiveVisit = dayVisits.some(v => v.status !== 'completed' && v.status !== 'cancelled');
                 
                 return (
                   <div 
                     key={day} 
-                    className={`calendar-day ${hasVisit ? 'has-visit' : ''}`}
+                    className={`calendar-day ${hasActiveVisit ? 'has-visit' : ''}`}
                     onClick={() => handleDayClick(day)}
                   >
                     {day}
@@ -351,45 +385,60 @@ const FieldVisits = () => {
                 );
               })}
            </div>
+           <div className="calendar-legend">
+              <div className="legend-item">
+                <div className="legend-dot has-visit"></div>
+                <span>Active Assignments</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-dot"></div>
+                <span>Completed visits (Not highlighted)</span>
+              </div>
+            </div>
         </div>
 
-        <div className="content-card timeline-section" style={{maxHeight: '70vh', overflowY: 'auto'}}>
-          <h3>{selectedOfficerId ? 'Officer Timeline' : 'Recent Visits'}</h3>
-          <div className="timeline-items">
-            {loading ? <p>Loading...</p> : (visits || []).map(v => (
-              <div key={v.id} className="timeline-item">
-                <div className="timeline-date">{new Date(v.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                <div className="timeline-line"><div className="timeline-dot"></div></div>
-                <div className="timeline-details">
-                   <div className="visit-beneficiary-name">{v.beneficiary}</div>
-                   <div className="visit-location">📍 {v.address || v.district}</div>
-                   <div className="visit-time">🕒 {v.time}</div>
-                   
-                   {v.photos && v.photos.length > 0 && (
-                     <div className="visit-gallery" style={{display: 'flex', gap: '5px', flexWrap: 'wrap', margin: '10px 0'}}>
-                       {v.photos.map((p, idx) => (
-                         <img 
-                           key={idx} 
-                           src={getFileUrl(p)} 
-                           alt="Visit" 
-                           style={{width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb'}} 
-                         />
-                       ))}
-                     </div>
-                   )}
-
-                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px'}}>
-                     <span className={`visit-status ${v.status}`}>{v.status}</span>
-                     <button 
-                       className="action-btn-view" 
-                       onClick={() => handleOpenRecordModal(v)}
-                     >
-                       {(v.status === 'scheduled' && currentUser?.role === 'officer') ? 'Record Results' : 'View Details'}
-                     </button>
-                   </div>
+        <div className="side-column" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="content-card upcoming-section" style={{ display: 'flex', flexDirection: 'column', maxHeight: '45vh', border: '1px solid #111827' }}>
+            <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#111827', fontWeight: 800 }}>📅 Upcoming Visits</h3>
+            <div className="timeline-items" style={{ overflowY: 'auto', paddingRight: '5px' }}>
+              {loading ? <p>Loading...</p> : activeVisits.length > 0 ? activeVisits.map(v => (
+                <div key={v.id} className="timeline-item">
+                  <div className="timeline-date" style={{ color: '#111827', fontWeight: 700 }}>{new Date(v.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                  <div className="timeline-line"><div className="timeline-dot" style={{ background: '#111827' }}></div></div>
+                  <div className="timeline-details" style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb' }}>
+                    <div className="visit-beneficiary-name" style={{ fontSize: '13px', color: '#111827', fontWeight: 700 }}>{v.beneficiary}</div>
+                    <div className="visit-location" style={{ fontSize: '11px' }}>📍 {v.address || v.district}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                      <span className={`visit-status ${v.status}`} style={{ fontSize: '10px' }}>{v.status}</span>
+                      <button className="action-btn-view" style={{ fontSize: '11px', padding: '4px 8px' }} onClick={() => handleOpenRecordModal(v)}>
+                        {currentUser?.role === 'officer' ? 'Record' : 'View'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )) : <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center' }}>No upcoming visits.</p>}
+            </div>
+          </div>
+
+          <div className="content-card history-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, maxHeight: '40vh', background: '#fcfcfc', border: '1px solid #111827' }}>
+            <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#111827', fontWeight: 800 }}>📂 Visit History</h3>
+            <div className="timeline-items" style={{ overflowY: 'auto', paddingRight: '5px' }}>
+              {loading ? <p>Loading...</p> : completedHistory.length > 0 ? completedHistory.map(v => (
+                <div key={v.id} className="timeline-item" style={{ opacity: 1 }}>
+                  <div className="timeline-date" style={{ color: '#111827' }}>{new Date(v.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                  <div className="timeline-line"><div className="timeline-dot" style={{ background: '#111827' }}></div></div>
+                  <div className="timeline-details" style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb' }}>
+                    <div className="visit-beneficiary-name" style={{ fontSize: '13px', color: '#111827' }}>{v.beneficiary}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                      <span className={`visit-status ${v.status}`} style={{ fontSize: '10px' }}>{v.status}</span>
+                      <button className="action-btn-view" style={{ fontSize: '11px', padding: '4px 8px' }} onClick={() => handleOpenRecordModal(v)}>
+                        View
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )) : <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center' }}>No history yet.</p>}
+            </div>
           </div>
         </div>
       </div>
@@ -450,48 +499,186 @@ const FieldVisits = () => {
         </div>
       )}
 
-      {/* RECORD MODAL (COMMON) */}
-      {isRecordModalOpen && (
-        <div className="modal-overlay" style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',  backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1001}}>
-          <div className="modal-content" style={{background: 'white', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '500px'}}>
-            <h2>{currentUser?.role === 'officer' ? 'Record' : 'View'} Visit: {selectedVisit.beneficiary}</h2>
+      {/* RECORD / VIEW MODAL (COMMON) */}
+      {isRecordModalOpen && selectedVisit && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+          backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000
+        }}>
+          <div className="modal-content" style={{
+            background: 'white', padding: '35px', borderRadius: '20px', 
+            width: '90%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            position: 'relative'
+          }}>
+            <button 
+              onClick={() => setIsRecordModalOpen(false)}
+              style={{
+                position: 'absolute', top: '20px', right: '20px', border: 'none', 
+                background: '#f3f4f6', borderRadius: '50%', width: '32px', height: '32px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#6b7280', fontWeight: 'bold'
+              }}
+            >✕</button>
+
+            <div style={{textAlign: 'center', marginBottom: '25px'}}>
+              <div style={{
+                width: '60px', height: '60px', background: '#eff6ff', color: '#2563eb',
+                borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '24px', margin: '0 auto 15px'
+              }}>👥</div>
+              <h2 style={{margin: 0, color: '#111827', fontSize: '24px'}}>{currentUser?.role === 'officer' ? 'Record Visit' : 'Visit Details'}</h2>
+              <p style={{margin: '5px 0 0', color: '#6b7280'}}>Visit Information & Assignment</p>
+            </div>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px'}}>
+              <div style={{background: '#f9fafb', padding: '15px', borderRadius: '12px'}}>
+                <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase'}}>Name</label>
+                <div style={{color: '#111827', fontWeight: 600}}>{selectedVisit.beneficiary}</div>
+              </div>
+              <div style={{background: '#f9fafb', padding: '15px', borderRadius: '12px'}}>
+                <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase'}}>District</label>
+                <div style={{color: '#111827', fontWeight: 600}}>{selectedVisit.district}</div>
+              </div>
+            </div>
+
+            <div style={{background: '#f0f9ff', padding: '20px', borderRadius: '15px', marginBottom: '25px', border: '1px solid #bae6fd'}}>
+              <label style={{display: 'block', fontSize: '12px', color: '#0369a1', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Assigned Project</label>
+              <div style={{color: '#0c4a6e', fontSize: '18px', fontWeight: 700}}>
+                {selectedVisit.project_name || 'No Project Assigned'}
+              </div>
+            </div>
+
+            <div style={{marginBottom: '25px'}}>
+              <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em'}}>
+                📋 Resource Audit (Verify Condition)
+              </label>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                {selectedVisit.allocated_resources && selectedVisit.allocated_resources.length > 0 ? (
+                  selectedVisit.allocated_resources.map((res, i) => (
+                    <div key={i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0'
+                    }}>
+                        <div style={{fontWeight: 600, color: '#334155', fontSize: '14px'}}>📦 {res.name}</div>
+                        <div style={{display: 'flex', gap: '5px'}}>
+                            {['Functional', 'Repair', 'Damaged'].map(status => (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    disabled={currentUser?.role !== 'officer' || selectedVisit.status === 'completed'}
+                                    onClick={() => setLocalResourceConditions(prev => ({
+                                        ...prev, [res.id]: { ...prev[res.id], condition: status }
+                                    }))}
+                                    style={{
+                                        fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                                        background: localResourceConditions[res.id]?.condition === status 
+                                            ? (status === 'Functional' ? '#10b981' : (status === 'Repair' ? '#f59e0b' : '#ef4444'))
+                                            : '#e2e8f0',
+                                        color: localResourceConditions[res.id]?.condition === status ? 'white' : '#64748b',
+                                        fontWeight: 600, transition: 'all 0.2s',
+                                        opacity: (currentUser?.role !== 'officer' || selectedVisit.status === 'completed') && localResourceConditions[res.id]?.condition !== status ? 0.4 : 1
+                                    }}
+                                >
+                                    {status}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{color: '#9ca3af', fontSize: '14px', fontStyle: 'italic', background: '#f9fafb', padding: '15px', borderRadius: '12px', textAlign: 'center'}}>
+                    No resources allocated to this beneficiary.
+                  </div>
+                )}
+              </div>
+            </div>
+
             <form onSubmit={handleSubmitResult}>
-              <div className="form-group" style={{marginBottom: '15px'}}>
-                <label>Notes</label>
+              <div className="form-group" style={{marginBottom: '20px'}}>
+                <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Visit Feedback & Notes</label>
                 <textarea 
                   className="modern-input" 
                   rows="3" 
-                  value={visitResult.notes} 
-                  onChange={e => setVisitResult({...visitResult, notes: e.target.value})} 
-                  disabled={currentUser?.role !== 'officer'}
+                  value={visitResult.feedback} 
+                  onChange={e => setVisitResult({...visitResult, feedback: e.target.value})} 
+                  placeholder="Enter visit observations..."
+                  disabled={currentUser?.role !== 'officer' || selectedVisit.status === 'completed'}
+                  style={{borderRadius: '12px', resize: 'none'}}
                 />
               </div>
-              <div className="form-group" style={{marginBottom: '15px'}}>
-                <label>Status</label>
-                <select 
-                  className="modern-select" 
-                  value={visitResult.status} 
-                  onChange={e => setVisitResult({...visitResult, status: e.target.value})}
-                  disabled={currentUser?.role !== 'officer'}
-                >
-                  <option value="scheduled">Scheduled</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+
+              <div className="form-group" style={{marginBottom: '20px'}}>
+                <label style={{display: 'block', fontSize: '13px', color: '#666', marginBottom: '10px', fontWeight: 600}}>PROJECT PROGRESS PHASE</label>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px'}}>
+                    {PROJECT_MILESTONES.map(m => (
+                        <button
+                            key={m.label}
+                            type="button"
+                            onClick={() => setSelectedPhase(m)}
+                            style={{
+                                padding: '8px 4px',
+                                borderRadius: '8px',
+                                border: '2px solid',
+                                borderColor: selectedPhase?.value === m.value ? '#10b981' : '#e2e8f0',
+                                background: selectedPhase?.value === m.value ? '#ecfdf5' : 'white',
+                                color: selectedPhase?.value === m.value ? '#047857' : '#64748b',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center', gap: '2px'
+                            }}
+                        >
+                            <span>
+                                {m.value === 5 && '📝'}
+                                {m.value === 25 && '📚'}
+                                {m.value === 50 && '📦'}
+                                {m.value === 80 && '🔍'}
+                                {m.value === 100 && '🎓'}
+                            </span>
+                            {m.label.split('. ')[1]}
+                        </button>
+                    ))}
+                </div>
+                {selectedPhase && (
+                    <div style={{marginTop: '8px', fontSize: '11px', color: '#059669', textAlign: 'center', fontWeight: 'bold'}}>
+                        Updating to: {selectedPhase.label} ({selectedPhase.value}%)
+                    </div>
+                )}
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px'}}>
+                <div className="form-group">
+                  <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Status</label>
+                  <select 
+                    className="modern-select" 
+                    value={visitResult.status} 
+                    onChange={e => setVisitResult({...visitResult, status: e.target.value})}
+                    disabled={currentUser?.role !== 'officer' || selectedVisit.status === 'completed'}
+                    style={{borderRadius: '10px'}}
+                  >
+                    <option value="scheduled">Scheduled</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                {currentUser?.role === 'officer' && selectedVisit.status !== 'completed' && (
+                  <div className="form-group">
+                    <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Upload Photos</label>
+                    <input type="file" multiple className="modern-input" onChange={handlePhotoChange} style={{fontSize: '11px'}} />
+                  </div>
+                )}
               </div>
               
-              {currentUser?.role === 'officer' && (
-                <div className="form-group" style={{marginBottom: '15px'}}>
-                  <label>Upload Photos</label>
-                  <input type="file" multiple className="modern-input" onChange={handlePhotoChange} />
-                </div>
-              )}
-
-              <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
-                <button type="button" onClick={() => setIsRecordModalOpen(false)} className="cancel-btn">{currentUser?.role === 'officer' ? 'Cancel' : 'Close'}</button>
-                {currentUser?.role === 'officer' && (
-                  <button type="submit" disabled={isSaving} className="save-btn">
-                    {isSaving ? 'Saving...' : 'Save Results'}
+              <div style={{display: 'flex', gap: '15px', marginTop: '25px'}}>
+                <button type="button" onClick={() => setIsRecordModalOpen(false)} className="cancel-btn" style={{flex: 1, borderRadius: '12px'}}>{currentUser?.role === 'officer' && selectedVisit.status !== 'completed' ? 'Cancel' : 'Close'}</button>
+                {currentUser?.role === 'officer' && selectedVisit.status !== 'completed' && (
+                  <button type="submit" disabled={isSaving} className="save-btn" style={{flex: 2, borderRadius: '12px'}}>
+                    {isSaving ? 'Saving...' : 'Finalize Visit'}
                   </button>
                 )}
               </div>

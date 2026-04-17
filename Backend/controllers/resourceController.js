@@ -111,7 +111,7 @@ export const getRequests = async (req, res) => {
     const query = `
       SELECT 
         r.request_id AS id,
-        b.ben_name AS "beneficiaryName",
+        b.ben_first_name || ' ' || b.ben_last_name AS "beneficiaryName",
         u.first_name || ' ' || u.last_name AS "officerName",
         r.project_name AS project,
         r.status,
@@ -127,7 +127,7 @@ export const getRequests = async (req, res) => {
       JOIN user_table u ON r.officer_id = u.user_id
       JOIN resource_request_items ri ON r.request_id = ri.request_id
       JOIN resource_inventory inv ON ri.inventory_id = inv.inventory_id
-      GROUP BY r.request_id, b.ben_name, u.first_name, u.last_name
+      GROUP BY r.request_id, b.ben_first_name, b.ben_last_name, u.first_name, u.last_name
       ORDER BY r.created_at DESC
     `;
     const result = await pool.query(query);
@@ -196,7 +196,7 @@ export const getAllocations = async (req, res) => {
       SELECT 
         a.allocation_id AS id,
         inv.item_name AS "resourceName",
-        b.ben_name AS "beneficiaryName",
+        b.ben_first_name || ' ' || b.ben_last_name AS "beneficiaryName",
         a.quantity,
         a.status,
         TO_CHAR(a.delivery_date, 'YYYY-MM-DD') AS "deliveryDate",

@@ -71,6 +71,14 @@ export const getReportData = async (req, res) => {
     // Base filtering logic for shared parameters
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
+      if (project && project !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(project); 
+      }
+      if (district && district !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_district)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(district); 
+      }
       if (status && status !== "") { 
         filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; 
         params.push(status); 
@@ -114,12 +122,13 @@ export const getReportData = async (req, res) => {
 
       case 'resources':
         query = `
-          SELECT r.resource_id, r.res_name as resource_name, r.type, 
-                 b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, r.quantity, r.status, r.condition
-          FROM resource r
-          LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id
+          SELECT a.allocation_id as resource_id, inv.item_name as resource_name, inv.category as type, 
+                 b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, a.quantity, a.status, 'N/A' as condition
+          FROM resource_allocations a
+          JOIN resource_inventory inv ON a.inventory_id = inv.inventory_id
+          LEFT JOIN beneficiary b ON a.beneficiary_id = b.beneficiary_id
           WHERE 1=1 ${getFilters('b.', false)}
-          ORDER BY r.resource_id DESC
+          ORDER BY a.allocation_id DESC
         `;
         break;
 
@@ -204,52 +213,192 @@ export const exportPDF = async (req, res) => {
     let body = [];
 
     if (reportType === 'executive') {
-      // Executive Report is a summary, not a table-heavy report
-      title = "Executive Intelligence Summary";
+      title = "Executive Strategic Intelligence Report";
       
-      // Fetch data for executive summary
+      // Filter components for Executive
+      let filterClause = "";
+      let exParams = [];
+      let exIdx = 1;
+      if (project && project !== "") {
+        filterClause += ` AND LOWER(TRIM(b.ben_project)) = LOWER(TRIM($${exIdx++}))`;
+        exParams.push(project);
+      }
+      if (district && district !== "") {
+        filterClause += ` AND LOWER(TRIM(b.ben_district)) = LOWER(TRIM($${exIdx++}))`;
+        exParams.push(district);
+      }
+
+      // 1. Fetch data using the robust intelligence algorithms with FILTERS
       const healthRes = await pool.query(`
         WITH LatestProgress AS (
           SELECT DISTINCT ON (beneficiary_id) beneficiary_id, progress_value, update_date
           FROM progress_history ORDER BY beneficiary_id, update_date DESC
+        ),
+        ProjectMetrics AS (
+          SELECT p.project_name as name, p.start_date, p.end_date, COUNT(b.beneficiary_id) as beneficiary_count, AVG(COALESCE(lp.progress_value, 0)) as avg_prog
+          FROM project p LEFT JOIN beneficiary b ON p.project_name = b.ben_project LEFT JOIN LatestProgress lp ON b.beneficiary_id = lp.beneficiary_id
+          WHERE 1=1 ${filterClause.replace(/b\./g, 'p.project_name = b.ben_project AND b.')}
+          GROUP BY p.project_id, p.project_name, p.start_date, p.end_date
         )
-        SELECT b.ben_project as name, ROUND(AVG(COALESCE(lp.progress_value, 0))) as health_score, COUNT(b.beneficiary_id) as beneficiary_count
-        FROM beneficiary b LEFT JOIN LatestProgress lp ON b.beneficiary_id = lp.beneficiary_id
-        WHERE b.ben_project IS NOT NULL GROUP BY b.ben_project ORDER BY health_score ASC
-      `);
+        SELECT name, beneficiary_count, ROUND(COALESCE(avg_prog, 0)) as progress,
+          CASE WHEN start_date IS NULL OR end_date IS NULL OR end_date <= start_date THEN 100
+               WHEN CURRENT_DATE < start_date THEN 0 WHEN CURRENT_DATE > end_date THEN 100
+               ELSE ROUND(((CURRENT_DATE - start_date)::float / NULLIF(end_date - start_date, 0)) * 100)
+          END as expected_progress
+        FROM ProjectMetrics WHERE beneficiary_count > 0 ORDER BY name ASC
+      `, exParams);
 
-      const overdueRes = await pool.query("SELECT COUNT(*) as count FROM field_visits WHERE status ILIKE 'scheduled' AND visit_date < CURRENT_DATE");
-      const stagnantRes = await pool.query("SELECT COUNT(*) as count FROM beneficiary b WHERE b.beneficiary_id NOT IN (SELECT beneficiary_id FROM progress_history WHERE update_date >= CURRENT_DATE - INTERVAL '30 days') AND b.ben_status ILIKE 'active'");
+      const overdueRes = await pool.query(`
+        SELECT COUNT(*) as count FROM field_visits v JOIN beneficiary b ON v.beneficiary_id = b.beneficiary_id 
+        WHERE v.status ILIKE 'scheduled' AND v.visit_date < CURRENT_DATE ${filterClause}
+      `, exParams);
+      
+      const stagnantRes = await pool.query(`
+        SELECT COUNT(*) as count FROM beneficiary b WHERE b.beneficiary_id NOT IN (SELECT beneficiary_id FROM progress_history WHERE update_date >= CURRENT_DATE - INTERVAL '30 days') 
+        AND b.ben_status ILIKE 'active' ${filterClause}
+      `, exParams);
 
+      // 1.1 Fetch Officer Load (Filtered)
+      const loadRes = await pool.query(`
+        SELECT TRIM(CONCAT(u.first_name, ' ', u.last_name)) as name,
+               COUNT(DISTINCT b.beneficiary_id) as active_cases,
+               COUNT(DISTINCT CASE WHEN v.status = 'Completed' THEN v.visit_id END) as completed_visits
+        FROM user_table u
+        LEFT JOIN beneficiary b ON u.user_id = b.assigned_officer_id
+        LEFT JOIN field_visits v ON u.user_id = v.officer_id
+        WHERE u.role ILIKE 'officer' AND u.status = 'Active' ${filterClause}
+        GROUP BY u.user_id, name ORDER BY active_cases DESC LIMIT 10
+      `, exParams);
+
+      // 1.2 Fetch Resource Velocity (Filtered)
+      const resourceRes = await pool.query(`
+        SELECT inv.item_name as name, COALESCE(inv.available_stock, 0) as stock, COALESCE(inv.total_stock, 1) as total_stock
+        FROM resource_inventory inv 
+        LEFT JOIN resource_allocations a ON inv.inventory_id = a.inventory_id
+        LEFT JOIN beneficiary b ON a.beneficiary_id = b.beneficiary_id
+        WHERE 1=1 ${filterClause}
+        GROUP BY inv.inventory_id, inv.item_name, inv.available_stock, inv.total_stock
+        ORDER BY inv.available_stock ASC LIMIT 10
+      `, exParams);
+
+      // 2. Generate PDF
       const doc = new jsPDF();
-      doc.setFontSize(22);
-      doc.setTextColor(37, 99, 235); // Blue-600
-      doc.text(title, 14, 22);
       
-      doc.setFontSize(11);
-      doc.setTextColor(100);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+      // Header Section
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, 210, 40, 'F');
+      doc.setFontSize(24);
+      doc.setTextColor(255, 255, 255);
+      doc.text("STRATEGIC INTELLIGENCE", 14, 25);
       
-      doc.setFontSize(16);
-      doc.setTextColor(0);
-      doc.text("Strategic Risk Radar", 14, 45);
-      doc.setFontSize(12);
-      doc.text(`- Overdue Field Visits: ${overdueRes.rows[0].count}`, 20, 55);
-      doc.text(`- Stagnant Beneficiaries (>30 days): ${stagnantRes.rows[0].count}`, 20, 62);
+      doc.setFontSize(10);
+      doc.text(`MISSION STATUS REPORT | GENERATED: ${new Date().toLocaleString()}`, 14, 33);
 
-      doc.setFontSize(16);
-      doc.text("Project Health Overview", 14, 80);
+      // Section: Strategic Risks Radar
+      doc.setTextColor(37, 99, 235);
+      doc.setFontSize(14);
+      doc.text("1. Strategic Risk Radar", 14, 55);
       
-      safeAutoTable(doc, {
-        startY: 85,
-        head: [['Project Name', 'Health Score', 'Beneficiary Count']],
-        body: healthRes.rows.map(p => [p.name, `${p.health_score}%`, p.beneficiary_count]),
-        headStyles: { fillColor: [37, 99, 235] }
+      doc.setTextColor(0);
+      doc.setFontSize(10);
+      doc.text(`• Critical Pipeline Health: ${overdueRes.rows[0].count} Overdue Field Visits requiring immediate scheduling.`, 20, 65);
+      doc.text(`• Case Stagnation: ${stagnantRes.rows[0].count} Beneficiaries with no progress update in over 30 days.`, 20, 71);
+
+      // Section: Project Performance
+      doc.setTextColor(37, 99, 235);
+      doc.setFontSize(14);
+      doc.text("2. Mission Health (Actual vs Target)", 14, 85);
+      
+      const healthBody = healthRes.rows.map(p => {
+        const expected = Math.max(1, p.expected_progress || 0);
+        const health = Math.min(100, Math.round((p.progress / expected) * 100));
+        return [p.name, `${p.progress}%`, `${expected}%`, `${health}%`];
       });
+
+      safeAutoTable(doc, {
+        startY: 90,
+        head: [['Mission Area', 'Actual Prog.', 'Target Prog.', 'Health Score']],
+        body: healthBody,
+        headStyles: { fillColor: [37, 99, 235] },
+        styles: { fontSize: 9, cellPadding: 3 }
+      });
+
+      let currentY = doc.lastAutoTable.finalY + 15;
+
+      // Section: Officer Operational Efficiency
+      doc.setTextColor(37, 99, 235);
+      doc.setFontSize(14);
+      doc.text("3. Officer Operational Efficiency", 14, currentY);
+      
+      const officerBody = loadRes.rows.map(o => [o.name, o.active_cases, o.completed_visits]);
+      safeAutoTable(doc, {
+        startY: currentY + 5,
+        head: [['Officer Name', 'Active Caseload', 'Completed Visits']],
+        body: officerBody,
+        headStyles: { fillColor: [31, 41, 55] }, // Darker grey for operational
+        styles: { fontSize: 9, cellPadding: 3 }
+      });
+
+      currentY = doc.lastAutoTable.finalY + 15;
+
+      // Section: Resource Supply Velocity
+      doc.setTextColor(37, 99, 235);
+      doc.setFontSize(14);
+      doc.text("4. Resource Depletion Risk", 14, currentY);
+      
+      const resourceBody = resourceRes.rows.map(r => {
+        const level = Math.round((r.stock / r.total_stock) * 100);
+        return [r.name, r.stock, r.total_stock, `${level}%`];
+      });
+      safeAutoTable(doc, {
+        startY: currentY + 5,
+        head: [['Inventory Item', 'Available', 'Total Capacity', 'Stock Level']],
+        body: resourceBody,
+        headStyles: { fillColor: [5, 150, 105] }, // Emerald green for resources
+        styles: { fontSize: 9, cellPadding: 3 }
+      });
+
+      // Guided Actions - New Page if needed
+      if (doc.lastAutoTable.finalY > 220) {
+        doc.addPage();
+        currentY = 25;
+      } else {
+        currentY = doc.lastAutoTable.finalY + 15;
+      }
+
+      doc.setTextColor(37, 99, 235);
+      doc.setFontSize(14);
+      doc.text("5. Recommended Strategic Guidance", 14, currentY);
+      
+      doc.setTextColor(100);
+      doc.setFontSize(10);
+      doc.text("Automated strategic priorities identified by the intelligence engine:", 14, currentY + 8);
+      
+      let actionY = currentY + 18;
+      if (overdueRes.rows[0].count > 0) {
+        doc.text("• OPERATIONAL: Backlog detected in field visits. Priority re-scheduling required.", 20, actionY);
+        actionY += 7;
+      }
+      doc.text("• LOGISTICS: Prioritize procurement for items below 25% stock to avoid mission stoppage.", 20, actionY);
+      actionY += 7;
+      doc.text("• PERFORMANCE: Monitor projects with Health Score below 60% for immediate intervention.", 20, actionY);
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(150);
+        doc.text("CONFIDENTIAL - DECISION SUPPORT SYSTEM", 105, 287, { align: 'center' });
+        doc.text(`Page ${i} of ${pageCount}`, 200, 287, { align: 'right' });
+      }
 
       const buffer = Buffer.from(doc.output('arraybuffer'));
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `${req.query.preview === 'true' ? 'inline' : 'attachment'}; filename=executive_report.pdf`);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Disposition', `${req.query.preview === 'true' ? 'inline' : 'attachment'}; filename=strategic_report.pdf`);
       return res.send(buffer);
     }
 
@@ -271,7 +420,7 @@ export const exportPDF = async (req, res) => {
         title = "Resource Allocation Report";
         headers = [['Resource', 'Type', 'Allocated To', 'Qty', 'Status']];
         mapper = (r) => [r.resource_name, r.type, r.beneficiary_name || 'Unallocated', r.quantity, r.status];
-        query = `SELECT r.res_name as resource_name, r.type, b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, r.quantity, r.status FROM resource r LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY r.resource_id DESC`;
+        query = `SELECT a.allocation_id, inv.item_name as resource_name, inv.category as type, b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, a.quantity, a.status FROM resource_allocations a JOIN resource_inventory inv ON a.inventory_id = inv.inventory_id LEFT JOIN beneficiary b ON a.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY a.allocation_id DESC`;
         break;
       case 'performance':
         title = "Monthly Performance Summary";
@@ -306,6 +455,9 @@ export const exportPDF = async (req, res) => {
 
     const buffer = Buffer.from(doc.output('arraybuffer'));
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.setHeader('Content-Disposition', `${req.query.preview === 'true' ? 'inline' : 'attachment'}; filename=report.pdf`);
     res.send(buffer);
   } catch (error) {
@@ -426,7 +578,7 @@ export const exportExcel = async (req, res) => {
           { header: 'Status', key: 'status', width: 15 }
         ];
         mapper = (r) => ({ resource: r.resource_name, type: r.type, beneficiary: r.beneficiary_name || 'Unallocated', qty: r.quantity, status: r.status });
-        query = `SELECT r.res_name as resource_name, r.type, b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, r.quantity, r.status FROM resource r LEFT JOIN beneficiary b ON r.allocated_to = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY r.resource_id DESC`;
+        query = `SELECT inv.item_name as resource_name, inv.category as type, b.ben_first_name || ' ' || b.ben_last_name as beneficiary_name, a.quantity, a.status FROM resource_allocations a JOIN resource_inventory inv ON a.inventory_id = inv.inventory_id LEFT JOIN beneficiary b ON a.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.', false)} ORDER BY a.allocation_id DESC`;
         break;
       case 'performance':
         columns = [

@@ -48,13 +48,12 @@ const DashboardLayout = ({ handleLogout, currentUser }) => {
 
 function App() {
   const [currentUser, setCurrentUser] = useState(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
       try {
         return JSON.parse(storedUser);
       } catch (error) {
-        console.error("Error parsing stored user:", error);
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
       }
     }
   return null;
@@ -66,12 +65,12 @@ useEffect(() => {
 
   const handleLogin = (userData) => {
     setCurrentUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    sessionStorage.setItem('user', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
   };
 
 

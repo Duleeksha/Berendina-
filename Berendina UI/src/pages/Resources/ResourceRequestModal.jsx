@@ -89,8 +89,7 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
         alert('Error: ' + err.message);
       }
     } catch (error) {
-      console.error('Request submission error:', error);
-      alert('Internal Server Error. Please try again.');
+      alert('Internal Server Error: Could not submit the resource request. Please check your connection.');
     } finally {
       setIsSubmitting(false);
     }
