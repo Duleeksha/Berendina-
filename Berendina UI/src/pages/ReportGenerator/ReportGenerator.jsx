@@ -418,12 +418,12 @@ const ReportGenerator = () => {
         </form>
 
         <div className="report-actions">
-           <button onClick={() => handleExport('pdf')} className="action-btn-view" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569' }}>
-             📥 Download PDF
-           </button>
-           <button onClick={() => handleExport('excel')} className="action-btn-view" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569' }}>
-             📊 Export Excel Sheet
-           </button>
+            <button onClick={() => handleExport('pdf', true)} className="action-btn-view" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', fontWeight: 'bold' }}>
+              👁️ Preview Report
+            </button>
+            <button onClick={() => handleExport('excel')} className="action-btn-view" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569' }}>
+              📊 Export Excel Sheet
+            </button>
            <button onClick={() => { setFilters({startDate:'', endDate:'', district:'', project:'', status:'', reportType: 'default'}); setReportData([]); setReportStats({total:0, active:0, inactive:0, pending:0}); }} className="action-btn-view" style={{ background: 'none', border: 'none', color: '#94a3b8', textDecoration: 'underline' }}>
              Reset All Filters
            </button>

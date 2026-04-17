@@ -3,6 +3,18 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import ExcelJS from 'exceljs';
 
+// Helper to handle jspdf-autotable resolution in varied Node environments
+const safeAutoTable = (doc, options) => {
+  if (typeof autoTable === 'function') {
+    return autoTable(doc, options);
+  } else if (autoTable && typeof autoTable.default === 'function') {
+    return autoTable.default(doc, options);
+  } else if (typeof doc.autoTable === 'function') {
+    return doc.autoTable(options);
+  }
+  console.error("autoTable resolution failed");
+};
+
 export const getDashboardStats = async (req, res) => {
   const data = {};
   try {
@@ -165,27 +177,94 @@ export const exportPDF = async (req, res) => {
 
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
-      if (project) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; params.push(project); }
-      if (status) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; params.push(status); }
+      if (project && project !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(project); 
+      }
+      if (status && status !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(status); 
+      }
       if (includeDate) {
-        if (startDate) { filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; params.push(startDate); }
-        if (endDate) { filterPart += ` AND ${tablePrefix}created_at < ($${pIdx++}::date + interval '1 day')`; params.push(endDate); }
+        if (startDate && startDate !== "") { 
+          filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; 
+          params.push(startDate); 
+        }
+        if (endDate && endDate !== "") { 
+          filterPart += ` AND ${tablePrefix}created_at < ($${pIdx++}::date + interval '1 day')`; 
+          params.push(endDate); 
+        }
       }
       return filterPart;
     };
 
     let title = "Beneficiary Report";
     let headers = [['Name', 'NIC', 'DS Division', 'Project', 'Status']];
-    let mapper = (b) => [b.firstName + ' ' + b.lastName, b.ben_nic, b.ben_ds_division, b.ben_project, b.ben_status];
+    let mapper = (b) => [b.ben_first_name + ' ' + b.ben_last_name, b.ben_nic, b.ben_district, b.ben_project, b.ben_status];
+    let body = [];
 
+    if (reportType === 'executive') {
+      // Executive Report is a summary, not a table-heavy report
+      title = "Executive Intelligence Summary";
+      
+      // Fetch data for executive summary
+      const healthRes = await pool.query(`
+        WITH LatestProgress AS (
+          SELECT DISTINCT ON (beneficiary_id) beneficiary_id, progress_value, update_date
+          FROM progress_history ORDER BY beneficiary_id, update_date DESC
+        )
+        SELECT b.ben_project as name, ROUND(AVG(COALESCE(lp.progress_value, 0))) as health_score, COUNT(b.beneficiary_id) as beneficiary_count
+        FROM beneficiary b LEFT JOIN LatestProgress lp ON b.beneficiary_id = lp.beneficiary_id
+        WHERE b.ben_project IS NOT NULL GROUP BY b.ben_project ORDER BY health_score ASC
+      `);
+
+      const overdueRes = await pool.query("SELECT COUNT(*) as count FROM field_visits WHERE status ILIKE 'scheduled' AND visit_date < CURRENT_DATE");
+      const stagnantRes = await pool.query("SELECT COUNT(*) as count FROM beneficiary b WHERE b.beneficiary_id NOT IN (SELECT beneficiary_id FROM progress_history WHERE update_date >= CURRENT_DATE - INTERVAL '30 days') AND b.ben_status ILIKE 'active'");
+
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.setTextColor(37, 99, 235); // Blue-600
+      doc.text(title, 14, 22);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+      
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("Strategic Risk Radar", 14, 45);
+      doc.setFontSize(12);
+      doc.text(`- Overdue Field Visits: ${overdueRes.rows[0].count}`, 20, 55);
+      doc.text(`- Stagnant Beneficiaries (>30 days): ${stagnantRes.rows[0].count}`, 20, 62);
+
+      doc.setFontSize(16);
+      doc.text("Project Health Overview", 14, 80);
+      
+      safeAutoTable(doc, {
+        startY: 85,
+        head: [['Project Name', 'Health Score', 'Beneficiary Count']],
+        body: healthRes.rows.map(p => [p.name, `${p.health_score}%`, p.beneficiary_count]),
+        headStyles: { fillColor: [37, 99, 235] }
+      });
+
+      const buffer = Buffer.from(doc.output('arraybuffer'));
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `${req.query.preview === 'true' ? 'inline' : 'attachment'}; filename=executive_report.pdf`);
+      return res.send(buffer);
+    }
+
+    // Standard Tabular Reports
     switch (reportType) {
       case 'progress':
         title = "Beneficiary Progress Report";
         headers = [['Name', 'Project', 'Progress %', 'Update Date', 'Comment']];
-        mapper = (r) => [r.ben_name, r.ben_project, `${r.progress_value}%`, new Date(r.update_date).toLocaleDateString(), r.comment];
+        mapper = (r) => [r.ben_name, r.ben_project, `${r.progress_value}%`, new Date(r.update_date).toLocaleDateString(), r.comment || 'N/A'];
         query = `SELECT ph.*, b.ben_first_name || ' ' || b.ben_last_name as ben_name, b.ben_project FROM progress_history ph JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY ph.update_date DESC`;
         break;
       case 'visits':
+        title = "Field Visit Detailed Report";
+        headers = [['Date', 'Beneficiary', 'Officer', 'Status', 'Notes']];
+        mapper = (r) => [new Date(r.visit_date).toLocaleDateString(), r.beneficiary_name, r.officer_name, r.status, r.notes || 'N/A'];
         query = `SELECT fv.*, TRIM(CONCAT(u.first_name, ' ', u.last_name)) as officer_name FROM field_visits fv LEFT JOIN user_table u ON fv.officer_id = u.user_id LEFT JOIN beneficiary b ON fv.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY fv.visit_date DESC`;
         break;
       case 'resources':
@@ -201,24 +280,28 @@ export const exportPDF = async (req, res) => {
         query = `SELECT TO_CHAR(created_at, 'Month YYYY') as period, COUNT(*) as total_added, COUNT(CASE WHEN ben_status = 'Active' THEN 1 END) as active_now, COUNT(CASE WHEN ben_status = 'Pending' THEN 1 END) as pending_now FROM beneficiary WHERE 1=1 ${getFilters()} GROUP BY period, TO_CHAR(created_at, 'YYYY-MM') ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC`;
         break;
       default:
-        query = `SELECT *, ben_first_name as "firstName", ben_last_name as "lastName" FROM beneficiary WHERE 1=1 ${getFilters()}`;
+        query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
     }
 
     const result = await pool.query(query, params);
     const doc = new jsPDF();
     
-    doc.setFontSize(20);
+    doc.setFontSize(22);
+    doc.setTextColor(37, 99, 235);
     doc.text(title, 14, 22);
+    
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
     doc.text(`Total Records: ${result.rows.length}`, 14, 35);
     
-    doc.autoTable({ 
+    safeAutoTable(doc, { 
       startY: 45,
       head: headers, 
       body: result.rows.map(mapper),
-      headStyles: { fillStyle: '#2563eb' }
+      headStyles: { fillColor: [37, 99, 235] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { top: 45 }
     });
 
     const buffer = Buffer.from(doc.output('arraybuffer'));
@@ -227,7 +310,7 @@ export const exportPDF = async (req, res) => {
     res.send(buffer);
   } catch (error) {
     console.error("PDF Export Error:", error);
-    res.status(500).json({ message: 'PDF Export failed' });
+    res.status(500).json({ message: 'PDF Export failed', details: error.message });
   }
 };
 
@@ -240,23 +323,76 @@ export const exportExcel = async (req, res) => {
 
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
-      if (project) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; params.push(project); }
-      if (status) { filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; params.push(status); }
+      if (project && project !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_project)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(project); 
+      }
+      if (status && status !== "") { 
+        filterPart += ` AND LOWER(TRIM(${tablePrefix}ben_status)) = LOWER(TRIM($${pIdx++}))`; 
+        params.push(status); 
+      }
       if (includeDate) {
-        if (startDate) { filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; params.push(startDate); }
-        if (endDate) { filterPart += ` AND ${tablePrefix}created_at < ($${pIdx++}::date + interval '1 day')`; params.push(endDate); }
+        if (startDate && startDate !== "") { 
+          filterPart += ` AND ${tablePrefix}created_at >= $${pIdx++}::timestamp`; 
+          params.push(startDate); 
+        }
+        if (endDate && endDate !== "") { 
+          filterPart += ` AND ${tablePrefix}created_at < ($${pIdx++}::date + interval '1 day')`; 
+          params.push(endDate); 
+        }
       }
       return filterPart;
     };
 
     let columns = [
       { header: 'Name', key: 'name', width: 25 },
-      { header: 'NIC', key: 'nic', width: 15 },
-      { header: 'DS Division', key: 'dsDivision', width: 15 },
+      { header: 'NIC', key: 'nic', width: 20 },
+      { header: 'District', key: 'district', width: 20 },
       { header: 'Project', key: 'project', width: 20 },
-      { header: 'Status', key: 'status', width: 10 }
+      { header: 'Status', key: 'status', width: 15 }
     ];
-    let mapper = (b) => ({ name: b.firstName + ' ' + b.lastName, nic: b.ben_nic, dsDivision: b.ben_ds_division, project: b.ben_project, status: b.ben_status });
+    let mapper = (b) => ({ 
+      name: b.ben_first_name + ' ' + b.ben_last_name, 
+      nic: b.ben_nic, 
+      district: b.ben_district, 
+      project: b.ben_project, 
+      status: b.ben_status 
+    });
+
+    if (reportType === 'executive') {
+       // Fetch summary data for excel
+       const healthRes = await pool.query(`
+        WITH LatestProgress AS (
+          SELECT DISTINCT ON (beneficiary_id) beneficiary_id, progress_value, update_date
+          FROM progress_history ORDER BY beneficiary_id, update_date DESC
+        )
+        SELECT b.ben_project as name, ROUND(AVG(COALESCE(lp.progress_value, 0))) as health_score, COUNT(b.beneficiary_id) as beneficiary_count
+        FROM beneficiary b LEFT JOIN LatestProgress lp ON b.beneficiary_id = lp.beneficiary_id
+        WHERE b.ben_project IS NOT NULL GROUP BY b.ben_project
+      `);
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Strategic Overview');
+      
+      worksheet.columns = [
+        { header: 'Project Name', key: 'name', width: 30 },
+        { header: 'Health Score %', key: 'score', width: 15 },
+        { header: 'Total Members', key: 'count', width: 15 }
+      ];
+      
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+      worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+      healthRes.rows.forEach(p => {
+        worksheet.addRow({ name: p.name, score: p.health_score, count: p.beneficiary_count });
+      });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=executive_summary.xlsx');
+      await workbook.xlsx.write(res);
+      return res.end();
+    }
 
     switch (reportType) {
       case 'progress':
@@ -267,7 +403,7 @@ export const exportExcel = async (req, res) => {
           { header: 'Update Date', key: 'date', width: 15 },
           { header: 'Comment', key: 'comment', width: 40 }
         ];
-        mapper = (r) => ({ name: r.ben_name, project: r.ben_project, progress: r.progress_value, date: new Date(r.update_date).toLocaleDateString(), comment: r.comment });
+        mapper = (r) => ({ name: r.ben_name, project: r.ben_project, progress: r.progress_value, date: new Date(r.update_date).toLocaleDateString(), comment: r.comment || 'N/A' });
         query = `SELECT ph.*, b.ben_first_name || ' ' || b.ben_last_name as ben_name, b.ben_project FROM progress_history ph JOIN beneficiary b ON ph.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY ph.update_date DESC`;
         break;
       case 'visits':
@@ -278,7 +414,7 @@ export const exportExcel = async (req, res) => {
           { header: 'Status', key: 'status', width: 15 },
           { header: 'Notes', key: 'notes', width: 40 }
         ];
-        mapper = (r) => ({ date: new Date(r.visit_date).toLocaleDateString(), beneficiary: r.beneficiary_name, officer: r.officer_name, status: r.status, notes: r.notes });
+        mapper = (r) => ({ date: new Date(r.visit_date).toLocaleDateString(), beneficiary: r.beneficiary_name, officer: r.officer_name, status: r.status, notes: r.notes || 'N/A' });
         query = `SELECT fv.*, TRIM(CONCAT(u.first_name, ' ', u.last_name)) as officer_name FROM field_visits fv LEFT JOIN user_table u ON fv.officer_id = u.user_id LEFT JOIN beneficiary b ON fv.beneficiary_id = b.beneficiary_id WHERE 1=1 ${getFilters('b.')} ORDER BY fv.visit_date DESC`;
         break;
       case 'resources':
@@ -303,7 +439,7 @@ export const exportExcel = async (req, res) => {
         query = `SELECT TO_CHAR(created_at, 'Month YYYY') as period, COUNT(*) as total_added, COUNT(CASE WHEN ben_status = 'Active' THEN 1 END) as active_now, COUNT(CASE WHEN ben_status = 'Pending' THEN 1 END) as pending_now FROM beneficiary WHERE 1=1 ${getFilters()} GROUP BY period, TO_CHAR(created_at, 'YYYY-MM') ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC`;
         break;
       default:
-        query = `SELECT *, ben_first_name as "firstName", ben_last_name as "lastName" FROM beneficiary WHERE 1=1 ${getFilters()}`;
+        query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
     }
 
     const result = await pool.query(query, params);
@@ -313,8 +449,8 @@ export const exportExcel = async (req, res) => {
     worksheet.columns = columns;
 
     // Style the header
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
 
     result.rows.forEach(r => worksheet.addRow(mapper(r)));
 

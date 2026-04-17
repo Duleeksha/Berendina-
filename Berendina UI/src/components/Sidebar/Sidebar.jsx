@@ -13,8 +13,8 @@ const Sidebar = ({ currentUser, onLogout }) => {
   // --- FIX END ---
 
   const userRole = effectiveUser?.role || 'officer';
-  const userName = effectiveUser?.firstName || 'User';
-  const userId = effectiveUser?.id;
+  const userName = effectiveUser?.firstName || effectiveUser?.first_name || 'User';
+  const userId = effectiveUser?.id || effectiveUser?.user_id;
 
   const [isAvailable, setIsAvailable] = React.useState(true);
   const [hasNotification, setHasNotification] = React.useState(false);

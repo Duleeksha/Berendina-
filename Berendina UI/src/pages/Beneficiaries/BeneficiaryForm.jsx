@@ -8,6 +8,11 @@ const BeneficiaryForm = () => {
   const { id } = useParams(); 
   const isEditMode = !!id;
 
+  const currentUser = (() => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  })();
+
   const [projectList, setProjectList] = useState([]);
   const [officerList, setOfficerList] = useState([]);
   const [formData, setFormData] = useState(() => {
@@ -19,7 +24,7 @@ const BeneficiaryForm = () => {
       familyMembers: '', monthlyIncome: '', occupation: '', 
       project: projParam || '', 
       status: 'active',
-      assigned_officer_id: ''
+      assigned_officer_id: (currentUser?.role === 'officer' && !isEditMode) ? currentUser.id : ''
     };
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -280,23 +285,38 @@ const BeneficiaryForm = () => {
               </div>
               <div className="form-group">
                 <label>Assigned Field Officer</label>
-                <select 
-                  name="assigned_officer_id" 
-                  className="modern-select" 
-                  value={formData.assigned_officer_id || ''} 
-                  onChange={handleChange} 
-                  required 
-                  disabled={!formData.dsDivision}
-                >
-                  <option value="">{formData.dsDivision ? 'Select Officer' : 'Select DS Division first'}</option>
-                  {officerList
-                    .filter(off => off.dsDivision === formData.dsDivision && off.isAvailable !== false)
-                    .map((off) => (
-                      <option key={off.id} value={off.id}>{off.firstName} {off.lastName}</option>
-                    ))
-                  }
-                </select>
-                {formData.dsDivision && officerList.filter(off => off.ds_division === formData.dsDivision).length === 0 && (
+                {currentUser?.role === 'officer' ? (
+                  <div className="readonly-input-box" style={{ 
+                    background: '#f8fafc', 
+                    border: '1px solid #e2e8f0', 
+                    padding: '12px', 
+                    borderRadius: '10px',
+                    color: '#64748b',
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }}>
+                    👤 {currentUser.firstName} {currentUser.lastName} (Me)
+                    <input type="hidden" name="assigned_officer_id" value={currentUser.id} />
+                  </div>
+                ) : (
+                  <select 
+                    name="assigned_officer_id" 
+                    className="modern-select" 
+                    value={formData.assigned_officer_id || ''} 
+                    onChange={handleChange} 
+                    required 
+                    disabled={!formData.dsDivision}
+                  >
+                    <option value="">{formData.dsDivision ? 'Select Officer' : 'Select DS Division first'}</option>
+                    {officerList
+                      .filter(off => off.dsDivision === formData.dsDivision && off.isAvailable !== false)
+                      .map((off) => (
+                        <option key={off.id} value={off.id}>{off.firstName} {off.lastName}</option>
+                      ))
+                    }
+                  </select>
+                )}
+                {currentUser?.role === 'admin' && formData.dsDivision && officerList.filter(off => off.dsDivision === formData.dsDivision).length === 0 && (
                   <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '5px' }}>No field officers found in this division.</p>
                 )}
               </div>

@@ -105,10 +105,10 @@ export const updateFieldVisit = async (req, res) => {
   try {
     let query, values;
     if (photos.length > 0) {
-      query = `UPDATE field_visits SET notes=$1, feedback=$2, status=$3, photos=array_cat(photos, $4) WHERE visit_id=$5 RETURNING *;`;
+      query = `UPDATE field_visits SET notes=$1, feedback=$2, status=$3, photos=array_cat(photos, $4), is_new=FALSE WHERE visit_id=$5 RETURNING *;`;
       values = [notes, feedback, status, photos, id];
     } else {
-      query = `UPDATE field_visits SET notes=$1, feedback=$2, status=$3 WHERE visit_id=$4 RETURNING *;`;
+      query = `UPDATE field_visits SET notes=$1, feedback=$2, status=$3, is_new=FALSE WHERE visit_id=$4 RETURNING *;`;
       values = [notes, feedback, status, id];
     }
     const result = await pool.query(query, values);
@@ -131,11 +131,16 @@ export const updateFieldVisit = async (req, res) => {
 };
 
 export const markAsRead = async (req, res) => {
-  const { visitIds } = req.body;
+  const { visitIds, userId } = req.body;
   try {
-    await pool.query('UPDATE field_visits SET is_new = FALSE WHERE visit_id = ANY($1)', [visitIds]);
+    if (visitIds && visitIds.length > 0) {
+      await pool.query('UPDATE field_visits SET is_new = FALSE WHERE visit_id = ANY($1)', [visitIds]);
+    } else if (userId) {
+      await pool.query('UPDATE field_visits SET is_new = FALSE WHERE officer_id = $1', [userId]);
+    }
     res.json({ message: 'Visits marked as read' });
   } catch (err) {
+    console.error('markAsRead error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
