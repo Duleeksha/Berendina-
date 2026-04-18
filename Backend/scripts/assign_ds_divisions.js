@@ -1,17 +1,12 @@
 import pool from '../config/db.js';
-
 const DIVISIONS = ['Ambagamuwa', 'Nuwara Eliya', 'Walapane', 'Kothmale', 'Hanguranketha'];
-
 async function assignDivisions() {
   try {
     const res = await pool.query("SELECT user_id, first_name, last_name FROM user_table WHERE role = 'officer'");
     console.log(`Found ${res.rows.length} officers in user_table.`);
-
     for (const officer of res.rows) {
       const randomDivision = DIVISIONS[Math.floor(Math.random() * DIVISIONS.length)];
-      
       const detailsCheck = await pool.query('SELECT user_id FROM officer_details WHERE user_id = $1', [officer.user_id]);
-      
       if (detailsCheck.rows.length > 0) {
         await pool.query(
           'UPDATE officer_details SET ds_division = $1 WHERE user_id = $2',
@@ -28,7 +23,6 @@ async function assignDivisions() {
         console.log(`Created details and assigned officer ${officer.user_id} (${officer.first_name}) to ${randomDivision}`);
       }
     }
-
     console.log('Successfully assigned DS Divisions to all officers.');
     process.exit(0);
   } catch (err) {
@@ -36,5 +30,4 @@ async function assignDivisions() {
     process.exit(1);
   }
 }
-
 assignDivisions();

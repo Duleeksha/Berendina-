@@ -1,0 +1,1276 @@
+{
+  "report": {
+    "columns": [
+      {
+        "column_name": "report_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('report_report_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "generated_by",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "report_type",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "generated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "file_path",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "resource_status": {
+    "columns": [
+      {
+        "column_name": "status_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('resource_status_status_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "resource_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "uploaded_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "resource": {
+    "columns": [
+      {
+        "column_name": "resource_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('resource_resource_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "res_name",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "type",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "condition",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "availability",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "project_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": "'Available'::character varying",
+        "constraint_type": null
+      },
+      {
+        "column_name": "allocated_to",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "quantity",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0",
+        "constraint_type": null
+      },
+      {
+        "column_name": "issuing_date",
+        "data_type": "date",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "project_name",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "image_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "field_visit": {
+    "columns": [
+      {
+        "column_name": "visit_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('field_visit_visit_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "officer_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "visit_date",
+        "data_type": "date",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "location",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "notes",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "document": {
+    "columns": [
+      {
+        "column_name": "document_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('document_document_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "uploaded_by",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "file_name",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "file_type",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "uploaded_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "progress_log": {
+    "columns": [
+      {
+        "column_name": "log_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('progress_log_log_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "entry_date",
+        "data_type": "date",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "uploaded_by",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      }
+    ]
+  },
+  "alert": {
+    "columns": [
+      {
+        "column_name": "alert_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('alert_alert_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "resource_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "alert_type",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "message",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "resolved",
+        "data_type": "boolean",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "notification": {
+    "columns": [
+      {
+        "column_name": "notification_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('notification_notification_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "message",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "sent_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "read_status",
+        "data_type": "boolean",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "beneficiary_resources": {
+    "columns": [
+      {
+        "column_name": "assignment_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('beneficiary_resources_assignment_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "resource_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "assigned_date",
+        "data_type": "date",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "quantity",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "purpose",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "visit_photo": {
+    "columns": [
+      {
+        "column_name": "photo_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('visit_photo_photo_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "visit_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "file_path",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "uploaded_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "beneficiary": {
+    "columns": [
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('beneficiary_beneficiary_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "ben_name",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_nic",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_dob",
+        "data_type": "date",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_gender",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_address",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_contac_no",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_ds_division",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_marital_status",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_family_members",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_monthly_income",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_occupation",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_project",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_status",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_progress",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "project_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP",
+        "constraint_type": null
+      },
+      {
+        "column_name": "documents",
+        "data_type": "ARRAY",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "assigned_officer_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "ben_first_name",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ben_last_name",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "officer_details": {
+    "columns": [
+      {
+        "column_name": "officer_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('officer_details_officer_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "mobile_no",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "ds_division",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "vehicle_type",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "vehicle_no",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "languages",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "emergency_contact",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "base_location",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "is_available",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "true",
+        "constraint_type": null
+      }
+    ]
+  },
+  "progress_history": {
+    "columns": [
+      {
+        "column_name": "history_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('progress_history_history_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "progress_value",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "update_date",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP",
+        "constraint_type": null
+      },
+      {
+        "column_name": "comment",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "project_assign ": {
+    "columns": [
+      {
+        "column_name": "assignment_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('\"project_assign _assignment_id_seq\"'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "project _id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "officer_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "assigned date ",
+        "data_type": "date",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "project": {
+    "columns": [
+      {
+        "column_name": "project_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('\"Project_project_id_seq\"'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "project_name",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "start_date",
+        "data_type": "date",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "end_date",
+        "data_type": "date",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "donor_agency",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "target_location",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "budget",
+        "data_type": "numeric",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP",
+        "constraint_type": null
+      },
+      {
+        "column_name": "image_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      }
+    ]
+  },
+  "user_table": {
+    "columns": [
+      {
+        "column_name": "user_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('user_table_user_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "first_name",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "last_name",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "role",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "email",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "password_hash",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "reset_otp",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "reset_otp_expire",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "employee_id",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "department",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "branch",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "job_title",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "gender",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "terms_accepted",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "false",
+        "constraint_type": null
+      },
+      {
+        "column_name": "organization",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP",
+        "constraint_type": null
+      }
+    ]
+  },
+  "field_visits": {
+    "columns": [
+      {
+        "column_name": "visit_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('field_visits_visit_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "beneficiary_name",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "district",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "visit_date",
+        "data_type": "date",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "visit_time",
+        "data_type": "time without time zone",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "officer_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": "'scheduled'::character varying",
+        "constraint_type": null
+      },
+      {
+        "column_name": "notes",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "feedback",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "photo_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "address",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "photos",
+        "data_type": "ARRAY",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]",
+        "constraint_type": null
+      },
+      {
+        "column_name": "is_new",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "true",
+        "constraint_type": null
+      },
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      }
+    ]
+  },
+  "resource_requests": {
+    "columns": [
+      {
+        "column_name": "request_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('resource_requests_request_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "officer_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "project_name",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": "'Pending'::character varying",
+        "constraint_type": null
+      },
+      {
+        "column_name": "request_note",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "admin_notes",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP",
+        "constraint_type": null
+      }
+    ]
+  },
+  "resource_request_items": {
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('resource_request_items_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "request_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "inventory_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "quantity",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "1",
+        "constraint_type": null
+      }
+    ]
+  },
+  "resource_inventory": {
+    "columns": [
+      {
+        "column_name": "inventory_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('resource_inventory_inventory_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "item_name",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "category",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "total_stock",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0",
+        "constraint_type": null
+      },
+      {
+        "column_name": "available_stock",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0",
+        "constraint_type": null
+      },
+      {
+        "column_name": "unit",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": "'pieces'::character varying",
+        "constraint_type": null
+      },
+      {
+        "column_name": "image_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP",
+        "constraint_type": null
+      }
+    ]
+  },
+  "resource_allocations": {
+    "columns": [
+      {
+        "column_name": "allocation_id",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "nextval('resource_allocations_allocation_id_seq'::regclass)",
+        "constraint_type": "PRIMARY KEY"
+      },
+      {
+        "column_name": "inventory_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "beneficiary_id",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": "FOREIGN KEY"
+      },
+      {
+        "column_name": "quantity",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "1",
+        "constraint_type": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": "'Delivered'::character varying",
+        "constraint_type": null
+      },
+      {
+        "column_name": "delivery_date",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP",
+        "constraint_type": null
+      },
+      {
+        "column_name": "return_date",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "admin_notes",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null,
+        "constraint_type": null
+      },
+      {
+        "column_name": "condition",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": "'Functional'::character varying",
+        "constraint_type": null
+      }
+    ]
+  }
+}

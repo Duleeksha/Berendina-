@@ -5,8 +5,6 @@ export const PROJECT_MILESTONES = [
     { label: '4. Monitoring', value: 80, description: 'Implementation & Visits' },
     { label: '5. Graduation', value: 100, description: 'Project Completed' }
 ];
-
 export const getMilestoneFromValue = (value) => {
-    // Exact match or closest lower match
     return PROJECT_MILESTONES.slice().reverse().find(m => value >= m.value) || PROJECT_MILESTONES[0];
 };

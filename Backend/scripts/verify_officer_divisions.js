@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 async function verify() {
   try {
     const res = await pool.query('SELECT user_id, ds_division FROM officer_details');
@@ -10,19 +9,15 @@ async function verify() {
     } else {
       console.log('SUCCESS: All officers have a DS Division assigned.');
     }
-    
-    // Check distribution
     const distribution = res.rows.reduce((acc, r) => {
       acc[r.ds_division] = (acc[r.ds_division] || 0) + 1;
       return acc;
     }, {});
     console.log('Distribution:', distribution);
-    
     process.exit(0);
   } catch (err) {
     console.error(err);
     process.exit(1);
   }
 }
-
 verify();

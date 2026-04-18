@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FieldVisits.css';
 import { PROJECT_MILESTONES, getMilestoneFromValue } from '../../utils/progressConstants';
-
 const FieldVisits = () => {
   const navigate = useNavigate();
   const [visits, setVisits] = useState([]);
@@ -10,27 +9,18 @@ const FieldVisits = () => {
   const [selectedOfficerId, setSelectedOfficerId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
-
-  // Modals
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isDayDetailsModalOpen, setIsDayDetailsModalOpen] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState(null);
-  
-  // Calendar State
   const [viewDate, setViewDate] = useState(new Date());
   const [selectedDayVisits, setSelectedDayVisits] = useState([]);
   const [selectedDayLabel, setSelectedDayLabel] = useState('');
-  
-  // Record Results State
   const [visitResult, setVisitResult] = useState({ notes: '', feedback: '', status: 'completed' });
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [localResourceConditions, setLocalResourceConditions] = useState({});
   const [selectedPhase, setSelectedPhase] = useState(null);
-
-  // Schedule Visit State
   const [projects, setProjects] = useState([]);
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [scheduleData, setScheduleData] = useState({
@@ -43,12 +33,10 @@ const FieldVisits = () => {
     officerId: '',
     beneficiaryId: ''
   });
-
   const currentUser = React.useMemo(() => {
     const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   }, []);
-
   const filteredOfficers = React.useMemo(() => {
     return (officers || []).filter(off => {
       const isOffAvailable = off.isAvailable !== false;
@@ -56,15 +44,12 @@ const FieldVisits = () => {
       return isOffAvailable && fullName.includes(searchTerm.toLowerCase());
     });
   }, [officers, searchTerm]);
-
   const fetchVisits = useCallback(async (officerId) => {
-
     setLoading(true);
     try {
       let url = 'http://localhost:5000/api/visits';
       const targetId = officerId || (currentUser?.role === 'officer' ? currentUser.id : null);
       if (targetId) url += `?officerId=${targetId}`;
-      
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
@@ -78,7 +63,6 @@ const FieldVisits = () => {
       setLoading(false);
     }
   }, [currentUser?.id, currentUser?.role]);
-
   const fetchOfficers = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/auth/officers');
@@ -87,10 +71,8 @@ const FieldVisits = () => {
         setOfficers(data);
       }
     } catch (error) {
-       // Silently fail if non-critical, or add alert if preferred.
     }
   };
-
   const fetchProjects = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/projects');
@@ -99,10 +81,8 @@ const FieldVisits = () => {
         setProjects(data);
       }
     } catch (error) {
-       // Non-critical data fetch
     }
   };
-
   useEffect(() => {
     if (currentUser?.role === 'admin') {
       fetchOfficers();
@@ -112,12 +92,10 @@ const FieldVisits = () => {
       fetchVisits();
     }
   }, [currentUser?.role, fetchVisits]);
-
   const handleOfficerSelect = (id) => {
     setSelectedOfficerId(id);
     fetchVisits(id);
   };
-
   const handleProjectChange = async (projectName) => {
     setScheduleData(prev => ({ 
       ...prev, 
@@ -136,7 +114,6 @@ const FieldVisits = () => {
        alert("Error: Could not retrieve beneficiaries for the selected project.");
     }
   };
-
   const handleBeneficiaryChange = (id) => {
     const ben = beneficiaries.find(b => b.id === parseInt(id));
     if (ben) {
@@ -149,13 +126,11 @@ const FieldVisits = () => {
       });
     }
   };
-
   const handleOpenScheduleModal = () => {
     navigate('/field-officers', { 
       state: { message: "Please check the availability of the field visitors and schedule" } 
     });
   };
-
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -188,11 +163,8 @@ const FieldVisits = () => {
       setIsSaving(false);
     }
   };
-
   const handleOpenRecordModal = (visit) => {
     setSelectedVisit(visit);
-    
-    // Initialize audit state
     const initialConditions = {};
     if (visit.allocated_resources) {
         visit.allocated_resources.forEach(res => {
@@ -200,11 +172,8 @@ const FieldVisits = () => {
         });
     }
     setLocalResourceConditions(initialConditions);
-
-    // Initialize phase
     const currentMilestone = getMilestoneFromValue(visit.beneficiary_progress || 0);
     setSelectedPhase(currentMilestone);
-
     setVisitResult({
       notes: visit.notes || '',
       feedback: visit.feedback || '',
@@ -212,11 +181,9 @@ const FieldVisits = () => {
     });
     setIsRecordModalOpen(true);
   };
-
   const handlePhotoChange = (e) => {
     setSelectedPhotos(Array.from(e.target.files));
   };
-
   const handleSubmitResult = async (e) => {
     e.preventDefault();
     const resourceUpdates = Object.entries(localResourceConditions).map(([id, data]) => ({
@@ -224,20 +191,17 @@ const FieldVisits = () => {
         name: data.name,
         condition: data.condition
     }));
-
     setIsSaving(true);
     const formData = new FormData();
     formData.append('notes', visitResult.notes);
     formData.append('feedback', visitResult.feedback);
     formData.append('status', visitResult.status);
     formData.append('resourceUpdates', JSON.stringify(resourceUpdates));
-    
     if (selectedPhase) {
       formData.append('beneficiaryProgress', selectedPhase.value);
       formData.append('beneficiaryPhase', selectedPhase.label);
     }
     selectedPhotos.forEach(p => formData.append('photos', p));
-
     try {
       const response = await fetch(`http://localhost:5000/api/visits/${selectedVisit.id}`, {
         method: 'PUT',
@@ -254,14 +218,11 @@ const FieldVisits = () => {
       setIsSaving(false);
     }
   };
-
   const getFileUrl = (path) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
     return `http://localhost:5000${path}`;
   };
-
-  // Calendar Helpers
   const getNormalizedDate = (d) => {
     if (!d) return '';
     const dateObj = new Date(d);
@@ -270,29 +231,22 @@ const FieldVisits = () => {
     const da = String(dateObj.getDate()).padStart(2, '0');
     return `${yr}-${mo}-${da}`;
   };
-
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
   const handlePrevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
   const handleNextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
-
   const handleDayClick = (day) => {
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth() + 1;
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
-    // Use normalization for filtering
     const dayVisits = (visits || []).filter(v => getNormalizedDate(v.date) === dateStr);
     setSelectedDayVisits(dayVisits);
     setSelectedDayLabel(`${monthNames[viewDate.getMonth()]} ${day}, ${year}`);
     setIsDayDetailsModalOpen(true);
   };
-
   const activeVisits = (visits || []).filter(v => v.status === 'scheduled' || v.status === 'pending');
   const completedHistory = (visits || []).filter(v => v.status === 'completed' || v.status === 'cancelled');
-
   return (
     <div className="field-visits-page-content">
       <div className="page-header">
@@ -306,7 +260,6 @@ const FieldVisits = () => {
           </button>
         )}
       </div>
-
       <div className="calendar-container">
         {currentUser?.role === 'admin' && (
           <div className="content-card officer-sidebar">
@@ -352,15 +305,12 @@ const FieldVisits = () => {
             </div>
           </div>
         )}
-
-
         <div className="content-card calendar-section">
            <div className="calendar-header-nav">
               <button className="nav-btn" onClick={handlePrevMonth}>&lt;</button>
               <h3>{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</h3>
               <button className="nav-btn" onClick={handleNextMonth}>&gt;</button>
            </div>
-           
            <div className="calendar-days-header">
              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <div key={i}>{d}</div>)}
            </div>
@@ -373,7 +323,6 @@ const FieldVisits = () => {
                 const dateStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const dayVisits = (visits || []).filter(v => getNormalizedDate(v.date) === dateStr);
                 const hasActiveVisit = dayVisits.some(v => v.status !== 'completed' && v.status !== 'cancelled');
-                
                 return (
                   <div 
                     key={day} 
@@ -396,7 +345,6 @@ const FieldVisits = () => {
               </div>
             </div>
         </div>
-
         <div className="side-column" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="content-card upcoming-section" style={{ display: 'flex', flexDirection: 'column', maxHeight: '45vh', border: '1px solid #111827' }}>
             <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#111827', fontWeight: 800 }}>📅 Upcoming Visits</h3>
@@ -419,7 +367,6 @@ const FieldVisits = () => {
               )) : <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center' }}>No upcoming visits.</p>}
             </div>
           </div>
-
           <div className="content-card history-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, maxHeight: '40vh', background: '#fcfcfc', border: '1px solid #111827' }}>
             <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#111827', fontWeight: 800 }}>📂 Visit History</h3>
             <div className="timeline-items" style={{ overflowY: 'auto', paddingRight: '5px' }}>
@@ -442,8 +389,7 @@ const FieldVisits = () => {
           </div>
         </div>
       </div>
-
-      {/* SCHEDULE MODAL (ADMIN) */}
+      {}
       {isScheduleModalOpen && (
         <div className="modal-overlay" style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',  backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1001}}>
           <div className="modal-content" style={{background: 'white', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '500px'}}>
@@ -498,8 +444,7 @@ const FieldVisits = () => {
           </div>
         </div>
       )}
-
-      {/* RECORD / VIEW MODAL (COMMON) */}
+      {}
       {isRecordModalOpen && selectedVisit && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
@@ -521,7 +466,6 @@ const FieldVisits = () => {
                 color: '#6b7280', fontWeight: 'bold'
               }}
             >✕</button>
-
             <div style={{textAlign: 'center', marginBottom: '25px'}}>
               <div style={{
                 width: '60px', height: '60px', background: '#eff6ff', color: '#2563eb',
@@ -531,7 +475,6 @@ const FieldVisits = () => {
               <h2 style={{margin: 0, color: '#111827', fontSize: '24px'}}>{currentUser?.role === 'officer' ? 'Record Visit' : 'Visit Details'}</h2>
               <p style={{margin: '5px 0 0', color: '#6b7280'}}>Visit Information & Assignment</p>
             </div>
-
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px'}}>
               <div style={{background: '#f9fafb', padding: '15px', borderRadius: '12px'}}>
                 <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase'}}>Name</label>
@@ -542,14 +485,12 @@ const FieldVisits = () => {
                 <div style={{color: '#111827', fontWeight: 600}}>{selectedVisit.district}</div>
               </div>
             </div>
-
             <div style={{background: '#f0f9ff', padding: '20px', borderRadius: '15px', marginBottom: '25px', border: '1px solid #bae6fd'}}>
               <label style={{display: 'block', fontSize: '12px', color: '#0369a1', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Assigned Project</label>
               <div style={{color: '#0c4a6e', fontSize: '18px', fontWeight: 700}}>
                 {selectedVisit.project_name || 'No Project Assigned'}
               </div>
             </div>
-
             <div style={{marginBottom: '25px'}}>
               <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em'}}>
                 📋 Resource Audit (Verify Condition)
@@ -594,7 +535,6 @@ const FieldVisits = () => {
                 )}
               </div>
             </div>
-
             <form onSubmit={handleSubmitResult}>
               <div className="form-group" style={{marginBottom: '20px'}}>
                 <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Visit Feedback & Notes</label>
@@ -608,7 +548,6 @@ const FieldVisits = () => {
                   style={{borderRadius: '12px', resize: 'none'}}
                 />
               </div>
-
               <div className="form-group" style={{marginBottom: '20px'}}>
                 <label style={{display: 'block', fontSize: '13px', color: '#666', marginBottom: '10px', fontWeight: 600}}>PROJECT PROGRESS PHASE</label>
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px'}}>
@@ -650,7 +589,6 @@ const FieldVisits = () => {
                     </div>
                 )}
               </div>
-
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px'}}>
                 <div className="form-group">
                   <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Status</label>
@@ -673,7 +611,6 @@ const FieldVisits = () => {
                   </div>
                 )}
               </div>
-              
               <div style={{display: 'flex', gap: '15px', marginTop: '25px'}}>
                 <button type="button" onClick={() => setIsRecordModalOpen(false)} className="cancel-btn" style={{flex: 1, borderRadius: '12px'}}>{currentUser?.role === 'officer' && selectedVisit.status !== 'completed' ? 'Cancel' : 'Close'}</button>
                 {currentUser?.role === 'officer' && selectedVisit.status !== 'completed' && (
@@ -686,8 +623,7 @@ const FieldVisits = () => {
           </div>
         </div>
       )}
-
-      {/* DAY DETAILS MODAL */}
+      {}
       {isDayDetailsModalOpen && (
         <div className="modal-overlay" style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',  backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1001}}>
           <div className="modal-content" style={{background: 'white', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '400px'}}>
@@ -716,5 +652,4 @@ const FieldVisits = () => {
     </div>
   );
 };
-
 export default FieldVisits;

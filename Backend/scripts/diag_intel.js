@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 async function testQuery(name, sql) {
   try {
     console.log(`Testing: ${name}...`);
@@ -12,7 +11,6 @@ async function testQuery(name, sql) {
     return null;
   }
 }
-
 async function run() {
   await testQuery('Project Pulse', `
     WITH LatestProgress AS (
@@ -46,13 +44,11 @@ async function run() {
     FROM ProjectMetrics
     WHERE (beneficiary_count > 0 OR name IS NOT NULL)
   `);
-
   await testQuery('Overdue Visits', `
     SELECT COUNT(*) as count 
     FROM field_visits 
     WHERE status ILIKE 'scheduled' AND visit_date < CURRENT_DATE
   `);
-
   await testQuery('Stagnant Ben', `
     SELECT COUNT(*) as count
     FROM beneficiary b
@@ -61,7 +57,6 @@ async function run() {
       WHERE update_date >= CURRENT_DATE - INTERVAL '30 days'
     ) AND b.ben_status ILIKE 'active'
   `);
-
   await testQuery('Officer Load', `
     SELECT 
       TRIM(CONCAT(u.first_name, ' ', u.last_name)) as name,
@@ -73,7 +68,6 @@ async function run() {
     WHERE u.role ILIKE 'officer' AND u.status = 'Active'
     GROUP BY u.user_id, name
   `);
-
   await testQuery('Resource Velocity', `
     SELECT 
       inv.item_name as name, 
@@ -85,8 +79,6 @@ async function run() {
     LEFT JOIN resource_allocations a ON inv.inventory_id = a.inventory_id
     GROUP BY inv.inventory_id, inv.item_name, inv.available_stock, inv.total_stock
   `);
-
   process.exit(0);
 }
-
 run();

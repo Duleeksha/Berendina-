@@ -5,10 +5,8 @@ import './Register.css';
 import '../Auth/Login.css'; 
 import { DS_DIVISIONS } from '../../constants/locations';
 import logo from '../../assets/berendina-logo.png';
-
 const Register = () => {
   const navigate = useNavigate();
-  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -30,13 +28,10 @@ const Register = () => {
     languages: [],
     emergency_contact: ''
   });
-  
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: 'Very Weak', color: '#ef4444' });
-
-  // Password Strength Logic
   useEffect(() => {
     const password = formData.password;
     let score = 0;
@@ -44,22 +39,18 @@ const Register = () => {
     if (/[A-Z]/.test(password)) score++;
     if (/[0-9]/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
-
     const labels = ['Too Weak', 'Weak', 'Moderate', 'Strong', 'Very Strong'];
     const colors = ['#ef4444', '#f59e0b', '#facc15', '#10b981', '#059669'];
-    
     setPasswordStrength({
       score: (score / 4) * 100,
       label: labels[score],
       color: colors[score]
     });
   }, [formData.password]);
-
   const validateField = (name, value) => {
     let error = '';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^(?:\+94|0)?[7][0-9]{8}$/;
-
     switch (name) {
       case 'email':
         if (!value) error = 'Email is required';
@@ -83,18 +74,13 @@ const Register = () => {
     }
     return error;
   };
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
-    
     setFormData(prev => ({ ...prev, [name]: newValue }));
-    
-    // Real-time validation
     const error = validateField(name, newValue);
     setErrors(prev => ({ ...prev, [name]: error }));
   };
-
   const handleLanguageChange = (e) => {
     const { value, checked } = e.target;
     const { languages } = formData;
@@ -104,7 +90,6 @@ const Register = () => {
       setFormData({ ...formData, languages: languages.filter(lang => lang !== value) });
     }
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
@@ -112,12 +97,10 @@ const Register = () => {
         const error = validateField(key, formData[key]);
         if (error) newErrors[key] = error;
     });
-
     if (!formData.terms_accepted) {
         alert("Please accept the Terms and Conditions to proceed.");
         return;
     }
-
     if (Object.keys(newErrors).length === 0) {
       setLoading(true);
       try {
@@ -136,13 +119,11 @@ const Register = () => {
       alert("Please fix the errors before submitting.");
     }
   };
-
   const getInputClass = (name) => {
     if (errors[name]) return 'input-field invalid';
     if (formData[name] && !errors[name]) return 'input-field valid';
     return 'input-field';
   };
-
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -151,8 +132,7 @@ const Register = () => {
         </div>
         <h1 className="company-name">Berendina Development</h1>
         <p className="subtitle">Join the mission. Create your account.</p>
-
-        {/* Role Card Switcher */}
+        {}
         <div className="role-cards-container">
           <div 
             className={`role-card ${formData.role === 'admin' ? 'active' : ''}`}
@@ -172,7 +152,6 @@ const Register = () => {
           </div>
         </div>
         {errors.role && <span className="form-error" style={{textAlign: 'center', marginBottom: '15px'}}>{errors.role}</span>}
-
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-row">
             <div className="form-group">
@@ -184,7 +163,6 @@ const Register = () => {
               {errors.lastName && <span className="form-error">{errors.lastName}</span>}
             </div>
           </div>
-
           <div className="form-row">
             <div className="form-group">
                 <input type="email" name="email" placeholder="Email address" className={getInputClass('email')} value={formData.email} onChange={handleChange} required />
@@ -199,8 +177,7 @@ const Register = () => {
                 </select>
             </div>
           </div>
-
-          {/* Admin Specific Fields */}
+          {}
           {formData.role === 'admin' && (
             <div className="staff-section">
                 <h4 className="section-title">Staff Credentials</h4>
@@ -224,8 +201,7 @@ const Register = () => {
                 </div>
             </div>
           )}
-
-          {/* Officer Specific Fields */}
+          {}
           {formData.role === 'officer' && (
             <div className="officer-section">
                 <h4 className="section-title">Field Operations Info</h4>
@@ -243,7 +219,6 @@ const Register = () => {
                         </select>
                     </div>
                 </div>
-
                 <div className="form-row">
                     <div className="form-group">
                         <select name="vehicleType" className="input-field select-field" onChange={handleChange}>
@@ -271,7 +246,6 @@ const Register = () => {
                         <input type="tel" name="emergency_contact" placeholder="Emergency Contact" className={getInputClass('emergency_contact')} onChange={handleChange} />
                     </div>
                 </div>
-
                 <div className="form-group">
                     <label className="field-label">Languages</label>
                     <div className="checkbox-group">
@@ -282,7 +256,6 @@ const Register = () => {
                 </div>
             </div>
           )}
-
           <div className="form-group">
             <div className="password-input-wrapper">
                 <input type={showPassword ? "text" : "password"} name="password" placeholder="Password" className={getInputClass('password')} value={formData.password} onChange={handleChange} required />
@@ -302,24 +275,20 @@ const Register = () => {
                 <span className="strength-text" style={{ color: passwordStrength.color }}>{passwordStrength.label}</span>
             </div>
           </div>
-
           <div className="form-group">
             <input type="password" name="confirmPassword" placeholder="Confirm Password" className={getInputClass('confirmPassword')} value={formData.confirmPassword} onChange={handleChange} required />
             {errors.confirmPassword && <span className="form-error">{errors.confirmPassword}</span>}
           </div>
-
           <div className="terms-container">
             <label className="checkbox-label">
                 <input type="checkbox" name="terms_accepted" checked={formData.terms_accepted} onChange={handleChange} />
                 I agree to the Berendina Data Privacy Policy and Staff Code of Conduct.
             </label>
           </div>
-
           <button type="submit" className="signin-button" disabled={loading}>
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
-
         <div className="auth-footer">
           <p>Already have an account? <Link to="/login">Sign In</Link></p>
         </div>
@@ -327,5 +296,4 @@ const Register = () => {
     </div>
   );
 };
-
 export default Register;

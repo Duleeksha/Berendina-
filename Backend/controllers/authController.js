@@ -1,9 +1,7 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcrypt';
 import transporter from '../config/mail.js';
-
-// --- AUTHENTICATION & USER MANAGEMENT ---
-
+// this part help new person join our system
 export const register = async (req, res) => {
   const { 
     firstName, lastName, email, role, password, 
@@ -11,15 +9,12 @@ export const register = async (req, res) => {
     organization, employee_id, department, branch, job_title, gender, terms_accepted,
     emergency_contact
   } = req.body;
-
   if (!firstName || !lastName || !email || !role || !password) {
     return res.status(400).json({ message: 'All required fields must be provided.' });
   }
-
   const emailTrimmed = email.trim().toLowerCase();
   const passwordHash = await bcrypt.hash(password, 10);
   const initialStatus = 'Pending';
-
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -28,7 +23,6 @@ export const register = async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(400).json({ message: 'User already exists.' });
     }
-
     const newUserResult = await client.query(
       `INSERT INTO user_table (
         first_name, last_name, email, password_hash, role, status, 
@@ -40,9 +34,7 @@ export const register = async (req, res) => {
         organization, employee_id, department, branch, job_title, gender, terms_accepted
       ]
     );
-    
     const newUserId = newUserResult.rows[0].user_id;
-
     if (role === 'officer') {
         const languagesString = Array.isArray(languages) ? languages.join(', ') : languages;
         await client.query(
@@ -50,10 +42,11 @@ export const register = async (req, res) => {
             [newUserId, mobileNumber, ds_division, vehicleType || 'None', vehicleNumber || null, languagesString, emergency_contact]
         );
     }
-
     await client.query('COMMIT');
     res.status(201).json({ message: 'Registration successful! Pending Admin approval.', user: newUserResult.rows[0] });
-  } catch (err) {
+  } 
+  
+  catch (err) {
     await client.query('ROLLBACK');
     console.error('Registration Error:', err.message);
     res.status(500).json({ message: 'Server Error during registration.' });
@@ -61,26 +54,22 @@ export const register = async (req, res) => {
     client.release();
   }
 };
-
+// check if person is good to come in
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
     const result = await pool.query('SELECT * FROM user_table WHERE email = $1', [email.trim().toLowerCase()]);
     if (result.rows.length === 0) return res.status(400).json({ message: 'Invalid credentials' });
-
     const user = result.rows[0];
     if (user.status === 'Pending') return res.status(403).json({ message: 'Account pending admin approval.' });
     if (user.status === 'Rejected') return res.status(403).json({ message: 'Account rejected by admin.' });
-
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
-
     res.json({ message: 'Login successful', user: { id: user.user_id, firstName: user.first_name, lastName: user.last_name, email: user.email, role: user.role } });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const getPendingUsers = async (req, res) => {
   try {
     const result = await pool.query(`
@@ -96,7 +85,6 @@ export const getPendingUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const approveUser = async (req, res) => {
   const { userId, action } = req.body; 
   const status = action === 'reject' ? 'Rejected' : 'Active';
@@ -107,25 +95,17 @@ export const approveUser = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-// --- OTP & PASSWORD RESET ---
-
 let otpStore = {};
-
 export const sendOTP = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: 'Email is required' });
-
   try {
-    // SECURITY: Check if user exists before sending OTP
     const user = await pool.query('SELECT * FROM user_table WHERE email = $1', [email.toLowerCase().trim()]);
     if (user.rows.length === 0) {
       return res.status(404).json({ message: 'No account found with this email address.' });
     }
-
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     otpStore[email] = { otp, expires: Date.now() + 600000, verified: false };
-
     await transporter.sendMail({
       from: '"Berendina System" <noreply@berendina.org>',
       to: email,
@@ -139,43 +119,32 @@ export const sendOTP = async (req, res) => {
     res.status(500).json({ message: 'Error processing request' });
   }
 };
-
 export const verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
   const entry = otpStore[email];
-  
   if (entry && entry.otp === otp && entry.expires > Date.now()) {
-    // Bridge to next step
     entry.verified = true; 
     res.json({ message: 'OTP verified! Proceed to reset password.' });
   } else {
     res.status(400).json({ message: 'Invalid or expired OTP' });
   }
 };
-
 export const resetPassword = async (req, res) => {
   const { email, newPassword } = req.body;
-  
-  // SECURITY: Require verified OTP state
   if (!otpStore[email] || !otpStore[email].verified) {
     return res.status(403).json({ message: 'Unauthorized. Please verify OTP first.' });
   }
-
   try {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(newPassword, salt);
     await pool.query('UPDATE user_table SET password_hash = $1 WHERE email = $2', [hash, email]);
-    
-    // Clear session
     delete otpStore[email]; 
-    
     res.json({ message: 'Password reset successful!' });
   } catch (err) {
     console.error('Reset error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const getOfficers = async (req, res) => {
   try {
     const query = `
@@ -190,7 +159,6 @@ export const getOfficers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const getOfficerById = async (req, res) => {
   const { id } = req.params;
   try {
@@ -211,7 +179,6 @@ export const getOfficerById = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const updateOfficer = async (req, res) => {
   const { id } = req.params;
   const { 
@@ -220,20 +187,15 @@ export const updateOfficer = async (req, res) => {
     organization, employee_id, department, branch, job_title, gender,
     emergency_contact
   } = req.body;
-
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
-    // Fetch existing data first to prevent accidental null overwrites for missing fields
     const currentRes = await client.query('SELECT u.*, o.* FROM user_table u LEFT JOIN officer_details o ON u.user_id = o.user_id WHERE u.user_id = $1', [id]);
     if (currentRes.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Officer not found' });
     }
     const current = currentRes.rows[0];
-
-    // Update user_table
     await client.query(
       `UPDATE user_table SET 
         first_name = $1, last_name = $2, organization = $3, 
@@ -252,8 +214,6 @@ export const updateOfficer = async (req, res) => {
         id
       ]
     );
-
-    // Update officer_details
     const languagesString = Array.isArray(languages) ? languages.join(', ') : (languages !== undefined ? languages : current.languages);
     await client.query(
       `UPDATE officer_details SET 
@@ -270,7 +230,6 @@ export const updateOfficer = async (req, res) => {
         id
       ]
     );
-
     await client.query('COMMIT');
     res.json({ message: 'Officer updated successfully' });
   } catch (err) {
@@ -281,19 +240,14 @@ export const updateOfficer = async (req, res) => {
     client.release();
   }
 };
-
 export const deleteOfficer = async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    // Delete visits associated with this officer
     await client.query('DELETE FROM field_visits WHERE officer_id = $1', [id]);
-    // Delete from officer_details
     await client.query('DELETE FROM officer_details WHERE user_id = $1', [id]);
-    // Delete from user_table
     await client.query('DELETE FROM user_table WHERE user_id = $1', [id]);
-    
     await client.query('COMMIT');
     res.json({ message: 'Officer deleted successfully' });
   } catch (err) {
@@ -304,21 +258,16 @@ export const deleteOfficer = async (req, res) => {
     client.release();
   }
 };
-
 export const updateOfficerAvailability = async (req, res) => {
   const { id } = req.params;
   const { isAvailable, updatedByRole } = req.body;
-  
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
     await client.query(
       'UPDATE officer_details SET is_available = $1 WHERE user_id = $2',
       [isAvailable, id]
     );
-
-    // If Admin sets to unavailable, trigger notification
     if (updatedByRole === 'admin' && isAvailable === false) {
       const message = "Your duty status was updated to 'Unavailable' by an Administrator.";
       await client.query(
@@ -326,7 +275,6 @@ export const updateOfficerAvailability = async (req, res) => {
         [id, message]
       );
     }
-
     await client.query('COMMIT');
     res.json({ message: 'Availability updated successfully' });
   } catch (err) {
@@ -337,9 +285,8 @@ export const updateOfficerAvailability = async (req, res) => {
     client.release();
   }
 };
-
 export const getNotifications = async (req, res) => {
-  const { userId } = req.query; // Simple retrieval for demo
+  const { userId } = req.query; 
   try {
     const result = await pool.query(
       'SELECT * FROM notification WHERE user_id = $1 ORDER BY sent_at DESC LIMIT 20',

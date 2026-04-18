@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 const mapping = [
   { id: 17, firstName: 'Kaveesha', lastName: 'Gunawardena' },
   { id: 18, firstName: 'Nuwan', lastName: 'Priyantha' },
@@ -19,7 +18,6 @@ const mapping = [
   { id: 32, firstName: 'Shani', lastName: 'Jayasuriya' },
   { id: 33, firstName: 'Priyantha', lastName: 'Wijesinghe' },
 ];
-
 async function update() {
   try {
     for (const item of mapping) {
@@ -37,5 +35,4 @@ async function update() {
     process.exit(1);
   }
 }
-
 update();

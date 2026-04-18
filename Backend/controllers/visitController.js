@@ -1,7 +1,6 @@
 import pool from '../config/db.js';
 import transporter from '../config/mail.js';
 import { uploadToSupabase } from '../middleware/upload.js';
-
 export const getFieldVisits = async (req, res) => {
   const { officerId } = req.query;
   try {
@@ -45,13 +44,10 @@ export const getFieldVisits = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const addFieldVisit = async (req, res) => {
   const { beneficiary, beneficiaryId, district, address, date, time, officerId, status, notes, feedback } = req.body;
   const photos = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'field-visits'))) : [];
-
   console.log("Scheduling Visit for:", { beneficiary, officerId, date });
-
   try {
     const query = `
       INSERT INTO field_visits (beneficiary_name, beneficiary_id, district, address, visit_date, visit_time, officer_id, status, notes, feedback, photos, is_new)
@@ -62,7 +58,6 @@ export const addFieldVisit = async (req, res) => {
     if (isNaN(parsedOfficerId)) {
         return res.status(400).json({ message: 'Invalid Officer ID' });
     }
-
     const values = [
       beneficiary || "", 
       beneficiaryId || null,
@@ -77,8 +72,6 @@ export const addFieldVisit = async (req, res) => {
       photos
     ];
     const result = await pool.query(query, values);
-    
-    // Fetch extra details for the email (Project & Resources)
     let emailProject = "N/A";
     let emailResources = [];
     if (beneficiaryId) {
@@ -93,15 +86,12 @@ export const addFieldVisit = async (req, res) => {
                 LEFT JOIN project p ON b.project_id = p.project_id
                 WHERE b.beneficiary_id = $1
             `, [beneficiaryId]);
-            
             if (extraRes.rows.length > 0) {
                 emailProject = extraRes.rows[0].project_name || "N/A";
                 emailResources = extraRes.rows[0].resources || [];
             }
         } catch (err) { console.error('Error fetching email details:', err); }
     }
-
-    // Notify officer with full details
     try {
       const officerRes = await pool.query('SELECT email, first_name, last_name FROM user_table WHERE user_id = $1', [parsedOfficerId]);
       if (officerRes.rows.length > 0) {
@@ -109,7 +99,6 @@ export const addFieldVisit = async (req, res) => {
           const resourceListHtml = emailResources.length > 0 
             ? `<ul>${emailResources.map(r => `<li>📦 ${r}</li>`).join('')}</ul>` 
             : '<i>No specific resources allocated.</i>';
-
           await transporter.sendMail({
               from: '"Berendina System" <noreply@berendina.org>',
               to: officer.email,
@@ -122,7 +111,6 @@ export const addFieldVisit = async (req, res) => {
                     <div style="padding: 25px;">
                         <p>Hello <b>${officer.first_name}</b>,</p>
                         <p>A new field visit has been assigned to you. Please see the full details below:</p>
-                        
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                             <h3 style="margin-top: 0; color: #0081c9; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px;">📍 Assignment Details</h3>
                             <table style="width: 100%; border-collapse: collapse;">
@@ -133,17 +121,14 @@ export const addFieldVisit = async (req, res) => {
                                 <tr><td style="padding: 5px 0; color: #666;"><b>Location:</b></td><td style="padding: 5px 0;">${address}, ${district}</td></tr>
                             </table>
                         </div>
-
                         <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0081c9;">
                             <h3 style="margin-top: 0; color: #0c4a6e;">📦 Resources to Audit</h3>
                             ${resourceListHtml}
                         </div>
-
                         <div style="background: #fff8e1; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffb300;">
                             <h3 style="margin-top: 0; color: #7f5f01;">📝 Notes from Administrator</h3>
                             <p style="margin: 0;">${notes || "No special notes provided."}</p>
                         </div>
-
                         <p style="font-size: 13px; color: #666; font-style: italic;">
                             Please ensure you record the visit results and resource conditions in your officer dashboard upon completion.
                         </p>
@@ -156,23 +141,19 @@ export const addFieldVisit = async (req, res) => {
           });
       }
     } catch (err) { console.error('Email notification failed:', err); }
-
     res.status(201).json({ message: 'Visit scheduled!', data: result.rows[0] });
   } catch (error) {
     console.error("Add Visit SQL Error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
 export const updateFieldVisit = async (req, res) => {
   const { id } = req.params;
   const { notes, feedback, status, resourceUpdates, beneficiaryProgress, beneficiaryPhase } = req.body;
   const photos = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'field-visits'))) : [];
-
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
     let query, values;
     if (photos.length > 0) {
       query = `UPDATE field_visits SET notes=$1, feedback=$2, status=$3, photos=array_cat(photos, $4), is_new=FALSE WHERE visit_id=$5 RETURNING *;`;
@@ -183,20 +164,15 @@ export const updateFieldVisit = async (req, res) => {
     }
     const result = await client.query(query, values);
     const visitData = result.rows[0];
-
-    // Handle Resource Audit Updates
     if (resourceUpdates && Array.isArray(resourceUpdates)) {
         for (const update of resourceUpdates) {
             await client.query(
                 'UPDATE resource_allocations SET condition = $1 WHERE allocation_id = $2',
                 [update.condition, update.id]
             );
-
-            // Trigger Admin Alert if Damaged or Repair
             if (update.condition === 'Damaged' || update.condition === 'Repair') {
                 const adminIdsRes = await client.query("SELECT user_id FROM user_table WHERE role = 'admin' AND status = 'Active'");
                 const alertMsg = `ALERT: Resource '${update.name}' reported as '${update.condition}' during visit for ${visitData.beneficiary_name}.`;
-                
                 for (const admin of adminIdsRes.rows) {
                     await client.query(
                         'INSERT INTO notification (user_id, message, sent_at, read_status) VALUES ($1, $2, NOW(), FALSE)',
@@ -206,22 +182,16 @@ export const updateFieldVisit = async (req, res) => {
             }
         }
     }
-
-    // Update Beneficiary Overall Progress if provided
     if (beneficiaryProgress !== undefined && visitData.beneficiary_id) {
         await client.query('UPDATE beneficiary SET ben_progress = $1 WHERE beneficiary_id = $2', [beneficiaryProgress, visitData.beneficiary_id]);
-        
-        // Log in progress history
         const logComment = beneficiaryPhase 
             ? `Phase updated to: ${beneficiaryPhase} (via Visit #${id})`
             : `Progress updated via Field Visit #${id}`;
-            
         await client.query(
             'INSERT INTO progress_history (beneficiary_id, progress_value, comment, update_date) VALUES ($1, $2, $3, NOW())', 
             [visitData.beneficiary_id, beneficiaryProgress, logComment]
         );
     }
-
     if (status === 'completed') {
         try {
             await transporter.sendMail({
@@ -232,7 +202,6 @@ export const updateFieldVisit = async (req, res) => {
             });
         } catch (err) { console.error('Admin notification failed:', err); }
     }
-
     await client.query('COMMIT');
     res.json({ message: 'Visit and Resource Audit updated!', data: visitData });
   } catch (error) {
@@ -243,7 +212,6 @@ export const updateFieldVisit = async (req, res) => {
     client.release();
   }
 };
-
 export const markAsRead = async (req, res) => {
   const { visitIds, userId } = req.body;
   try {

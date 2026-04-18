@@ -2,8 +2,6 @@ import pool from '../config/db.js';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import ExcelJS from 'exceljs';
-
-// Helper to handle jspdf-autotable resolution in varied Node environments
 const safeAutoTable = (doc, options) => {
   if (typeof autoTable === 'function') {
     return autoTable(doc, options);
@@ -14,61 +12,44 @@ const safeAutoTable = (doc, options) => {
   }
   console.error("autoTable resolution failed");
 };
-
 export const getDashboardStats = async (req, res) => {
   const data = {};
   try {
     const benRes = await pool.query('SELECT COUNT(*) FROM beneficiary');
     data.totalBeneficiaries = parseInt(benRes.rows[0].count);
-
     const activeProjRes = await pool.query("SELECT COUNT(*) FROM project WHERE status ILIKE 'active'");
     data.activeProjects = parseInt(activeProjRes.rows[0].count);
-
     const pendingRes = await pool.query("SELECT COUNT(*) FROM user_table WHERE status = 'Pending'");
     data.pendingRequests = parseInt(pendingRes.rows[0].count);
-
-    // Onboarding Trend with dummy data fallback
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentMonth = new Date().getMonth();
     const last6Months = [];
     for (let i = 5; i >= 0; i--) {
       const idx = (currentMonth - i + 12) % 12;
-      // If it's the current month (i == 0), use 0 as base dummy data; otherwise use random dummy data.
       const baseCount = (i === 0) ? 0 : (Math.floor(Math.random() * 10) + 5);
       last6Months.push({ name: months[idx], beneficiaries: baseCount });
     }
-
     const trendRes = await pool.query("SELECT TO_CHAR(created_at, 'Mon') as name, COUNT(*) as beneficiaries FROM beneficiary GROUP BY name");
-    
-    // Merge real data into the last 6 months
     data.onboardingTrend = last6Months.map(m => {
       const real = trendRes.rows.find(r => r.name === m.name);
       const realCount = real ? parseInt(real.beneficiaries) : 0;
-      // If it's the current month (matching current label), show exact real count.
-      // Otherwise, show dummy + real.
       return { ...m, beneficiaries: m.beneficiaries + realCount };
     });
-
     const distRes = await pool.query("SELECT COALESCE(ben_project, 'Unassigned') as name, COUNT(*) as beneficiaries FROM beneficiary GROUP BY name");
     data.projectDistribution = distRes.rows.map(r => ({ ...r, beneficiaries: parseInt(r.beneficiaries) }));
-
     const resRes = await pool.query('SELECT SUM(quantity) as total FROM resource');
     data.totalResources = parseInt(resRes.rows[0].total) || 0;
-
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: 'Server error retrieving dashboard stats' });
   }
 };
-
 export const getReportData = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
     let query = "";
     let params = [];
     let pIdx = 1;
-
-    // Base filtering logic for shared parameters
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
       if (project && project !== "") { 
@@ -95,7 +76,6 @@ export const getReportData = async (req, res) => {
       }
       return filterPart;
     };
-
     switch (reportType) {
       case 'progress':
         query = `
@@ -106,7 +86,6 @@ export const getReportData = async (req, res) => {
           ORDER BY ph.update_date DESC
         `;
         break;
-      
       case 'visits':
         query = `
           SELECT fv.visit_id, fv.visit_date, fv.beneficiary_name, 
@@ -119,7 +98,6 @@ export const getReportData = async (req, res) => {
           ORDER BY fv.visit_date DESC
         `;
         break;
-
       case 'resources':
         query = `
           SELECT a.allocation_id as resource_id, inv.item_name as resource_name, inv.category as type, 
@@ -131,7 +109,6 @@ export const getReportData = async (req, res) => {
           ORDER BY a.allocation_id DESC
         `;
         break;
-
       case 'performance':
         query = `
           SELECT TO_CHAR(created_at, 'Month YYYY') as period, 
@@ -144,17 +121,12 @@ export const getReportData = async (req, res) => {
           ORDER BY TO_CHAR(created_at, 'YYYY-MM') DESC
         `;
         break;
-
       default:
         query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
     }
-
     const result = await pool.query(query, params);
     const rows = result.rows || [];
-
-    // Different stats based on report type
     let stats = { total: rows.length };
-    
     if (!reportType || reportType === 'default') {
       stats = {
         total: rows.length,
@@ -169,21 +141,18 @@ export const getReportData = async (req, res) => {
       stats.completed = rows.filter(r => (r.status || '').toLowerCase() === 'completed').length;
       stats.scheduled = rows.filter(r => (r.status || '').toLowerCase() === 'scheduled').length;
     }
-
     res.json({ rows, stats });
   } catch (error) {
     console.error("Report Fetch Error:", error);
     res.status(500).json({ message: 'Server error fetching reports', details: error.message });
   }
 };
-
 export const exportPDF = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
     let query = "";
     let params = [];
     let pIdx = 1;
-
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
       if (project && project !== "") { 
@@ -206,16 +175,12 @@ export const exportPDF = async (req, res) => {
       }
       return filterPart;
     };
-
     let title = "Beneficiary Report";
     let headers = [['Name', 'NIC', 'DS Division', 'Project', 'Status']];
     let mapper = (b) => [b.ben_first_name + ' ' + b.ben_last_name, b.ben_nic, b.ben_district, b.ben_project, b.ben_status];
     let body = [];
-
     if (reportType === 'executive') {
       title = "Executive Strategic Intelligence Report";
-      
-      // Filter components for Executive
       let filterClause = "";
       let exParams = [];
       let exIdx = 1;
@@ -227,8 +192,6 @@ export const exportPDF = async (req, res) => {
         filterClause += ` AND LOWER(TRIM(b.ben_district)) = LOWER(TRIM($${exIdx++}))`;
         exParams.push(district);
       }
-
-      // 1. Fetch data using the robust intelligence algorithms with FILTERS
       const healthRes = await pool.query(`
         WITH LatestProgress AS (
           SELECT DISTINCT ON (beneficiary_id) beneficiary_id, progress_value, update_date
@@ -247,18 +210,14 @@ export const exportPDF = async (req, res) => {
           END as expected_progress
         FROM ProjectMetrics WHERE beneficiary_count > 0 ORDER BY name ASC
       `, exParams);
-
       const overdueRes = await pool.query(`
         SELECT COUNT(*) as count FROM field_visits v JOIN beneficiary b ON v.beneficiary_id = b.beneficiary_id 
         WHERE v.status ILIKE 'scheduled' AND v.visit_date < CURRENT_DATE ${filterClause}
       `, exParams);
-      
       const stagnantRes = await pool.query(`
         SELECT COUNT(*) as count FROM beneficiary b WHERE b.beneficiary_id NOT IN (SELECT beneficiary_id FROM progress_history WHERE update_date >= CURRENT_DATE - INTERVAL '30 days') 
         AND b.ben_status ILIKE 'active' ${filterClause}
       `, exParams);
-
-      // 1.1 Fetch Officer Load (Filtered)
       const loadRes = await pool.query(`
         SELECT TRIM(CONCAT(u.first_name, ' ', u.last_name)) as name,
                COUNT(DISTINCT b.beneficiary_id) as active_cases,
@@ -269,8 +228,6 @@ export const exportPDF = async (req, res) => {
         WHERE u.role ILIKE 'officer' AND u.status = 'Active' ${filterClause}
         GROUP BY u.user_id, name ORDER BY active_cases DESC LIMIT 10
       `, exParams);
-
-      // 1.2 Fetch Resource Velocity (Filtered)
       const resourceRes = await pool.query(`
         SELECT inv.item_name as name, COALESCE(inv.available_stock, 0) as stock, COALESCE(inv.total_stock, 1) as total_stock
         FROM resource_inventory inv 
@@ -280,41 +237,29 @@ export const exportPDF = async (req, res) => {
         GROUP BY inv.inventory_id, inv.item_name, inv.available_stock, inv.total_stock
         ORDER BY inv.available_stock ASC LIMIT 10
       `, exParams);
-
-      // 2. Generate PDF
       const doc = new jsPDF();
-      
-      // Header Section
       doc.setFillColor(37, 99, 235);
       doc.rect(0, 0, 210, 40, 'F');
       doc.setFontSize(24);
       doc.setTextColor(255, 255, 255);
       doc.text("STRATEGIC INTELLIGENCE", 14, 25);
-      
       doc.setFontSize(10);
       doc.text(`MISSION STATUS REPORT | GENERATED: ${new Date().toLocaleString()}`, 14, 33);
-
-      // Section: Strategic Risks Radar
       doc.setTextColor(37, 99, 235);
       doc.setFontSize(14);
       doc.text("1. Strategic Risk Radar", 14, 55);
-      
       doc.setTextColor(0);
       doc.setFontSize(10);
       doc.text(`• Critical Pipeline Health: ${overdueRes.rows[0].count} Overdue Field Visits requiring immediate scheduling.`, 20, 65);
       doc.text(`• Case Stagnation: ${stagnantRes.rows[0].count} Beneficiaries with no progress update in over 30 days.`, 20, 71);
-
-      // Section: Project Performance
       doc.setTextColor(37, 99, 235);
       doc.setFontSize(14);
       doc.text("2. Mission Health (Actual vs Target)", 14, 85);
-      
       const healthBody = healthRes.rows.map(p => {
         const expected = Math.max(1, p.expected_progress || 0);
         const health = Math.min(100, Math.round((p.progress / expected) * 100));
         return [p.name, `${p.progress}%`, `${expected}%`, `${health}%`];
       });
-
       safeAutoTable(doc, {
         startY: 90,
         head: [['Mission Area', 'Actual Prog.', 'Target Prog.', 'Health Score']],
@@ -322,30 +267,22 @@ export const exportPDF = async (req, res) => {
         headStyles: { fillColor: [37, 99, 235] },
         styles: { fontSize: 9, cellPadding: 3 }
       });
-
       let currentY = doc.lastAutoTable.finalY + 15;
-
-      // Section: Officer Operational Efficiency
       doc.setTextColor(37, 99, 235);
       doc.setFontSize(14);
       doc.text("3. Officer Operational Efficiency", 14, currentY);
-      
       const officerBody = loadRes.rows.map(o => [o.name, o.active_cases, o.completed_visits]);
       safeAutoTable(doc, {
         startY: currentY + 5,
         head: [['Officer Name', 'Active Caseload', 'Completed Visits']],
         body: officerBody,
-        headStyles: { fillColor: [31, 41, 55] }, // Darker grey for operational
+        headStyles: { fillColor: [31, 41, 55] }, 
         styles: { fontSize: 9, cellPadding: 3 }
       });
-
       currentY = doc.lastAutoTable.finalY + 15;
-
-      // Section: Resource Supply Velocity
       doc.setTextColor(37, 99, 235);
       doc.setFontSize(14);
       doc.text("4. Resource Depletion Risk", 14, currentY);
-      
       const resourceBody = resourceRes.rows.map(r => {
         const level = Math.round((r.stock / r.total_stock) * 100);
         return [r.name, r.stock, r.total_stock, `${level}%`];
@@ -354,26 +291,21 @@ export const exportPDF = async (req, res) => {
         startY: currentY + 5,
         head: [['Inventory Item', 'Available', 'Total Capacity', 'Stock Level']],
         body: resourceBody,
-        headStyles: { fillColor: [5, 150, 105] }, // Emerald green for resources
+        headStyles: { fillColor: [5, 150, 105] }, 
         styles: { fontSize: 9, cellPadding: 3 }
       });
-
-      // Guided Actions - New Page if needed
       if (doc.lastAutoTable.finalY > 220) {
         doc.addPage();
         currentY = 25;
       } else {
         currentY = doc.lastAutoTable.finalY + 15;
       }
-
       doc.setTextColor(37, 99, 235);
       doc.setFontSize(14);
       doc.text("5. Recommended Strategic Guidance", 14, currentY);
-      
       doc.setTextColor(100);
       doc.setFontSize(10);
       doc.text("Automated strategic priorities identified by the intelligence engine:", 14, currentY + 8);
-      
       let actionY = currentY + 18;
       if (overdueRes.rows[0].count > 0) {
         doc.text("• OPERATIONAL: Backlog detected in field visits. Priority re-scheduling required.", 20, actionY);
@@ -382,8 +314,6 @@ export const exportPDF = async (req, res) => {
       doc.text("• LOGISTICS: Prioritize procurement for items below 25% stock to avoid mission stoppage.", 20, actionY);
       actionY += 7;
       doc.text("• PERFORMANCE: Monitor projects with Health Score below 60% for immediate intervention.", 20, actionY);
-
-      // Footer
       const pageCount = doc.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -392,7 +322,6 @@ export const exportPDF = async (req, res) => {
         doc.text("CONFIDENTIAL - DECISION SUPPORT SYSTEM", 105, 287, { align: 'center' });
         doc.text(`Page ${i} of ${pageCount}`, 200, 287, { align: 'right' });
       }
-
       const buffer = Buffer.from(doc.output('arraybuffer'));
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -401,8 +330,6 @@ export const exportPDF = async (req, res) => {
       res.setHeader('Content-Disposition', `${req.query.preview === 'true' ? 'inline' : 'attachment'}; filename=strategic_report.pdf`);
       return res.send(buffer);
     }
-
-    // Standard Tabular Reports
     switch (reportType) {
       case 'progress':
         title = "Beneficiary Progress Report";
@@ -431,19 +358,15 @@ export const exportPDF = async (req, res) => {
       default:
         query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
     }
-
     const result = await pool.query(query, params);
     const doc = new jsPDF();
-    
     doc.setFontSize(22);
     doc.setTextColor(37, 99, 235);
     doc.text(title, 14, 22);
-    
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
     doc.text(`Total Records: ${result.rows.length}`, 14, 35);
-    
     safeAutoTable(doc, { 
       startY: 45,
       head: headers, 
@@ -452,7 +375,6 @@ export const exportPDF = async (req, res) => {
       alternateRowStyles: { fillColor: [248, 250, 252] },
       margin: { top: 45 }
     });
-
     const buffer = Buffer.from(doc.output('arraybuffer'));
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -465,14 +387,12 @@ export const exportPDF = async (req, res) => {
     res.status(500).json({ message: 'PDF Export failed', details: error.message });
   }
 };
-
 export const exportExcel = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
     let query = "";
     let params = [];
     let pIdx = 1;
-
     const getFilters = (tablePrefix = "", includeDate = true) => {
       let filterPart = "";
       if (project && project !== "") { 
@@ -495,7 +415,6 @@ export const exportExcel = async (req, res) => {
       }
       return filterPart;
     };
-
     let columns = [
       { header: 'Name', key: 'name', width: 25 },
       { header: 'NIC', key: 'nic', width: 20 },
@@ -510,9 +429,7 @@ export const exportExcel = async (req, res) => {
       project: b.ben_project, 
       status: b.ben_status 
     });
-
     if (reportType === 'executive') {
-       // Fetch summary data for excel
        const healthRes = await pool.query(`
         WITH LatestProgress AS (
           SELECT DISTINCT ON (beneficiary_id) beneficiary_id, progress_value, update_date
@@ -522,30 +439,24 @@ export const exportExcel = async (req, res) => {
         FROM beneficiary b LEFT JOIN LatestProgress lp ON b.beneficiary_id = lp.beneficiary_id
         WHERE b.ben_project IS NOT NULL GROUP BY b.ben_project
       `);
-
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Strategic Overview');
-      
       worksheet.columns = [
         { header: 'Project Name', key: 'name', width: 30 },
         { header: 'Health Score %', key: 'score', width: 15 },
         { header: 'Total Members', key: 'count', width: 15 }
       ];
-      
       worksheet.getRow(1).font = { bold: true };
       worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
       worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
-
       healthRes.rows.forEach(p => {
         worksheet.addRow({ name: p.name, score: p.health_score, count: p.beneficiary_count });
       });
-
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename=executive_summary.xlsx');
       await workbook.xlsx.write(res);
       return res.end();
     }
-
     switch (reportType) {
       case 'progress':
         columns = [
@@ -593,19 +504,13 @@ export const exportExcel = async (req, res) => {
       default:
         query = `SELECT * FROM beneficiary WHERE 1=1 ${getFilters()}`;
     }
-
     const result = await pool.query(query, params);
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Report');
-    
     worksheet.columns = columns;
-
-    // Style the header
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
-
     result.rows.forEach(r => worksheet.addRow(mapper(r)));
-
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=report.xlsx');
     await workbook.xlsx.write(res);
@@ -615,10 +520,8 @@ export const exportExcel = async (req, res) => {
     res.status(500).json({ message: 'Excel Export failed' });
   }
 };
-
 export const getOfficerAnalytics = async (req, res) => {
   try {
-    // 1. Get all officers (using CONCAT to handle NULL first/last names)
     const officersRes = await pool.query(`
       SELECT u.user_id, 
              u.first_name, u.last_name, u.email, u.employee_id, u.organization, u.department, u.branch, u.job_title, u.gender,
@@ -629,12 +532,7 @@ export const getOfficerAnalytics = async (req, res) => {
       LEFT JOIN officer_details od ON u.user_id = od.user_id
       WHERE TRIM(LOWER(u.role)) = 'officer' AND u.status = 'Active'
     `);
-
-
     const officers = officersRes.rows;
-
-
-    // Get all visits with beneficiary and project info
     const visitsRes = await pool.query(`
       SELECT 
         v.officer_id,
@@ -647,10 +545,7 @@ export const getOfficerAnalytics = async (req, res) => {
       FROM field_visits v
       LEFT JOIN beneficiary b ON v.beneficiary_id = b.beneficiary_id
     `);
-
     const visits = visitsRes.rows;
-
-    // 3. Get all assigned beneficiaries directly from beneficiary table
     const beneficiariesRes = await pool.query(`
       SELECT assigned_officer_id, 
              ben_first_name || ' ' || ben_last_name AS name, 
@@ -660,20 +555,13 @@ export const getOfficerAnalytics = async (req, res) => {
       WHERE assigned_officer_id IS NOT NULL
     `);
     const allBeneficiaries = beneficiariesRes.rows;
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    // Structure the data: Officer -> Projects -> Beneficiaries
     const structuredData = officers.map(officer => {
       const officerVisits = visits.filter(v => Number(v.officer_id) === Number(officer.user_id));
       const assignedBens = allBeneficiaries.filter(b => Number(b.assigned_officer_id) === Number(officer.user_id));
-      
-      // Group by project
       const projectsMap = {};
       const futureVisits = [];
-
-      // First, add all directly assigned beneficiaries
       assignedBens.forEach(b => {
         const projName = b.project_name || "Unassigned";
         if (!projectsMap[projName]) {
@@ -684,13 +572,9 @@ export const getOfficerAnalytics = async (req, res) => {
           status: b.status || 'Active'
         });
       });
-
-      // Second, process visits for future scheduling and catching any missing ben info
       officerVisits.forEach(v => {
         const visitDate = v.visit_date ? new Date(v.visit_date) : null;
         const benName = v.actual_ben_name || v.visit_ben_name;
-        
-        // Check if it's a future visit
         if (visitDate && visitDate > today && v.visit_status !== 'Completed') {
           futureVisits.push({
             beneficiary: benName,
@@ -699,13 +583,10 @@ export const getOfficerAnalytics = async (req, res) => {
             status: v.visit_status || 'Scheduled'
           });
         }
-
-        // Add to projects list ONLY IF NOT already added (to handle field visit data)
         const projName = v.project_name || "Unassigned/Field Visit";
         if (!projectsMap[projName]) {
           projectsMap[projName] = { name: projName, beneficiaries: [] };
         }
-        
         if (!projectsMap[projName].beneficiaries.find(b => b.name === benName)) {
           projectsMap[projName].beneficiaries.push({
             name: benName,
@@ -713,8 +594,6 @@ export const getOfficerAnalytics = async (req, res) => {
           });
         }
       });
-
-
       return {
         officerId: officer.user_id,
         officerName: officer.name,
@@ -740,33 +619,21 @@ export const getOfficerAnalytics = async (req, res) => {
         createdAt: officer.created_at
       };
     });
-
-    // --- NEW PRIORITIZATION LOGIC ---
-    // 1. Primary: Project Count + Beneficiary Count (Descending)
-    // 2. Secondary: Date of Join (createdAt) (Ascending - Early joiners first)
     structuredData.sort((a, b) => {
       const aBeneficiaries = a.projects.reduce((sum, p) => sum + (p.beneficiaries?.length || 0), 0);
       const bBeneficiaries = b.projects.reduce((sum, p) => sum + (p.beneficiaries?.length || 0), 0);
-      
       const aScore = a.projects.length + aBeneficiaries;
       const bScore = b.projects.length + bBeneficiaries;
-
       if (bScore !== aScore) {
-        return bScore - aScore; // Descending by engagement
+        return bScore - aScore; 
       }
-
-      // Tie-breaker: Date of Join (Earliest first)
       const aDate = new Date(a.createdAt || 0);
       const bDate = new Date(b.createdAt || 0);
-      return aDate - bDate; // Ascending by date
+      return aDate - bDate; 
     });
-
-
     res.json(structuredData);
-
   } catch (error) {
     console.error('Officer Analytics Error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
-

@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 async function performDeletion() {
   try {
     const res = await pool.query("DELETE FROM field_visits WHERE status = 'scheduled' RETURNING *");
@@ -13,5 +12,4 @@ async function performDeletion() {
     process.exit(1);
   }
 }
-
 performDeletion();

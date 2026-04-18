@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 const run = async () => {
     try {
         console.log('Checking user_table for created_at column...');
@@ -18,5 +17,4 @@ const run = async () => {
         process.exit(1);
     }
 };
-
 run();

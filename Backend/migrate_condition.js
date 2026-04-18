@@ -1,5 +1,4 @@
 import pool from './config/db.js';
-
 async function migrate() {
     try {
         await pool.query("ALTER TABLE resource_allocations ADD COLUMN IF NOT EXISTS condition VARCHAR(50) DEFAULT 'Functional'");
@@ -10,5 +9,4 @@ async function migrate() {
         process.exit(0);
     }
 }
-
 migrate();

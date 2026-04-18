@@ -1,6 +1,5 @@
 import pool from '../config/db.js';
 import { uploadToSupabase } from '../middleware/upload.js';
-
 export const getBeneficiaries = async (req, res) => {
   const { project } = req.query;
   try {
@@ -21,12 +20,10 @@ export const getBeneficiaries = async (req, res) => {
     `;
     const params = [];
     let whereClauses = [];
-
     if (project) {
         params.push(project);
         whereClauses.push(`REGEXP_REPLACE(LOWER(b.ben_project), '\\s+', '', 'g') = REGEXP_REPLACE(LOWER($${params.length}), '\\s+', '', 'g')`);
     }
-
     if (req.query.officerId && req.query.officerId !== 'undefined') {
         const officerId = parseInt(req.query.officerId);
         if (!isNaN(officerId)) {
@@ -37,11 +34,9 @@ export const getBeneficiaries = async (req, res) => {
             console.warn(`[BeneficiaryFilter] Invalid officerId received: ${req.query.officerId}`);
         }
     }
-
     if (whereClauses.length > 0) {
         query += ` WHERE ` + whereClauses.join(' AND ');
     }
-
     query += ` ORDER BY b.beneficiary_id DESC;`;
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -49,7 +44,6 @@ export const getBeneficiaries = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const addBeneficiary = async (req, res) => {
   const { 
     firstName, lastName, nic, dob, gender, address, contact, dsDivision, 
@@ -57,7 +51,6 @@ export const addBeneficiary = async (req, res) => {
     assigned_officer_id
   } = req.body;
   const documents = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'beneficiaries'))) : [];
-
   try {
     const query = `
       INSERT INTO beneficiary (
@@ -83,7 +76,6 @@ export const addBeneficiary = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
 export const updateBeneficiary = async (req, res) => {
   const { id } = req.params;
   const { 
@@ -92,7 +84,6 @@ export const updateBeneficiary = async (req, res) => {
     assigned_officer_id
   } = req.body;
   const newDocs = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'beneficiaries'))) : [];
-
   try {
     let query, values;
     if (newDocs.length > 0) {
@@ -141,7 +132,6 @@ export const updateBeneficiary = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
 export const updateProgress = async (req, res) => {
   const { id } = req.params;
   const { progress, comment } = req.body;
@@ -156,7 +146,6 @@ export const updateProgress = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const getHistory = async (req, res) => {
   const { id } = req.params;
   try {
@@ -166,7 +155,6 @@ export const getHistory = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const getBeneficiaryByNIC = async (req, res) => {
   const { nic } = req.params;
   try {
@@ -177,7 +165,6 @@ export const getBeneficiaryByNIC = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const deleteBeneficiary = async (req, res) => {
     const { id } = req.params;
     try {
@@ -191,4 +178,3 @@ export const deleteBeneficiary = async (req, res) => {
         res.status(500).json({ message: 'Server error deleting beneficiary' });
     }
 };
-

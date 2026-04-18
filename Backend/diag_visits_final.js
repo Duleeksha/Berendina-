@@ -1,5 +1,4 @@
 import pool from './config/db.js';
-
 async function diag_visits_final() {
   try {
     const res = await pool.query("SELECT visit_date::TEXT AS date FROM field_visits;");
@@ -11,5 +10,4 @@ async function diag_visits_final() {
     process.exit(1);
   }
 }
-
 diag_visits_final();

@@ -2,16 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import './index.css';
 import './theme.css';
-
-// Auth Pages
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
-
-// Dashboards
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
 import OfficerDashboard from './pages/Dashboard/OfficerDashboard';
-
-// Other Pages
 import Beneficiaries from './pages/Beneficiaries/Beneficiaries';
 import BeneficiaryForm from './pages/Beneficiaries/BeneficiaryForm';
 import FieldVisits from './pages/FieldVisits/FieldVisits';
@@ -20,22 +14,13 @@ import FieldOfficers from './pages/Fieldofficers/FieldOfficers';
 import ReportGenerator from './pages/ReportGenerator/ReportGenerator';
 import BeneficiaryLogin from './pages/Auth/BeneficiaryLogin';
 import BeneficiaryPortal from './pages/Beneficiaries/BeneficiaryPortal';
-
-// Components
 import Sidebar from './components/Sidebar/Sidebar';
-
-// --- projects ---
 import Projects from './pages/Projects/Projects';
-
-// project form
 import ProjectForm from './pages/Projects/ProjectForm';
-
-// Layout Component
 const DashboardLayout = ({ handleLogout, currentUser }) => {
   if (!currentUser) {
      return <Navigate to="/login" replace />;
   }
-
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar onLogout={handleLogout} currentUser={currentUser} />
@@ -45,8 +30,8 @@ const DashboardLayout = ({ handleLogout, currentUser }) => {
     </div>
   );
 };
-
 function App() {
+  // we remember the user here so they stay login
   const [currentUser, setCurrentUser] = useState(() => {
     const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
@@ -58,55 +43,42 @@ function App() {
     }
   return null;
 });
-
 useEffect(() => {
-    // Already initialized via lazy initializer
 }, []);
-
   const handleLogin = (userData) => {
     setCurrentUser(userData);
     sessionStorage.setItem('user', JSON.stringify(userData));
   };
-
   const handleLogout = () => {
     setCurrentUser(null);
     sessionStorage.removeItem('user');
   };
-
-
-
   return (
     <Router>
+      {/* this is the main map for all pages in our app */}
       <Routes>
-        {/* Auth Routes */}
+        {}
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/beneficiary-login" element={<BeneficiaryLogin />} />
         <Route path="/beneficiary-portal" element={<BeneficiaryPortal />} />
-        
-        {/* Protected Dashboard Routes */}
+        {}
         <Route element={<DashboardLayout handleLogout={handleLogout} currentUser={currentUser} />}>
-          
-          {/* Admin Dashboard */}
+          {}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          
-          {/* Officer Dashboard */}
+          {}
           <Route path="/officer-dashboard" element={<OfficerDashboard />} />
-          
-          {/* Common Pages */}
+          {}
           <Route path="/beneficiaries" element={<Beneficiaries />} />
           <Route path="/beneficiary-form" element={<BeneficiaryForm />} />
           <Route path="/beneficiary-form/:id" element={<BeneficiaryForm />} />
           <Route path="/field-visits" element={<FieldVisits />} />
           <Route path="/resources" element={<Resources />} />
-          
-          {/* NEW ROUTE: Field Officers (Admin Only) */}
+          {}
           <Route path="/field-officers" element={<FieldOfficers />} />
-          
-          {/* Admin Only Route */}
+          {}
           <Route path="/report-generator" element={<ReportGenerator />} />
-          
-          {/* --- REDIRECT LOGIC --- */}
+          {}
           <Route path="/dashboard" element={
              currentUser ? (
                 currentUser.role === 'admin' ? <Navigate to="/admin-dashboard" replace /> : <Navigate to="/officer-dashboard" replace />
@@ -114,22 +86,15 @@ useEffect(() => {
                 <Navigate to="/login" replace />
              )
           } />
-
           <Route path="/" element={<Navigate to="/login" replace />} />
-
-
-{/* --- NEW ROUTE: Projects --- */}
+{}
           <Route path="/projects" element={<Projects />} />
-
 <Route path="/project-form" element={<ProjectForm />} />
-
-
-          {/* Fallback for unknown routes */}
+          {}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </Router>
   );
 }
-
 export default App;

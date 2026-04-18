@@ -1,34 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import './Resources.css';
-
 const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, projects, currentUser, onSubmitSuccess }) => {
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedBeneficiary, setSelectedBeneficiary] = useState('');
   const [requestNote, setRequestNote] = useState('');
-  const [requestItems, setRequestItems] = useState([]); // [{ inventoryId, quantity, name }]
+  const [requestItems, setRequestItems] = useState([]); 
   const [inventorySearchTerm, setInventorySearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Derived: Filter beneficiaries based on selected project
   const filteredBeneficiaries = beneficiaries.filter(b => b.project === selectedProject);
-
-  // Derived: Searchable inventory (Show items even with 0 stock so user knows they exist)
   const filteredInventory = inventory.filter(i => {
     const itemName = (i.item_name || i.name || '').toLowerCase();
     return itemName.includes(inventorySearchTerm.toLowerCase());
   });
-
   if (!isOpen) return null;
-
   const handleProjectChange = (val) => {
     setSelectedProject(val);
-    setSelectedBeneficiary(''); // Reset beneficiary when project changes
+    setSelectedBeneficiary(''); 
   };
-
   const addItemToBatch = (item) => {
     const existing = requestItems.find(i => i.inventoryId === item.inventory_id);
     if (existing) {
-      // If item already exists, increment quantity up to available stock
       if (existing.quantity < existing.available) {
         updateQuantity(item.inventory_id, existing.quantity + 1);
       } else {
@@ -36,7 +27,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
       }
       return;
     }
-
     setRequestItems([...requestItems, { 
       inventoryId: item.inventory_id, 
       quantity: 1, 
@@ -44,21 +34,17 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
       available: item.available_stock || 0
     }]);
   };
-
   const removeItemFromBatch = (id) => {
     setRequestItems(requestItems.filter(i => i.inventoryId !== id));
   };
-
   const updateQuantity = (id, qty) => {
     setRequestItems(requestItems.map(i => 
       i.inventoryId === id ? { ...i, quantity: Math.max(1, Math.min(qty, i.available)) } : i
     ));
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (requestItems.length === 0) return alert('Please add at least one item');
-    
     setIsSubmitting(true);
     try {
       const response = await fetch('http://localhost:5000/api/resources/requests', {
@@ -72,16 +58,13 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
           items: requestItems.map(i => ({ inventoryId: i.inventoryId, quantity: i.quantity }))
         }),
       });
-
       if (response.ok) {
         alert('Request submitted successfully!');
-        // Reset state
         setSelectedProject('');
         setSelectedBeneficiary('');
         setRequestItems([]);
         setRequestNote('');
         setInventorySearchTerm('');
-        
         onSubmitSuccess();
         onClose();
       } else {
@@ -94,7 +77,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
       setIsSubmitting(false);
     }
   };
-
   return (
     <div className="modal-overlay">
       <div className="modal-content batch-request-modal">
@@ -102,7 +84,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
           <h2>Request Resources</h2>
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
-
         <form onSubmit={handleSubmit}>
           <div className="form-grid" style={{gridTemplateColumns: '1fr 1fr', display: 'grid', gap: '20px', marginBottom: '20px'}}>
             <div className="form-group">
@@ -119,7 +100,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
                 ))}
               </select>
             </div>
-
             <div className="form-group">
               <label>2. Target Beneficiary</label>
               <select 
@@ -136,7 +116,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
               </select>
             </div>
           </div>
-
           <div className="batch-selection-area" style={{background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
             <label style={{fontWeight: '700', color: '#475569', marginBottom: '10px', display: 'block'}}>3. Add Items to Request</label>
             <input 
@@ -155,7 +134,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
               value={inventorySearchTerm}
               onChange={(e) => setInventorySearchTerm(e.target.value)}
             />
-            
             <div className="inventory-picker" style={{display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '150px', overflowY: 'auto'}}>
                {filteredInventory.length === 0 ? (
                  <div style={{width: '100%', textAlign: 'center', padding: '10px'}}>
@@ -163,7 +141,7 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
                    {currentUser?.role === 'admin' && (
                      <button 
                        type="button" 
-                       onClick={() => { onClose(); /* We should have a way to open the other modal, but for now just tell them to use the catalog */ alert('Please use the "+ Add Inventory" button in the Catalog tab to add new items.'); }}
+                       onClick={() => { onClose();  alert('Please use the "+ Add Inventory" button in the Catalog tab to add new items.'); }}
                        style={{fontSize: '11px', color: '#0081c9', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer'}}
                      >
                        + Add New Item to Catalog
@@ -174,7 +152,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
                   filteredInventory.map(item => {
                     const isOutOfStock = (item.available_stock || 0) <= 0;
                     const isAlreadySelected = requestItems.some(ri => ri.inventoryId === item.inventory_id);
-                    
                     return (
                       <button 
                        type="button" 
@@ -191,7 +168,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
                )}
             </div>
           </div>
-
           <div className="selected-items-list" style={{marginTop: '20px'}}>
             <h3 style={{fontSize: '14px', marginBottom: '10px'}}>Selected Items List</h3>
             {requestItems.length === 0 ? (
@@ -210,7 +186,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
                   boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                 }}>
                   <span className="item-name" style={{fontWeight: '700', flex: 1, color: '#1e293b'}}>{item.name}</span>
-                  
                   <div className="item-qty-control" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                     <label style={{fontSize: '12px', fontWeight: '600', color: '#64748b'}}>Quantity:</label>
                     <input 
@@ -221,7 +196,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
                       min="1"
                     />
                   </div>
-                  
                   <button 
                     type="button" 
                     className="remove-item-btn" 
@@ -243,7 +217,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
               ))
             )}
           </div>
-
           <div className="form-group" style={{marginTop: '20px'}}>
             <label>4. Request Note (Reason)</label>
             <textarea 
@@ -254,7 +227,6 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
               rows="3"
             ></textarea>
           </div>
-
           <div className="modal-actions" style={{marginTop: '25px', borderTop: '1px solid #e2e8f0', paddingTop: '20px'}}>
             <button type="button" className="cancel-btn" onClick={onClose}>Cancel</button>
             <button 
@@ -270,5 +242,4 @@ const ResourceRequestModal = ({ isOpen, onClose, inventory, beneficiaries, proje
     </div>
   );
 };
-
 export default ResourceRequestModal;

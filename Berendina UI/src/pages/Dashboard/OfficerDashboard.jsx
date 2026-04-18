@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import './Dashboard.css';
 import { PROJECT_MILESTONES, getMilestoneFromValue } from '../../utils/progressConstants';
-
 const OfficerDashboard = () => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,12 +11,10 @@ const OfficerDashboard = () => {
   const [localResourceConditions, setLocalResourceConditions] = useState({});
   const [visitFeedback, setVisitFeedback] = useState('');
   const [selectedPhase, setSelectedPhase] = useState(null);
-
   const currentUser = (() => {
     const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   })();
-
   const fetchVisits = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:5000/api/visits?officerId=${currentUser.id}`);
@@ -33,13 +30,11 @@ const OfficerDashboard = () => {
       setLoading(false);
     }
   }, [currentUser?.id]);
-
   useEffect(() => {
     if (currentUser?.id) {
       fetchVisits();
     }
   }, [currentUser?.id, fetchVisits]);
-
   const handleDismissNotifications = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/visits/mark-read', {
@@ -55,14 +50,11 @@ const OfficerDashboard = () => {
        alert("Error: System failed to dismiss the notification.");
     }
   };
-
   const handleVisitClick = (visit) => {
     setSelectedVisit(visit);
     setVisitFeedback(visit.feedback || '');
-    
     const currentMilestone = getMilestoneFromValue(visit.beneficiary_progress || 0);
     setSelectedPhase(currentMilestone);
-    
     const initialConditions = {};
     if (visit.allocated_resources) {
         visit.allocated_resources.forEach(res => {
@@ -72,33 +64,28 @@ const OfficerDashboard = () => {
     setLocalResourceConditions(initialConditions);
     setIsModalOpen(true);
   };
-
   const handleBannerClick = () => {
     const newVisits = visits.filter(v => v.is_new);
     if (newVisits.length > 0) {
       handleVisitClick(newVisits[0]);
     }
   };
-
   const handleCompleteVisit = async (visitId) => {
     const resourceUpdates = Object.entries(localResourceConditions).map(([id, data]) => ({
         id: parseInt(id),
         name: data.name,
         condition: data.condition
     }));
-
     try {
       const formData = new FormData();
       formData.append('notes', selectedVisit.notes || '');
       formData.append('feedback', visitFeedback);
       formData.append('status', 'completed');
       formData.append('resourceUpdates', JSON.stringify(resourceUpdates));
-      
       if (selectedPhase) {
         formData.append('beneficiaryProgress', selectedPhase.value);
         formData.append('beneficiaryPhase', selectedPhase.label);
       }
-
       const response = await fetch(`http://localhost:5000/api/visits/${visitId}`, {
         method: 'PUT',
         body: formData
@@ -115,16 +102,13 @@ const OfficerDashboard = () => {
       alert('Network error. Please try again.');
     }
   };
-
   const upcomingVisits = visits.filter(v => v.status === 'scheduled').slice(0, 5);
   const completedVisits = visits.filter(v => v.status === 'completed');
-  
   const myVisitsData = [
     { name: 'Mon', visits: 2 }, { name: 'Tue', visits: 4 },
     { name: 'Wed', visits: 1 }, { name: 'Thu', visits: 5 },
     { name: 'Fri', visits: 3 }
   ];
-
   return (
     <div className="dashboard-content">
       {newVisitCount > 0 && (
@@ -166,7 +150,6 @@ const OfficerDashboard = () => {
           </button>
         </div>
       )}
-
       <div className="dashboard-header">
         <div>
           <h1>Officer Dashboard</h1>
@@ -176,7 +159,6 @@ const OfficerDashboard = () => {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
-
       <div className="stats-grid">
         <div className="stat-card blue">
           <div className="stat-icon">👥</div>
@@ -186,7 +168,6 @@ const OfficerDashboard = () => {
             <span className="stat-meta">Lifetime visits</span>
           </div>
         </div>
-
         <div className="stat-card orange">
           <div className="stat-icon">📅</div>
           <div className="stat-info">
@@ -195,7 +176,6 @@ const OfficerDashboard = () => {
             <span className="stat-meta">Upcoming schedule</span>
           </div>
         </div>
-
         <div className="stat-card purple">
           <div className="stat-icon">✅</div>
           <div className="stat-info">
@@ -205,7 +185,6 @@ const OfficerDashboard = () => {
           </div>
         </div>
       </div>
-
       <div className="main-grid">
         <div className="charts-section">
           <div className="chart-card">
@@ -226,7 +205,6 @@ const OfficerDashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
-
         <div className="side-column" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="content-card upcoming-section" style={{ display: 'flex', flexDirection: 'column', maxHeight: '45vh', border: '1px solid #111827' }}>
                 <div className="panel-header">
@@ -247,7 +225,6 @@ const OfficerDashboard = () => {
                     )}
                 </div>
             </div>
-
             <div className="content-card history-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, maxHeight: '40vh', background: '#fcfcfc' }}>
                 <div className="panel-header">
                     <h3 style={{ fontSize: '16px', marginBottom: '15px', color: '#6b7280' }}>📊 Visit History</h3>
@@ -268,7 +245,6 @@ const OfficerDashboard = () => {
             </div>
         </div>
       </div>
-
       {isModalOpen && selectedVisit && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
@@ -287,7 +263,6 @@ const OfficerDashboard = () => {
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#6b7280', fontWeight: 'bold'
               }}>✕</button>
-
             <div style={{textAlign: 'center', marginBottom: '25px'}}>
               <div style={{
                 width: '60px', height: '60px', background: '#eff6ff', color: '#2563eb',
@@ -297,7 +272,6 @@ const OfficerDashboard = () => {
               <h2 style={{margin: 0, color: '#111827', fontSize: '24px'}}>Beneficiary Details</h2>
               <p style={{margin: '5px 0 0', color: '#6b7280'}}>Visit Information & Assignment</p>
             </div>
-
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px'}}>
               <div style={{background: '#f9fafb', padding: '15px', borderRadius: '12px'}}>
                 <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase'}}>Name</label>
@@ -308,12 +282,10 @@ const OfficerDashboard = () => {
                 <div style={{color: '#111827', fontWeight: 600}}>{selectedVisit.district}</div>
               </div>
             </div>
-
             <div style={{background: '#f0f9ff', padding: '20px', borderRadius: '15px', marginBottom: '25px', border: '1px solid #bae6fd'}}>
               <label style={{display: 'block', fontSize: '12px', color: '#0369a1', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Assigned Project</label>
               <div style={{color: '#0c4a6e', fontSize: '18px', fontWeight: 700}}>{selectedVisit.project_name || 'No Project Assigned'}</div>
             </div>
-
             <div style={{marginBottom: '25px'}}>
               <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em'}}>📋 Resource Audit (Verify Condition)</label>
               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
@@ -342,13 +314,11 @@ const OfficerDashboard = () => {
                 )}
               </div>
             </div>
-
             <div style={{marginBottom: '25px'}}>
                 <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase'}}>Visit Feedback & Notes</label>
                 <textarea value={visitFeedback} onChange={(e) => setVisitFeedback(e.target.value)} placeholder="Enter visit observations..."
                     style={{ width: '100%', height: '80px', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#1e293b', resize: 'none', display: 'block', outline: 'none' }} />
             </div>
-
             <div style={{marginBottom: '25px'}}>
               <label style={{display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em'}}>📈 Update Beneficiary Phase</label>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px'}}>
@@ -377,7 +347,6 @@ const OfficerDashboard = () => {
                 <div style={{marginTop: '10px', fontSize: '11px', color: '#059669', textAlign: 'center', fontWeight: 600}}>Selected: {selectedPhase.label} ({selectedPhase.value}%)</div>
               )}
             </div>
-
             <div style={{borderTop: '1px solid #e5e7eb', paddingTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
               <div>
                 <label style={{display: 'block', fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase'}}>Visit Date</label>
@@ -388,7 +357,6 @@ const OfficerDashboard = () => {
                 <div style={{color: '#4b5563', fontWeight: 500}}>{selectedVisit.time}</div>
               </div>
             </div>
-
             <div style={{display: 'flex', gap: '15px'}}>
               <button onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', background: '#f3f4f6', color: '#4b5563', borderRadius: '12px', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Close</button>
               {selectedVisit.status !== 'completed' && (
@@ -401,5 +369,4 @@ const OfficerDashboard = () => {
     </div>
   );
 };
-
 export default OfficerDashboard;

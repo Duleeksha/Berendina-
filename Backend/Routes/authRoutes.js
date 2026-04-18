@@ -6,9 +6,7 @@ import {
   updateOfficerAvailability, getNotifications
 } from '../controllers/authController.js';
 import { upload } from '../middleware/upload.js';
-
 const router = express.Router();
-
 router.post('/register', upload.array('documents'), register);
 router.post('/login', login);
 router.get('/pending-users', getPendingUsers);
@@ -22,5 +20,4 @@ router.put('/officers/:id', updateOfficer);
 router.delete('/officers/:id', deleteOfficer);
 router.put('/officers/:id/availability', updateOfficerAvailability);
 router.get('/notifications', getNotifications);
-
 export default router;

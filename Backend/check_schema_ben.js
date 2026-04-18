@@ -1,5 +1,4 @@
 import pool from './config/db.js';
-
 async function checkSchema() {
   try {
     const res = await pool.query(`
@@ -15,5 +14,4 @@ async function checkSchema() {
     process.exit(1);
   }
 }
-
 checkSchema();

@@ -1,24 +1,18 @@
 import pool from '../config/db.js';
 import { uploadToSupabase } from '../middleware/upload.js';
-
-
 export const getProjects = async (req, res) => {
   try {
     const result = await pool.query('SELECT project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, \'YYYY-MM-DD\') AS start, TO_CHAR(end_date, \'YYYY-MM-DD\') AS "end", budget, status, description, image_url, created_at FROM project ORDER BY created_at DESC');
-
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching projects:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const addProject = async (req, res) => {
   const { name, donor, location, start, end, budget, status, description } = req.body;
   const image_url = req.file ? await uploadToSupabase(req.file, 'projects') : null;
-  
   console.log('Add Project Attempt:', { name, donor, location, start, end, image_url });
-
   try {
     const result = await pool.query(
       'INSERT INTO project (project_name, donor_agency, target_location, start_date, end_date, budget, status, description, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, \'YYYY-MM-DD\') AS start, TO_CHAR(end_date, \'YYYY-MM-DD\') AS "end", budget, status, description, image_url',
@@ -30,15 +24,11 @@ export const addProject = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-
 export const updateProject = async (req, res) => {
   const { id } = req.params;
   const { name, donor, location, start, end, budget, status, description } = req.body;
   const image_url = req.file ? await uploadToSupabase(req.file, 'projects') : null;
-  
   console.log('Update Project Attempt:', { id, name, location, image_url });
-
   try {
     let result;
     if (image_url) {
@@ -71,20 +61,16 @@ export const updateProject = async (req, res) => {
           [name, donor, location, start, end, budget, status, description, id]
         );
     }
-    
     console.log('Update Result Rows:', result.rowCount);
-    
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Project not found' });
     }
-    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error updating project:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 export const deleteProject = async (req, res) => {
   const { id } = req.params;
   try {
@@ -98,5 +84,3 @@ export const deleteProject = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-

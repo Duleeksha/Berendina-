@@ -1,10 +1,7 @@
 import pool from './config/db.js';
-
 const migrate = async () => {
     try {
         console.log('Starting migration...');
-
-        // 1. Create progress_history table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS progress_history (
                 history_id SERIAL PRIMARY KEY,
@@ -15,8 +12,6 @@ const migrate = async () => {
             );
         `);
         console.log('✅ Created/Verified progress_history table.');
-
-        // 2. Create/Update field_visits table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS field_visits (
                 visit_id SERIAL PRIMARY KEY,
@@ -34,7 +29,6 @@ const migrate = async () => {
                 beneficiary_id INTEGER REFERENCES beneficiary(beneficiary_id)
             );
         `);
-        // Ensure necessary columns exist (if table already existed)
         await pool.query(`
             DO $$ 
             BEGIN 
@@ -53,8 +47,6 @@ const migrate = async () => {
             END $$;
         `);
         console.log('✅ Created/Verified field_visits table.');
-
-        // 3. Update resource table
         await pool.query(`
             DO $$ 
             BEGIN 
@@ -73,8 +65,6 @@ const migrate = async () => {
             END $$;
         `);
         console.log('✅ Updated resource table.');
-
-        // 4. Update project table
         await pool.query(`
             DO $$ 
             BEGIN 
@@ -84,8 +74,6 @@ const migrate = async () => {
             END $$;
         `);
         console.log('✅ Updated project table.');
-
-        // 5. Update beneficiary table
         await pool.query(`
             DO $$ 
             BEGIN 
@@ -95,8 +83,6 @@ const migrate = async () => {
             END $$;
         `);
         console.log('✅ Updated beneficiary table.');
-
-
         console.log('🚀 Migration completed successfully!');
         process.exit(0);
     } catch (err) {
@@ -104,5 +90,4 @@ const migrate = async () => {
         process.exit(1);
     }
 };
-
 migrate();

@@ -1,5 +1,4 @@
 import pool from './config/db.js';
-
 async function diag() {
   try {
     const res = await pool.query("SELECT DISTINCT ben_project FROM beneficiary;");
@@ -11,5 +10,4 @@ async function diag() {
     process.exit(1);
   }
 }
-
 diag();

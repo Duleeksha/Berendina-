@@ -1,8 +1,5 @@
 import pool from '../config/db.js';
 import { uploadToSupabase } from '../middleware/upload.js';
-
-// --- INVENTORY MANAGEMENT ---
-
 export const getInventory = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM resource_inventory ORDER BY item_name ASC');
@@ -12,11 +9,9 @@ export const getInventory = async (req, res) => {
     res.status(500).json({ message: 'Server error retrieving inventory' });
   }
 };
-
 export const addInventoryItem = async (req, res) => {
   const { name, category, total_stock, unit } = req.body;
   const image_url = req.file ? await uploadToSupabase(req.file, 'resources') : null;
-  
   try {
     const query = `
       INSERT INTO resource_inventory (item_name, category, total_stock, available_stock, unit, image_url)
@@ -30,21 +25,16 @@ export const addInventoryItem = async (req, res) => {
     res.status(500).json({ message: 'Server error adding inventory' });
   }
 };
-
 export const updateInventoryItem = async (req, res) => {
   const { id } = req.params;
   const { name, category, total_stock, unit } = req.body;
   const image_url = req.file ? await uploadToSupabase(req.file, 'resources') : null;
-
   try {
-    // 1. Get current stock to adjust available_stock if total_stock changed
     const currentRes = await pool.query('SELECT total_stock, available_stock FROM resource_inventory WHERE inventory_id = $1', [id]);
     if (currentRes.rows.length === 0) return res.status(404).json({ message: 'Item not found' });
-    
     const current = currentRes.rows[0];
     const diff = parseInt(total_stock) - current.total_stock;
     const newAvailable = Math.max(0, current.available_stock + diff);
-
     const query = `
       UPDATE resource_inventory 
       SET item_name = $1, category = $2, total_stock = $3, available_stock = $4, unit = $5, image_url = COALESCE($6, image_url)
@@ -58,7 +48,6 @@ export const updateInventoryItem = async (req, res) => {
     res.status(500).json({ message: 'Server error updating inventory' });
   }
 };
-
 export const deleteInventoryItem = async (req, res) => {
   const { id } = req.params;
   try {
@@ -69,17 +58,11 @@ export const deleteInventoryItem = async (req, res) => {
     res.status(500).json({ message: 'Server error deleting inventory' });
   }
 };
-
-// --- REQUEST WORKFLOW ---
-
 export const createRequest = async (req, res) => {
   const { beneficiaryId, officerId, projectName, note, items } = req.body; 
-  // items: [{ inventoryId, quantity }]
-
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
     const requestQuery = `
       INSERT INTO resource_requests (beneficiary_id, officer_id, project_name, request_note)
       VALUES ($1, $2, $3, $4)
@@ -87,14 +70,12 @@ export const createRequest = async (req, res) => {
     `;
     const requestRes = await client.query(requestQuery, [beneficiaryId, officerId, projectName, note]);
     const requestId = requestRes.rows[0].request_id;
-
     for (const item of items) {
       await client.query(
         'INSERT INTO resource_request_items (request_id, inventory_id, quantity) VALUES ($1, $2, $3)',
         [requestId, item.inventoryId, item.quantity]
       );
     }
-
     await client.query('COMMIT');
     res.status(201).json({ message: 'Batch request submitted successfully!', requestId });
   } catch (error) {
@@ -105,7 +86,6 @@ export const createRequest = async (req, res) => {
     client.release();
   }
 };
-
 export const getRequests = async (req, res) => {
   try {
     const query = `
@@ -137,46 +117,34 @@ export const getRequests = async (req, res) => {
     res.status(500).json({ message: 'Server error retrieving requests' });
   }
 };
-
 export const processRequest = async (req, res) => {
   const { id } = req.params;
-  const { status, adminNotes } = req.body; // Approved or Rejected
-
+  const { status, adminNotes } = req.body; 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
-    // Update Request Status
     const updateRes = await client.query(
       'UPDATE resource_requests SET status = $1, admin_notes = $2 WHERE request_id = $3 RETURNING *',
       [status, adminNotes, id]
     );
-
     if (status === 'Approved') {
       const itemsRes = await client.query('SELECT * FROM resource_request_items WHERE request_id = $1', [id]);
       const reqData = updateRes.rows[0];
-
       for (const item of itemsRes.rows) {
-        // 1. Check stock
         const invRes = await client.query('SELECT available_stock FROM resource_inventory WHERE inventory_id = $1', [item.inventory_id]);
         if (invRes.rows[0].available_stock < item.quantity) {
           throw new Error(`Insufficient stock for item ID ${item.inventory_id}`);
         }
-
-        // 2. Deduct stock
         await client.query(
           'UPDATE resource_inventory SET available_stock = available_stock - $1 WHERE inventory_id = $2',
           [item.quantity, item.inventory_id]
         );
-
-        // 3. Create Allocation
         await client.query(
           'INSERT INTO resource_allocations (inventory_id, beneficiary_id, quantity, admin_notes) VALUES ($1, $2, $3, $4)',
           [item.inventory_id, reqData.beneficiary_id, item.quantity, adminNotes]
         );
       }
     }
-
     await client.query('COMMIT');
     res.json({ message: `Request ${status} successfully!` });
   } catch (error) {
@@ -187,9 +155,6 @@ export const processRequest = async (req, res) => {
     client.release();
   }
 };
-
-// --- ALLOCATIONS ---
-
 export const getAllocations = async (req, res) => {
   try {
     const query = `
@@ -214,32 +179,23 @@ export const getAllocations = async (req, res) => {
     res.status(500).json({ message: 'Server error retrieving allocations' });
   }
 };
-
 export const returnResource = async (req, res) => {
   const { id } = req.params;
-  
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
     const allocRes = await client.query('SELECT * FROM resource_allocations WHERE allocation_id = $1', [id]);
     if (allocRes.rows.length === 0) throw new Error('Allocation not found');
     const allocation = allocRes.rows[0];
-
     if (allocation.status === 'Returned') throw new Error('Resource already returned');
-
-    // 1. Update Inventory
     await client.query(
       'UPDATE resource_inventory SET available_stock = available_stock + $1 WHERE inventory_id = $2',
       [allocation.quantity, allocation.inventory_id]
     );
-
-    // 2. Update Allocation Status
     await client.query(
       "UPDATE resource_allocations SET status = 'Returned', return_date = CURRENT_TIMESTAMP WHERE allocation_id = $1",
       [id]
     );
-
     await client.query('COMMIT');
     res.json({ message: 'Resource returned to stock!' });
   } catch (error) {
@@ -250,34 +206,23 @@ export const returnResource = async (req, res) => {
     client.release();
   }
 };
-
-// --- DIRECT ALLOCATION (ADMIN) ---
-
 export const directAllocate = async (req, res) => {
   const { inventoryId, beneficiaryId, quantity, notes } = req.body;
-
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
-    // 1. Check stock
     const invRes = await client.query('SELECT available_stock FROM resource_inventory WHERE inventory_id = $1', [inventoryId]);
     if (invRes.rows[0].available_stock < quantity) {
       throw new Error('Insufficient stock');
     }
-
-    // 2. Deduct stock
     await client.query(
       'UPDATE resource_inventory SET available_stock = available_stock - $1 WHERE inventory_id = $2',
       [quantity, inventoryId]
     );
-
-    // 3. Create Allocation
     await client.query(
       'INSERT INTO resource_allocations (inventory_id, beneficiary_id, quantity, admin_notes) VALUES ($1, $2, $3, $4)',
       [inventoryId, beneficiaryId, quantity, notes]
     );
-
     await client.query('COMMIT');
     res.status(201).json({ message: 'Direct allocation successful!' });
   } catch (error) {

@@ -1,5 +1,4 @@
 import pool from './config/db.js';
-
 async function diag_visits() {
   try {
     const res = await pool.query("SELECT visit_date FROM field_visits LIMIT 5;");
@@ -13,5 +12,4 @@ async function diag_visits() {
     process.exit(1);
   }
 }
-
 diag_visits();

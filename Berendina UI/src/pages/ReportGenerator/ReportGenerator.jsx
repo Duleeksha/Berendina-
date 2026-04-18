@@ -5,7 +5,6 @@ import {
 } from 'recharts';
 import './ReportGenerator.css';
 import { DS_DIVISIONS } from '../../constants/locations';
-
 const ReportGenerator = () => {
   const [filters, setFilters] = useState({
     startDate: '',
@@ -13,9 +12,8 @@ const ReportGenerator = () => {
     district: '',
     project: '',
     status: '',
-    reportType: 'default' // Add reportType to filters
+    reportType: 'default' 
   });
-
   const [reportData, setReportData] = useState([]);
   const [reportStats, setReportStats] = useState({
     total: 0,
@@ -29,28 +27,22 @@ const ReportGenerator = () => {
   const [inteData, setInteData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState([]);
-
   useEffect(() => {
     fetch('http://localhost:5000/api/projects')
       .then(res => res.json())
       .then(data => setProjects(data))
       .catch(err => {
-        // Non-critical data fetch failure
       });
   }, []);
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
-
   const handleGenerate = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
     try {
       const query = new URLSearchParams(filters).toString();
-      
-      // Handle Executive Intelligence specially
       if (filters.reportType === 'executive') {
         const response = await fetch(`http://localhost:5000/api/analytics/executive-intelligence?${query}`);
         if (response.ok) {
@@ -64,7 +56,7 @@ const ReportGenerator = () => {
           const data = await response.json();
           setReportData(data.rows || []);
           setReportStats(data.stats || { total: 0 });
-          setInteData(null); // Reset intelligence view
+          setInteData(null); 
         }
       }
     } catch (error) {
@@ -73,15 +65,12 @@ const ReportGenerator = () => {
       setLoading(false);
     }
   };
-
   const handleExport = (type, preview = false) => {
     const params = new URLSearchParams(filters);
     if (preview) params.append('preview', 'true');
     const query = params.toString();
     window.open(`http://localhost:5000/api/analytics/export/${type}?${query}`, '_blank');
   };
-
-  // Dynamic Table Headers
   const renderTableHeaders = () => {
     switch (filters.reportType) {
       case 'progress':
@@ -136,12 +125,8 @@ const ReportGenerator = () => {
         );
     }
   };
-
-  // Dynamic Table Rows
   const renderTableRows = (data, i) => {
     switch (filters.reportType) {
-      // (Pre-existing renderTableRows code omitted for brevity but preserved in the tool call)
-      // I'll include the actual cases here to ensure correctness.
       case 'progress':
         return (
           <tr key={data.history_id || i}>
@@ -215,16 +200,13 @@ const ReportGenerator = () => {
         );
     }
   };
-
   const renderExecutiveDashboard = () => {
     if (!inteData) return null;
-
     const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
     return (
       <div className="executive-dashboard">
         <div className="intelligence-grid">
-          {/* Project Strategic Pulse */}
+          {}
           <div className="intel-card full-width">
             <div className="intel-header">
               <h3>Project Strategic Pulse</h3>
@@ -252,8 +234,7 @@ const ReportGenerator = () => {
               ))}
             </div>
           </div>
-
-          {/* Charts Row */}
+          {}
           <div className="intel-card">
             <h3>Officer Efficiency & Load</h3>
             <div style={{ height: '300px', width: '100%', marginTop: '20px' }}>
@@ -282,7 +263,6 @@ const ReportGenerator = () => {
               </ResponsiveContainer>
             </div>
           </div>
-
           <div className="intel-card">
             <h3>Supply Chain Velocity</h3>
             <div style={{ height: '300px', width: '100%', marginTop: '20px' }}>
@@ -310,13 +290,11 @@ const ReportGenerator = () => {
               </div>
             </div>
           </div>
-
-          {/* Strategic Risks & Actions Panel */}
+          {}
           <div className="intel-card risk-panel">
             <div className="intel-header" style={{ marginBottom: '15px' }}>
               <h3 style={{ color: '#ef4444' }}>⚠️ Strategic Risks Radar</h3>
             </div>
-            
             <div className="risk-grid">
                 <div className="risk-item">
                 <span className="risk-label">Overdue Visits</span>
@@ -327,7 +305,6 @@ const ReportGenerator = () => {
                 <strong className={inteData.risks.stagnantBeneficiaries > 0 ? 'risk-med' : ''}>{inteData.risks.stagnantBeneficiaries}</strong>
                 </div>
             </div>
-
             <div className="suggested-actions-container" style={{ marginTop: '25px' }}>
               <h4 style={{ fontSize: '14px', color: '#111827', marginBottom: '15px', borderBottom: '1px solid #eef2f6', paddingBottom: '10px' }}>
                 🚀 Strategic Guidance & Recommended Actions
@@ -355,7 +332,6 @@ const ReportGenerator = () => {
       </div>
     );
   };
-
   return (
     <div className="report-page-content">
       <div className="page-header">
@@ -364,14 +340,12 @@ const ReportGenerator = () => {
           <p>Extract, analyze, and export multi-dimensional mission data.</p>
         </div>
       </div>
-
-      {/* DASHBOARD METRICS */}
+      {}
       <div className="report-metrics-grid">
         <div className="metric-card blue">
           <span className="metric-label">{filters.reportType === 'default' ? 'Total Filtered' : 'Records Found'}</span>
           <span className="metric-value">{reportStats.total}</span>
         </div>
-        
         {filters.reportType === 'progress' ? (
           <div className="metric-card green">
             <span className="metric-label">Avg. Progress</span>
@@ -400,14 +374,12 @@ const ReportGenerator = () => {
             </div>
           </>
         )}
-
         <div className="metric-card red">
           <span className="metric-label">{filters.reportType === 'visits' ? 'Overdue' : 'Inactive'}</span>
           <span className="metric-value">{reportStats.inactive || 0}</span>
         </div>
       </div>
-
-      {/* ADVANCED FILTERS */}
+      {}
       <div className="report-filter-bar">
         <form onSubmit={handleGenerate} className="filter-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           <div className="filter-group">
@@ -451,7 +423,6 @@ const ReportGenerator = () => {
             </button>
           </div>
         </form>
-
         <div className="report-actions">
             <button onClick={() => handleExport('pdf', true)} className="action-btn-view" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', fontWeight: 'bold' }}>
               👁️ Preview Report
@@ -464,8 +435,7 @@ const ReportGenerator = () => {
            </button>
         </div>
       </div>
-
-      {/* REPORT PREVIEW TABLE / EXECUTIVE DASHBOARD */}
+      {}
       <div className="report-preview-container">
         {filters.reportType === 'executive' ? (
           renderExecutiveDashboard()
@@ -483,7 +453,6 @@ const ReportGenerator = () => {
                 Showing {reportData.length} records based on selection
               </span>
             </div>
-
             <div className="table-responsive">
               <table className="modern-table">
                 <thead>
@@ -518,5 +487,4 @@ const ReportGenerator = () => {
     </div>
   );
 };
-
 export default ReportGenerator;

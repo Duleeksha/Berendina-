@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 async function findConflicts() {
   try {
     const query = `
@@ -20,5 +19,4 @@ async function findConflicts() {
     process.exit(1);
   }
 }
-
 findConflicts();

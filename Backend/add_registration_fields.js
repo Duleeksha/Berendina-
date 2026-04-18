@@ -1,10 +1,7 @@
 import pool from './config/db.js';
-
 const addColumns = async () => {
     try {
         console.log('Adding new registration columns...');
-
-        // 1. Update user_table
         await pool.query(`
             DO $$ 
             BEGIN 
@@ -35,8 +32,6 @@ const addColumns = async () => {
             END $$;
         `);
         console.log('✅ Updated user_table columns.');
-
-        // 2. Update officer_details
         await pool.query(`
             DO $$ 
             BEGIN 
@@ -49,7 +44,6 @@ const addColumns = async () => {
             END $$;
         `);
         console.log('✅ Updated officer_details columns.');
-
         console.log('🚀 Registration fields added successfully!');
         process.exit(0);
     } catch (err) {
@@ -57,5 +51,4 @@ const addColumns = async () => {
         process.exit(1);
     }
 };
-
 addColumns();

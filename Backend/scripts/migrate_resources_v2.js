@@ -1,11 +1,8 @@
 import pool from '../config/db.js';
-
 async function migrate() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
-    // Create Inventory Table
     await client.query(`CREATE TABLE IF NOT EXISTS resource_inventory (
       inventory_id SERIAL PRIMARY KEY,
       item_name VARCHAR(255) NOT NULL,
@@ -16,8 +13,6 @@ async function migrate() {
       image_url TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
-
-    // Create Requests Table
     await client.query(`CREATE TABLE IF NOT EXISTS resource_requests (
       request_id SERIAL PRIMARY KEY,
       beneficiary_id INTEGER REFERENCES beneficiary(beneficiary_id),
@@ -28,16 +23,12 @@ async function migrate() {
       admin_notes TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
-
-    // Create Request Items Table (for batching)
     await client.query(`CREATE TABLE IF NOT EXISTS resource_request_items (
       id SERIAL PRIMARY KEY,
       request_id INTEGER REFERENCES resource_requests(request_id) ON DELETE CASCADE,
       inventory_id INTEGER REFERENCES resource_inventory(inventory_id),
       quantity INTEGER DEFAULT 1
     )`);
-
-    // Create Allocations Table (Distribution & Returns)
     await client.query(`CREATE TABLE IF NOT EXISTS resource_allocations (
       allocation_id SERIAL PRIMARY KEY,
       inventory_id INTEGER REFERENCES resource_inventory(inventory_id),
@@ -48,8 +39,6 @@ async function migrate() {
       return_date TIMESTAMP,
       admin_notes TEXT
     )`);
-
-    // Seed some initial inventory if empty
     const check = await client.query('SELECT COUNT(*) FROM resource_inventory');
     if (parseInt(check.rows[0].count) === 0) {
       await client.query(`INSERT INTO resource_inventory (item_name, category, total_stock, available_stock, unit) VALUES 
@@ -59,7 +48,6 @@ async function migrate() {
         ('Agricultural Seeds Pack', 'Agriculture', 100, 100, 'packs')
       `);
     }
-
     await client.query('COMMIT');
     console.log('Migration successful');
   } catch (e) {
@@ -71,5 +59,4 @@ async function migrate() {
     process.exit(0);
   }
 }
-
 migrate();

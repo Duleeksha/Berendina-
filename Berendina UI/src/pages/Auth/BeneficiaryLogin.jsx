@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
-
 const BeneficiaryLogin = () => {
     const [nic, setNic] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -25,7 +23,6 @@ const BeneficiaryLogin = () => {
             setLoading(false);
         }
     };
-
     return (
         <div className="login-container">
             <div className="login-card">
@@ -53,5 +50,4 @@ const BeneficiaryLogin = () => {
         </div>
     );
 };
-
 export default BeneficiaryLogin;

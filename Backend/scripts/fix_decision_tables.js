@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 const q = [
   `CREATE TABLE IF NOT EXISTS resource_inventory (
     inventory_id SERIAL PRIMARY KEY, 
@@ -38,7 +37,6 @@ const q = [
     quantity INTEGER NOT NULL
   )`
 ];
-
 async function run() {
   console.log('Starting table verification...');
   for (const s of q) {
@@ -52,5 +50,4 @@ async function run() {
   console.log('Verification complete.');
   process.exit(0);
 }
-
 run();

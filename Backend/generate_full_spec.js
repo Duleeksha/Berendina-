@@ -1,4 +1,5 @@
 import pool from './config/db.js';
+import fs from 'fs';
 async function generateSpec() {
     try {
         const tablesRes = await pool.query(`
@@ -28,16 +29,15 @@ async function generateSpec() {
                     WHERE c.table_name = $1
                     ORDER BY c.ordinal_position
                 `, [table]);
-                const sampleRes = await pool.query(`SELECT * FROM ${table} LIMIT 1`);
                 fullSpec[table] = {
-                    columns: colRes.rows,
-                    sample: sampleRes.rows[0] || {}
+                    columns: colRes.rows
                 };
             } catch (e) {
                 console.warn(`Skipping table ${table}: ${e.message}`);
             }
         }
-        console.log(JSON.stringify(fullSpec, null, 2));
+        fs.writeFileSync('full_schema_utf8.json', JSON.stringify(fullSpec, null, 2), 'utf8');
+        console.log('Successfully generated full_schema_utf8.json');
     } catch (err) {
         console.error(err);
     } finally {

@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 async function check() {
   try {
     const res = await pool.query("SELECT visit_id, beneficiary_name, status FROM field_visits WHERE status = 'scheduled'");
@@ -13,5 +12,4 @@ async function check() {
     process.exit(1);
   }
 }
-
 check();

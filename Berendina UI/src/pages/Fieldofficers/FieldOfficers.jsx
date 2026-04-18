@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import './FieldOfficers.css';
 import { DS_DIVISIONS } from '../../constants/locations';
-
 const FieldOfficers = () => {
   const location = useLocation();
   const [analyticsData, setAnalyticsData] = useState([]);
@@ -11,16 +10,13 @@ const FieldOfficers = () => {
   const [selectedOfficer, setSelectedOfficer] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [redirectMessage, setRedirectMessage] = useState(location.state?.message || null);
-  const [activeTab, setActiveTab] = useState('available'); // 'available' or 'unavailable'
-  
+  const [activeTab, setActiveTab] = useState('available'); 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-  
-  // Schedule Visit State
   const [projects, setProjects] = useState([]);
-  const [beneficiaries, setBeneficiaries] = useState([]); // Filtered list
+  const [beneficiaries, setBeneficiaries] = useState([]); 
   const [scheduleData, setScheduleData] = useState({
     projectId: '',
     beneficiaryName: '',
@@ -30,20 +26,15 @@ const FieldOfficers = () => {
     time: '10:00',
     beneficiaryId: ''
   });
-  
-  // Custom Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [officerToDelete, setOfficerToDelete] = useState(null);
-
   const currentUser = JSON.parse(sessionStorage.getItem('user'));
-
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
       const response = await fetch('http://localhost:5000/api/analytics/officer-analytics');
       if (response.ok) {
         const data = await response.json();
-        // Filter out pending officers (those who don't have a profile yet or are status='pending' in backend)
         setAnalyticsData(data.filter(o => o.status !== 'pending' && o.officerId));
       }
     } catch (error) {
@@ -52,7 +43,6 @@ const FieldOfficers = () => {
       setLoading(false);
     }
   };
-
   const fetchProjects = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/projects');
@@ -61,17 +51,14 @@ const FieldOfficers = () => {
         setProjects(data);
       }
     } catch (error) {
-       // Silently fail for project list
     }
   };
-
   useEffect(() => {
     fetchAnalytics();
     if (currentUser?.role === 'admin') {
       fetchProjects();
     }
   }, [currentUser?.role]);
-
   const handleProjectChange = async (projectName) => {
     setScheduleData(prev => ({ 
       ...prev, 
@@ -90,7 +77,6 @@ const FieldOfficers = () => {
        alert("Error: Could not load beneficiaries for this project.");
     }
   };
-
   const handleBeneficiaryChange = (id) => {
     const ben = beneficiaries.find(b => b.id === parseInt(id));
     if (ben) {
@@ -103,15 +89,12 @@ const FieldOfficers = () => {
       });
     }
   };
-
   const handleEdit = async (officer) => {
     const officerId = officer.officerId || officer.user_id || officer.id;
-    
     try {
       const response = await fetch(`http://localhost:5000/api/auth/officers/${officerId}`);
       if (response.ok) {
         const fullData = await response.json();
-        
         setEditFormData({
           id: fullData.id,
           firstName: fullData.firstName || '',
@@ -124,7 +107,6 @@ const FieldOfficers = () => {
           gender: fullData.gender || '',
           emergency_contact: fullData.emergency_contact || '',
           languages: fullData.languages ? fullData.languages.split(', ') : [],
-          // Preserve these fields to prevent data loss on update
           organization: fullData.organization || '',
           employee_id: fullData.employee_id || '',
           department: fullData.department || '',
@@ -139,13 +121,11 @@ const FieldOfficers = () => {
       alert('Error: Connection to the officer database failed.');
     }
   };
-
   const handleDeleteClick = (e, officerId) => {
     e.stopPropagation();
     setOfficerToDelete(officerId);
     setIsDeleteModalOpen(true);
   };
-
   const confirmDelete = async () => {
     if (!officerToDelete) return;
     try {
@@ -162,7 +142,6 @@ const FieldOfficers = () => {
       alert("Error: Failed to delete the officer record. Check your connection.");
     }
   };
-
   const handleUpdateOfficer = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -183,7 +162,6 @@ const FieldOfficers = () => {
       setIsSaving(false);
     }
   };
-
   const handleLanguageToggle = (lang) => {
     const currentLangs = editFormData.languages || [];
     if (currentLangs.includes(lang)) {
@@ -192,16 +170,12 @@ const FieldOfficers = () => {
       setEditFormData({ ...editFormData, languages: [...currentLangs, lang] });
     }
   };
-
   const toggleAvailability = async (officerId, currentStatus, e) => {
     e.stopPropagation();
-    
-    // Optimistic UI Update
     const previousData = [...analyticsData];
     setAnalyticsData(prev => prev.map(off => 
       off.officerId === officerId ? { ...off, isAvailable: !currentStatus } : off
     ));
-
     try {
       const response = await fetch(`http://localhost:5000/api/auth/officers/${officerId}/availability`, {
         method: 'PUT',
@@ -211,19 +185,16 @@ const FieldOfficers = () => {
       if (!response.ok) {
         throw new Error('Failed to update availability');
       }
-      // Reload counts/data silently in background
       const res = await fetch('http://localhost:5000/api/analytics/officer-analytics');
       if (res.ok) {
         const data = await res.json();
         setAnalyticsData(data.filter(o => o.status !== 'pending' && o.officerId));
       }
     } catch (error) {
-      // Rollback on error
       setAnalyticsData(previousData);
       alert('Error updating availability. Please try again.');
     }
   };
-
   const openScheduleModal = (officer) => {
     setSelectedOfficer(officer);
     setScheduleData({
@@ -238,7 +209,6 @@ const FieldOfficers = () => {
     setBeneficiaries([]);
     setIsScheduleModalOpen(true);
   };
-
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -268,28 +238,22 @@ const FieldOfficers = () => {
       setIsSaving(false);
     }
   };
-
   const filteredData = (analyticsData || []).filter(item =>
     (item?.officerName || 'Unknown').toLowerCase().includes(searchTerm.toLowerCase())
   );
-
   const tabFilteredData = filteredData.filter(off => 
     activeTab === 'available' ? off.isAvailable !== false : off.isAvailable === false
   );
-
   const availableCount = filteredData.filter(off => off.isAvailable !== false).length;
   const unavailableCount = filteredData.filter(off => off.isAvailable === false).length;
-
   const openModal = (officer) => {
     setSelectedOfficer(officer);
     setIsModalOpen(true);
   };
-
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedOfficer(null);
   };
-
   return (
     <div className="officers-page-content">
       {redirectMessage && (
@@ -301,14 +265,12 @@ const FieldOfficers = () => {
           <button className="close-notification" onClick={() => setRedirectMessage(null)}>&times;</button>
         </div>
       )}
-      
       <div className="page-header">
         <div>
           <h1>Field Officers Management</h1>
           <p>Track performance, manage details, and schedule field visits.</p>
         </div>
       </div>
-
       <div className="content-card">
         <div className="search-section">
           <div className="search-wrapper">
@@ -322,7 +284,6 @@ const FieldOfficers = () => {
               />
           </div>
         </div>
-
         <div className="dashboard-tabs">
           <button 
             className={`tab-btn ${activeTab === 'available' ? 'active' : ''}`}
@@ -337,7 +298,6 @@ const FieldOfficers = () => {
             Unavailable <span className="tab-count">{unavailableCount}</span>
           </button>
         </div>
-
         {loading ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
@@ -350,24 +310,19 @@ const FieldOfficers = () => {
                 const officerProjects = officer.projects || [];
                 const totalBeneficiaries = officerProjects.reduce((sum, p) => sum + (p.beneficiaries?.length || 0), 0);
                 const isBusy = (officer.totalVisits || 0) >= 4;
-                
-                // Status Logic
                 let statusLabel = 'Available';
                 let statusClass = 'active';
                 let accentColor = '#10b981';
-
                 if (officer.isAvailable === false) {
                   statusLabel = 'Unavailable';
                   statusClass = 'inactive';
                   accentColor = '#64748b';
                 } else if (isBusy) {
                   statusLabel = 'Busy';
-                  statusClass = 'inactive'; // or a new 'busy' class
+                  statusClass = 'inactive'; 
                   accentColor = '#ef4444';
                 }
-
                 const uniqueId = officer.officerId || `officer-${index}`;
-                
                 return (
                   <div key={uniqueId} className="beneficiary-card" onClick={() => openModal(officer)}>
                     <div className="card-status-accent" style={{ 
@@ -412,7 +367,6 @@ const FieldOfficers = () => {
                           <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
                         </div>
                       </div>
-                      
                       <div className="card-details">
                         <div className="detail-item">
                           <span className="label">DS Division</span>
@@ -423,7 +377,6 @@ const FieldOfficers = () => {
                           <span className="value">{officerProjects.length} Proj / {totalBeneficiaries} Bens</span>
                         </div>
                       </div>
-
                       <div className="card-progress">
                         <div className="progress-info">
                           <span>Field Visits</span>
@@ -439,7 +392,6 @@ const FieldOfficers = () => {
                           📅 {officer.futureVisits?.length || 0} Upcoming Visits
                         </div>
                       </div>
-
                       <div className="card-actions" onClick={e => e.stopPropagation()}>
                         <button className="action-btn-schedule" onClick={() => openScheduleModal(officer)}>Schedule</button>
                         <button className="action-btn-edit" onClick={() => handleEdit(officer)}>Edit</button>
@@ -459,7 +411,6 @@ const FieldOfficers = () => {
           </div>
         )}
       </div>
-
       {isModalOpen && selectedOfficer && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content detail-modal" onClick={(e) => e.stopPropagation()}>
@@ -479,7 +430,6 @@ const FieldOfficers = () => {
               </div>
               <button className="close-x" onClick={closeModal}>&times;</button>
             </div>
-            
             <div className="profile-grid">
               <div className="profile-section">
                 <h3 className="modal-section-title">📊 Active Portfolio</h3>
@@ -503,7 +453,6 @@ const FieldOfficers = () => {
                   )}
                 </div>
               </div>
-              
               <div className="profile-section">
                 <h3 className="modal-section-title">📅 Upcoming Field Visits</h3>
                 <div className="visits-timeline">
@@ -526,14 +475,12 @@ const FieldOfficers = () => {
                 </div>
               </div>
             </div>
-            
             <div className="modal-footer">
               <button className="close-btn-secondary" onClick={closeModal}>Close View</button>
             </div>
           </div>
         </div>
       )}
-
       {isEditModalOpen && (
         <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
           <div className="modal-content admin-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '850px'}}>
@@ -625,7 +572,6 @@ const FieldOfficers = () => {
           </div>
         </div>
       )}
-
       {isScheduleModalOpen && (
         <div className="modal-overlay" onClick={() => setIsScheduleModalOpen(false)}>
           <div className="modal-content admin-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
@@ -697,7 +643,6 @@ const FieldOfficers = () => {
           </div>
         </div>
       )}
-
       {isDeleteModalOpen && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
@@ -738,5 +683,4 @@ const FieldOfficers = () => {
     </div>
   );
 };
-
 export default FieldOfficers;

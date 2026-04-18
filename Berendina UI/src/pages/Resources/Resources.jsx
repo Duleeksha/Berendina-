@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Resources.css';
 import ResourceRequestModal from './ResourceRequestModal';
-
 const Resources = () => {
   const [activeTab, setActiveTab] = useState('inventory');
   const [inventory, setInventory] = useState([]);
@@ -10,12 +9,8 @@ const Resources = () => {
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // User Data
   const currentUser = JSON.parse(sessionStorage.getItem('user'));
   const isAdmin = currentUser?.role === 'admin';
-
-  // Modal States
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
   const [deletingResource, setDeletingResource] = useState(null);
@@ -24,12 +19,9 @@ const Resources = () => {
     inventory_id: null, name: '', category: 'General', total_stock: 0, unit: 'units', image: null
   });
   const [viewingRequest, setViewingRequest] = useState(null);
-
-  // Request Processing States
   const [processingRequest, setProcessingRequest] = useState(null);
   const [processingNotes, setProcessingNotes] = useState('');
   const [isProcessingLoading, setIsProcessingLoading] = useState(false);
-
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -40,7 +32,6 @@ const Resources = () => {
         fetch('http://localhost:5000/api/beneficiaries'),
         fetch('http://localhost:5000/api/projects')
       ]);
-
       if (invRes.ok) setInventory(await invRes.json());
       if (reqRes.ok) setRequests(await reqRes.json());
       if (allocRes.ok) setAllocations(await allocRes.json());
@@ -52,21 +43,15 @@ const Resources = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchData();
   }, []);
-
-  // --- ACTIONS ---
-
   const handleProcessRequest = (id, status) => {
     setProcessingRequest({ id, status });
     setProcessingNotes('');
   };
-
   const confirmProcessRequest = async () => {
     if (!processingRequest || !processingNotes.trim()) return;
-    
     setIsProcessingLoading(true);
     try {
       const res = await fetch(`http://localhost:5000/api/resources/requests/${processingRequest.id}`, {
@@ -90,7 +75,6 @@ const Resources = () => {
       setIsProcessingLoading(false);
     }
   };
-
   const handleReturnResource = async (id) => {
     if (!window.confirm('Mark this resource as returned to stock?')) return;
     try {
@@ -107,7 +91,6 @@ const Resources = () => {
       alert("Error: Failed to register the returned item. Please check your connection.");
     }
   };
-
   const handleEditItem = (item) => {
     setInventoryFormData({
       inventory_id: item.inventory_id,
@@ -119,11 +102,9 @@ const Resources = () => {
     });
     setIsInventoryModalOpen(true);
   };
-
   const promptDeleteResource = (item) => {
     setDeletingResource(item);
   };
-
   const confirmDeleteResource = async () => {
     if (!deletingResource) return;
     setIsDeleting(true);
@@ -145,7 +126,6 @@ const Resources = () => {
       setIsDeleting(false);
     }
   };
-
   const handleAddInventory = async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -156,13 +136,11 @@ const Resources = () => {
     if (inventoryFormData.image) {
       formData.append('image', inventoryFormData.image);
     }
-
     const isEditing = !!inventoryFormData.inventory_id;
     const url = isEditing 
       ? `http://localhost:5000/api/resources/inventory/${inventoryFormData.inventory_id}`
       : 'http://localhost:5000/api/resources/inventory';
     const method = isEditing ? 'PUT' : 'POST';
-
     try {
       const res = await fetch(url, {
         method: method,
@@ -181,9 +159,6 @@ const Resources = () => {
       alert("Error: Failed to save the resource update. Please check the form and try again.");
     }
   };
-
-  // --- RENDERING HELPERS ---
-
   const renderInventory = () => {
     if (inventory.length === 0) {
       return (
@@ -201,13 +176,11 @@ const Resources = () => {
         </div>
       );
     }
-
     return (
       <div className="inventory-grid">
         {inventory.map(item => {
           const stockPct = (item.available_stock / item.total_stock) * 100;
           const statusClass = stockPct < 10 ? 'critical' : stockPct < 30 ? 'warning' : '';
-          
           return (
             <div key={item.inventory_id} className={`inventory-card ${stockPct < 20 ? 'low-stock' : ''}`}>
               <div className="card-header">
@@ -217,16 +190,13 @@ const Resources = () => {
                 </div>
                 {stockPct < 20 && <span className="status-badge rejected">Low Stock</span>}
               </div>
-              
               <div className="stock-info">
                 <span className="stock-label">Available Stock</span>
                 <span className="stock-count">{item.available_stock} / {item.total_stock} <small>{item.unit}</small></span>
               </div>
-              
               <div className="stock-bar-bg">
                 <div className={`stock-bar-fill ${statusClass}`} style={{ width: `${stockPct}%` }}></div>
               </div>
-
               {isAdmin ? (
                  <div className="inventory-actions">
                     <button className="action-btn-view" onClick={() => handleEditItem(item)}>Edit</button>
@@ -240,7 +210,6 @@ const Resources = () => {
             </div>
           );
         })}
-
         {isAdmin && (
           <div 
             className="inventory-card add-card" 
@@ -265,7 +234,6 @@ const Resources = () => {
       </div>
     );
   };
-
   const renderRequests = () => {
     if (requests.length === 0) {
       return (
@@ -274,7 +242,6 @@ const Resources = () => {
         </div>
       );
     }
-
     return (
       <div className="table-container">
         <table className="modern-table">
@@ -327,7 +294,6 @@ const Resources = () => {
       </div>
     );
   };
-
   const renderAllocations = () => {
     if (allocations.length === 0) {
       return (
@@ -336,7 +302,6 @@ const Resources = () => {
         </div>
       );
     }
-
     return (
       <div className="table-container">
         <table className="modern-table">
@@ -371,7 +336,6 @@ const Resources = () => {
       </div>
     );
   };
-
   return (
     <div className="resources-page-content">
       <div className="page-header">
@@ -388,7 +352,6 @@ const Resources = () => {
            )}
         </div>
       </div>
-
       <div className="resource-tabs">
         <button className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>Inventory Catalog</button>
         <button className={`tab-btn ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>
@@ -396,7 +359,6 @@ const Resources = () => {
         </button>
         <button className={`tab-btn ${activeTab === 'allocations' ? 'active' : ''}`} onClick={() => setActiveTab('allocations')}>Allocation History</button>
       </div>
-
       <div className="content-card">
         {loading ? <div className="loading">Loading data...</div> : (
           <>
@@ -406,8 +368,7 @@ const Resources = () => {
           </>
         )}
       </div>
-
-      {/* MODALS */}
+      {}
       <ResourceRequestModal 
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
@@ -417,7 +378,6 @@ const Resources = () => {
         currentUser={currentUser}
         onSubmitSuccess={fetchData}
       />
-
       {isInventoryModalOpen && (
         <div className="modal-overlay">
            <div className="modal-content">
@@ -479,8 +439,7 @@ const Resources = () => {
            </div>
         </div>
       )}
-
-      {/* Custom Delete Confirmation Modal */}
+      {}
       {deletingResource && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
@@ -520,7 +479,7 @@ const Resources = () => {
           </div>
         </div>
       )}
-      {/* Custom Request Processing Modal */}
+      {}
       {processingRequest && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
@@ -542,7 +501,6 @@ const Resources = () => {
                  &times;
                </button>
              </div>
-
              <div className="form-group" style={{marginBottom: '25px'}}>
                <label style={{display: 'block', marginBottom: '10px', fontSize: '14px', fontWeight: '600', color: '#4b5563'}}>
                  Enter {processingRequest.status.toLowerCase()} notes:
@@ -557,7 +515,6 @@ const Resources = () => {
                />
                <p style={{fontSize: '12px', color: '#6b7280', marginTop: '8px'}}>Notes are mandatory to proceed.</p>
              </div>
-
              <div className="modal-actions" style={{display: 'flex', gap: '15px', justifyContent: 'flex-end'}}>
                <button 
                  onClick={() => setProcessingRequest(null)} 
@@ -582,7 +539,7 @@ const Resources = () => {
           </div>
         </div>
       )}
-      {/* Request Details View Modal */}
+      {}
       {viewingRequest && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
@@ -597,7 +554,6 @@ const Resources = () => {
                <h2 style={{margin: 0, color: '#0f172a', fontSize: '20px'}}>Resource Request Details</h2>
                <button onClick={() => setViewingRequest(null)} style={{background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>✕</button>
              </div>
-
              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px'}}>
                <div style={{background: '#f8fafc', padding: '12px', borderRadius: '12px'}}>
                  <label style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', display: 'block'}}>Beneficiary</label>
@@ -610,7 +566,6 @@ const Resources = () => {
                  </div>
                </div>
              </div>
-
              <div style={{marginBottom: '20px'}}>
                <label style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block'}}>Reason / Request Note</label>
                <div style={{
@@ -620,7 +575,6 @@ const Resources = () => {
                  {viewingRequest.note || "No reason provided for this request."}
                </div>
              </div>
-
              <div style={{marginBottom: '25px'}}>
                <label style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block'}}>Items Requested</label>
                <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}>
@@ -631,7 +585,6 @@ const Resources = () => {
                  ))}
                </div>
              </div>
-
              <div style={{textAlign: 'right', borderTop: '1px solid #f1f5f9', paddingTop: '20px'}}>
                <button onClick={() => setViewingRequest(null)} style={{padding: '10px 25px', background: '#0f172a', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer'}}>Close Detail</button>
              </div>
@@ -641,5 +594,4 @@ const Resources = () => {
     </div>
   );
 };
-
 export default Resources;

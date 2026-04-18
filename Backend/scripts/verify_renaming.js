@@ -1,5 +1,4 @@
 import pool from '../config/db.js';
-
 async function verify() {
   try {
     const conflictQuery = `
@@ -15,17 +14,14 @@ async function verify() {
       console.error('CRITICAL: Some conflicts still remain!');
       res.rows.forEach(r => console.log(`- ID: ${r.beneficiary_id}`));
     }
-
     const checkIds = [17, 18, 20, 21, 24, 23, 29, 30, 25, 26, 19, 22, 28, 34, 31, 32, 33];
     const renamedRes = await pool.query("SELECT beneficiary_id, ben_name FROM beneficiary WHERE beneficiary_id = ANY($1)", [checkIds]);
     console.log(`Renamed records found: ${renamedRes.rows.length}/17`);
     renamedRes.rows.forEach(r => console.log(`- ID ${r.beneficiary_id}: ${r.ben_name}`));
-
     process.exit(0);
   } catch (err) {
     console.error(err);
     process.exit(1);
   }
 }
-
 verify();

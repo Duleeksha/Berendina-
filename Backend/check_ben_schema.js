@@ -1,5 +1,4 @@
 import pool from './config/db.js';
-
 async function checkBeneficiarySchema() {
     try {
         const res = await pool.query(`
@@ -14,5 +13,4 @@ async function checkBeneficiarySchema() {
         process.exit(0);
     }
 }
-
 checkBeneficiarySchema();

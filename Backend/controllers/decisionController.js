@@ -1,17 +1,10 @@
 import pool from '../config/db.js';
-
-/**
- * Aggregates high-level mission intelligence for executive decision support.
- */
 export const getExecutiveIntelligence = async (req, res) => {
   try {
     const { district, project } = req.query;
-    
-    // Base filters for sub-queries
     let filterClause = "";
     let params = [];
     let pIdx = 1;
-
     if (project && project !== "") {
       filterClause += ` AND LOWER(TRIM(b.ben_project)) = LOWER(TRIM($${pIdx++}))`;
       params.push(project);
@@ -20,8 +13,6 @@ export const getExecutiveIntelligence = async (req, res) => {
       filterClause += ` AND LOWER(TRIM(b.ben_district)) = LOWER(TRIM($${pIdx++}))`;
       params.push(district);
     }
-
-    // --- 1. PROJECT STRATEGIC PULSE (Refined Health) ---
     const healthRes = await pool.query(`
       WITH LatestProgress AS (
         SELECT DISTINCT ON (beneficiary_id) beneficiary_id, progress_value, update_date
@@ -57,7 +48,6 @@ export const getExecutiveIntelligence = async (req, res) => {
       FROM ProjectMetrics
       WHERE (beneficiary_count > 0)
     `, params);
-
     const healthData = healthRes.rows.map(p => {
       const progress = Number(p.progress) || 0;
       const expected = Math.max(1, Number(p.expected_progress) || 0); 
@@ -66,8 +56,6 @@ export const getExecutiveIntelligence = async (req, res) => {
         : 100;
       return { ...p, health_score, progress, expected_progress: expected };
     });
-
-    // --- 2. RISK RADAR ---
     const overdueRes = await pool.query(`
       SELECT COUNT(*) as count 
       FROM field_visits v
@@ -75,7 +63,6 @@ export const getExecutiveIntelligence = async (req, res) => {
       WHERE v.status ILIKE 'scheduled' AND v.visit_date < CURRENT_DATE
       ${filterClause}
     `, params);
-
     const stagnantRes = await pool.query(`
       SELECT COUNT(*) as count
       FROM beneficiary b
@@ -85,8 +72,6 @@ export const getExecutiveIntelligence = async (req, res) => {
       ) AND b.ben_status ILIKE 'active'
       ${filterClause}
     `, params);
-
-    // --- 3. OFFICER DYNAMIC LOAD & EFFICIENCY ---
     const loadRes = await pool.query(`
       SELECT 
         TRIM(CONCAT(u.first_name, ' ', u.last_name)) as name,
@@ -101,8 +86,6 @@ export const getExecutiveIntelligence = async (req, res) => {
       GROUP BY u.user_id, name
       ORDER BY active_cases DESC
     `, params);
-
-    // --- 4. RESOURCE VELOCITY (Modern Sync) ---
     const resourceRes = await pool.query(`
       SELECT 
         inv.item_name as name, 
@@ -116,11 +99,7 @@ export const getExecutiveIntelligence = async (req, res) => {
       WHERE 1=1 ${filterClause}
       GROUP BY inv.inventory_id, inv.item_name, inv.available_stock, inv.total_stock
     `, params);
-
-    // --- 5. GENERATE GUIDED STRATEGIC ACTIONS ---
     const actions = [];
-    
-    // a. Project Intervention logic
     healthData.forEach(p => {
       if (p.health_score < 50 && p.expected_progress > 40) {
         actions.push({
@@ -131,8 +110,6 @@ export const getExecutiveIntelligence = async (req, res) => {
         });
       }
     });
-
-    // b. Workload Rebalancing
     const loads = loadRes.rows.map(r => parseInt(r.active_cases) || 0);
     const avgLoad = loads.length > 0 ? loads.reduce((a,b) => a+b, 0) / loads.length : 1;
     loadRes.rows.forEach(o => {
@@ -146,8 +123,6 @@ export const getExecutiveIntelligence = async (req, res) => {
         });
       }
     });
-
-    // c. Supply Chain / Procurement
     resourceRes.rows.forEach(r => {
       const stock = Number(r.stock);
       const total = Math.max(1, Number(r.total_stock));
@@ -161,7 +136,6 @@ export const getExecutiveIntelligence = async (req, res) => {
         });
       }
     });
-
     res.json({
       projectHealth: healthData,
       risks: {
@@ -172,7 +146,6 @@ export const getExecutiveIntelligence = async (req, res) => {
       resourceStats: resourceRes.rows,
       suggestedActions: actions
     });
-
   } catch (error) {
     console.error("Decision Intel Error:", error);
     res.status(500).json({ message: 'Error calculating intelligence data', details: error.message });

@@ -1,7 +1,6 @@
 import pkg from 'pg';
 import fs from 'fs';
 const { Pool } = pkg;
-
 const pool = new Pool({
   user: 'postgres',
   host: '127.0.0.1',
@@ -10,7 +9,6 @@ const pool = new Pool({
   port: 5432,
   ssl: false
 });
-
 try {
   const result = {};
   const tables = ['beneficiary', 'resource', 'project', 'field_visits'];

@@ -8,15 +8,12 @@
   box-sizing: border-box;
   font-family: 'Segoe UI', sans-serif;
 }
-
-/* Metric Cards */
 .report-metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 30px;
 }
-
 .metric-card {
   background: white;
   padding: 20px;
@@ -26,12 +23,10 @@
   flex-direction: column;
   border-left: 4px solid #cbd5e1;
 }
-
 .metric-card.blue { border-left-color: #3b82f6; }
 .metric-card.green { border-left-color: #10b981; }
 .metric-card.orange { border-left-color: #f59e0b; }
 .metric-card.red { border-left-color: #ef4444; }
-
 .metric-label {
   font-size: 13px;
   color: #64748b;
@@ -40,14 +35,11 @@
   letter-spacing: 0.05em;
   margin-bottom: 8px;
 }
-
 .metric-value {
   font-size: 28px;
   font-weight: 800;
   color: #1e293b;
 }
-
-/* Filter Bar */
 .report-filter-bar {
   background: white;
   padding: 25px;
@@ -56,27 +48,23 @@
   margin-bottom: 30px;
   border: 1px solid #e5e7eb;
 }
-
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
   align-items: flex-end;
 }
-
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .filter-group label {
   font-size: 12px;
   font-weight: 700;
   color: #475569;
   text-transform: uppercase;
 }
-
 .report-actions {
   display: flex;
   gap: 12px;
@@ -84,8 +72,6 @@
   padding-top: 20px;
   border-top: 1px solid #f1f5f9;
 }
-
-/* Preview Section */
 .report-preview-container {
   background: white;
   border-radius: 20px;
@@ -93,21 +79,17 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   border: 1px solid #e5e7eb;
 }
-
 .preview-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
-
 .preview-header h3 {
   margin: 0;
   font-size: 18px;
   color: #1e293b;
 }
-
-/* Status Badges in Report */
 .report-status {
   padding: 4px 10px;
   border-radius: 6px;
@@ -115,7 +97,6 @@
   font-weight: 700;
   text-transform: uppercase;
 }
-
 .status-active { background: #dcfce7; color: #166534; }
 .status-inactive { background: #fee2e2; color: #991b1b; }
 .status-pending { background: #fef9c3; color: #854d0e; }
@@ -124,27 +105,21 @@
 .status-available { background: #dcfce7; color: #166534; }
 .status-allocated { background: #e0f2fe; color: #075985; }
 .status-repair { background: #ffedd5; color: #9a3412; }
-
-/* Empty State */
 .report-empty-state {
   text-align: center;
   padding: 60px 20px;
   color: #94a3b8;
 }
-
 .empty-icon {
   font-size: 48px;
   margin-bottom: 15px;
   display: block;
 }
-
-/* Responsive */
 @media (max-width: 1200px) {
   .report-metrics-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-
 @media (max-width: 768px) {
   .report-page-content {
     margin-left: 0;
@@ -152,14 +127,11 @@
     padding: 20px;
   }
 }
-
-/* --- EXECUTIVE INTELLIGENCE DASHBOARD --- */
 .intelligence-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr) 350px;
   gap: 25px;
 }
-
 .intel-card {
   background: white;
   border-radius: 20px;
@@ -167,31 +139,25 @@
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
   border: 1px solid #f1f5f9;
 }
-
 .intel-card.full-width {
   grid-column: span 3;
 }
-
 .intel-header h3 {
   font-size: 20px;
   color: #111827;
   margin: 0;
 }
-
 .intel-header p {
   font-size: 14px;
   color: #64748b;
   margin: 5px 0 0;
 }
-
-/* Health Metrics Row */
 .health-metrics-row {
   display: flex;
   gap: 40px;
   padding: 20px 0;
   overflow-x: auto;
 }
-
 .health-indicator {
   display: flex;
   gap: 20px;
@@ -203,23 +169,19 @@
   border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
-
 .project-intel {
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
-
 .intel-substats {
   font-size: 12px;
   color: #64748b;
   margin: 4px 0;
 }
-
 .intel-substats strong {
   color: #1e293b;
 }
-
 .circular-progress {
   --w: 90px;
   width: var(--w);
@@ -232,7 +194,6 @@
   margin-bottom: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
-
 .circular-progress::before {
   content: "";
   position: absolute;
@@ -240,43 +201,35 @@
   background: white;
   border-radius: 50%;
 }
-
 .circular-progress .percent {
   position: relative;
   font-size: 18px;
   font-weight: 800;
   color: #1e293b;
 }
-
 .project-name {
   font-size: 14px;
   font-weight: 700;
   color: #334155;
   margin-bottom: 4px;
 }
-
 .total-ben {
   font-size: 11px;
   color: #94a3b8;
   font-weight: 600;
   text-transform: uppercase;
 }
-
-/* Risk Panel & Suggestions */
 .risk-panel {
   grid-row: span 2;
   background: linear-gradient(180deg, #ffffff 0%, #fef2f2 100%);
   border: 1px solid #fee2e2;
 }
-
-/* Risk Grid Radar */
 .risk-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
   margin-top: 10px;
 }
-
 .risk-item {
   background: white;
   padding: 15px;
@@ -286,7 +239,6 @@
   flex-direction: column;
   gap: 5px;
 }
-
 .risk-label {
   font-size: 11px;
   color: #64748b;
@@ -294,16 +246,13 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
 .risk-item strong {
   font-size: 24px;
   font-weight: 800;
   color: #1e293b;
 }
-
 .risk-high { color: #ef4444 !important; }
 .risk-med { color: #f59e0b !important; }
-
 .suggestion-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -313,15 +262,12 @@
   margin-bottom: 10px;
   letter-spacing: 0.05em;
 }
-
 .risk .suggestion-badge { background: #fee2e2; color: #ef4444; }
 .warning .suggestion-badge { background: #fef3c7; color: #d97706; }
 .resource .suggestion-badge { background: #dbeafe; color: #2563eb; }
-
 .action-footer {
   margin-top: 5px;
 }
-
 .success-state {
   text-align: center;
   padding: 20px;
@@ -332,7 +278,6 @@
   font-size: 13px;
   font-weight: 500;
 }
-
 .suggestion-item {
   background: white;
   padding: 15px;
@@ -342,30 +287,25 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   transition: all 0.2s;
 }
-
 .suggestion-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 12px -3px rgba(0,0,0,0.05);
 }
-
 .suggestion-item.risk { border-left: 4px solid #ef4444; }
 .suggestion-item.warning { border-left: 4px solid #f59e0b; }
 .suggestion-item.resource { border-left: 4px solid #3b82f6; }
-
 .suggestion-title {
   font-size: 13px;
   font-weight: 700;
   color: #111827;
   margin-bottom: 5px;
 }
-
 .suggestion-item p {
   font-size: 12px;
   color: #64748b;
   margin: 0 0 12px;
   line-height: 1.5;
 }
-
 .action-trigger {
   width: 100%;
   padding: 8px;
@@ -378,13 +318,11 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-
 .action-trigger:hover {
   background: #2563eb;
   color: white;
   border-color: #2563eb;
 }
-
 @media (max-width: 1400px) {
   .intelligence-grid {
     grid-template-columns: 1fr 1fr;

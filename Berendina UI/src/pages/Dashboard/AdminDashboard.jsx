@@ -4,11 +4,10 @@ import {
   BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import './Dashboard.css';
-
 const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState(null); // For Detailed Review
+  const [selectedUser, setSelectedUser] = useState(null); 
   const [stats, setStats] = useState({ 
     totalBeneficiaries: 0, 
     activeProjects: 0, 
@@ -17,16 +16,12 @@ const AdminDashboard = () => {
     onboardingTrend: [],
     projectDistribution: []
   });
-
-  // Action Confirmation State
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [userToAction, setUserToAction] = useState(null);
   const [actionType, setActionType] = useState('');
-
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -37,13 +32,10 @@ const AdminDashboard = () => {
       setPendingUsers(pendingRes.data);
       setStats(statsRes.data);
     } catch (error) {
-       // Silently fail fetching dashboard stats to avoid spamming the user, 
-       // but ensure loading state is cleared.
     } finally {
       setLoading(false);
     }
   };
-
   const handleAction = async (userId, action) => {
     if (action === 'reject' && !isConfirmModalOpen) {
       setUserToAction(userId);
@@ -51,7 +43,6 @@ const AdminDashboard = () => {
       setIsConfirmModalOpen(true);
       return;
     }
-
     try {
       await axios.put('http://localhost:5000/api/auth/approve', { 
         userId: userId || userToAction, 
@@ -65,7 +56,6 @@ const AdminDashboard = () => {
       alert("Error: Failed to process the registration action. Please try again.");
     }
   };
-
   return (
     <div className="dashboard-content">
       <div className="dashboard-header">
@@ -77,7 +67,6 @@ const AdminDashboard = () => {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
-
       {loading ? (
         <div style={{textAlign: 'center', padding: '50px'}}>Loading dashboard data...</div>
       ) : (
@@ -91,7 +80,6 @@ const AdminDashboard = () => {
               <span className="stat-meta">Awaiting review</span>
             </div>
           </div>
-
           <div className="stat-card blue">
             <div className="stat-icon">👥</div>
             <div className="stat-info">
@@ -100,7 +88,6 @@ const AdminDashboard = () => {
               <span className="stat-meta success">Registered total</span>
             </div>
           </div>
-
           <div className="stat-card green">
             <div className="stat-icon">🚀</div>
             <div className="stat-info">
@@ -109,7 +96,6 @@ const AdminDashboard = () => {
               <span className="stat-meta">Live operations</span>
             </div>
           </div>
-
           <div className="stat-card purple">
             <div className="stat-icon">📦</div>
             <div className="stat-info">
@@ -119,7 +105,6 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
-
         <div className="main-grid">
           <div className="charts-section">
             <div className="chart-card">
@@ -142,14 +127,12 @@ const AdminDashboard = () => {
               </ResponsiveContainer>
             </div>
           </div>
-
           <div className="side-panel">
               <div className="panel-card">
                   <div className="panel-header">
                       <h3>Pending Approvals</h3>
                       <span className="badge">{pendingUsers.length}</span>
                   </div>
-                  
                   <div className="approval-list">
                       {pendingUsers.length === 0 ? (
                           <div style={{textAlign: 'center', padding: '40px 0', color: '#a0aec0'}}>
@@ -177,14 +160,12 @@ const AdminDashboard = () => {
               </div>
           </div>
         </div>
-
-        {/* Detailed Review Modal */}
+        {}
         {selectedUser && (
             <div className="review-modal-overlay">
                 <div className="review-modal">
                     <h2>Review Registration</h2>
                     <p className="subtitle">Please verify credentials before granting access.</p>
-                    
                     <div className="details-grid">
                         <div className="detail-item">
                             <label>Full Name</label>
@@ -247,7 +228,6 @@ const AdminDashboard = () => {
                             <span>{selectedUser.gender || 'N/A'}</span>
                         </div>
                     </div>
-
                     <div className="modal-actions">
                         <button className="btn-secondary" onClick={() => setSelectedUser(null)}>Close</button>
                         <button className="reject-btn" style={{flex: 1}} onClick={() => handleAction(selectedUser.user_id, 'reject')}>Reject</button>
@@ -256,7 +236,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
         )}
-        {/* Action Confirmation Modal */}
+        {}
         {isConfirmModalOpen && (
             <div className="review-modal-overlay" style={{zIndex: 2000}}>
                 <div className="review-modal" style={{maxWidth: '400px', textAlign: 'center'}}>
@@ -277,5 +257,4 @@ const AdminDashboard = () => {
     </div>
   );
 };
-
 export default AdminDashboard;
