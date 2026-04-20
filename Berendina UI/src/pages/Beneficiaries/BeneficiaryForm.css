@@ -1,1 +1,176 @@
-.form-page-content {  margin-left: 260px;   width: calc(100vw - 260px);  padding: 30px 40px;  background-color: #f3f4f6;  min-height: 100vh;  box-sizing: border-box;  font-family: 'Segoe UI', sans-serif;}.page-header {  display: flex;  justify-content: space-between;  align-items: center;  margin-bottom: 30px;}.page-header h1 {  font-size: 28px;  font-weight: 800;  color: #111827;  margin: 0;}.page-header p {  color: #6b7280;  margin: 5px 0 0;}.back-btn {  background: white;  border: 1px solid #e5e7eb;  padding: 8px 16px;  border-radius: 8px;  cursor: pointer;  font-weight: 600;  color: #4b5563;  transition: all 0.2s;}.back-btn:hover {  background: #f9fafb;  color: #111827;}.form-card {  background: white;  border-radius: 20px;  padding: 30px;  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);  border: 1px solid #e5e7eb;  max-width: 900px; }.form-section {  margin-bottom: 30px;}.form-section h3 {  font-size: 16px;  font-weight: 700;  color: #374151;  border-bottom: 2px solid #f3f4f6;  padding-bottom: 10px;  margin-bottom: 20px;  text-transform: uppercase;  letter-spacing: 0.5px;}.form-row {  display: grid;  grid-template-columns: 1fr 1fr;  gap: 25px;  margin-bottom: 20px;}.form-group {  display: flex;  flex-direction: column;}.form-group.full-width {  grid-column: span 2;}.form-group label {  font-size: 14px;  font-weight: 600;  color: #111827;  margin-bottom: 8px;}.modern-input, .modern-select {  width: 100%;  padding: 12px;  border: 1px solid #e5e7eb;  border-radius: 10px;  font-size: 14px;  background-color: #f9fafb;  transition: all 0.2s;  box-sizing: border-box; }.modern-input:focus, .modern-select:focus {  outline: none;  border-color: #2563eb;  background-color: white;  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);}.range-input {  width: 100%;  cursor: pointer;}.form-actions {  display: flex;  gap: 15px;  margin-top: 30px;  padding-top: 20px;  border-top: 1px solid #e5e7eb;  justify-content: flex-end;}.cancel-btn {  padding: 12px 24px;  background: white;  border: 1px solid #e5e7eb;  border-radius: 10px;  font-weight: 600;  color: #4b5563;  cursor: pointer;}.save-btn {  padding: 12px 24px;  background: #2563eb;  border: none;  border-radius: 10px;  font-weight: 600;  color: white;  cursor: pointer;  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);}.save-btn:hover {  background: #1d4ed8;}
+/* Big area for the add beneficiary form page */
+.form-page-content {
+  margin-left: 260px;
+  width: calc(100vw - 260px);
+  padding: 30px 40px;
+  background-color: #f3f4f6;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Row for the title and the back button */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.page-header p {
+  color: #6b7280;
+  margin: 5px 0 0;
+}
+
+/* Button to go back to the list */
+.back-btn {
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #4b5563;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #f9fafb;
+  color: #111827;
+}
+
+/* Big white card for the form */
+.form-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  max-width: 900px;
+}
+
+/* Part of the form (Personal info, Contact, etc.) */
+.form-section {
+  margin-bottom: 30px;
+}
+
+.form-section h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 2px solid #f3f4f6;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Two boxes side by side */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-bottom: 20px;
+}
+
+/* Group with label and typing box */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Box that takes up full width */
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+/* Modern look for typing boxes and dropdowns */
+.modern-input,
+.modern-select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  background-color: #f9fafb;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.modern-input:focus,
+.modern-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Red look if something is wrong */
+.modern-input.invalid {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+/* Red error text */
+.form-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+  font-weight: 500;
+}
+
+.range-input {
+  width: 100%;
+  cursor: pointer;
+}
+
+/* Buttons at the bottom (Cancel and Save) */
+.form-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  justify-content: flex-end;
+}
+
+.cancel-btn {
+  padding: 12px 24px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+/* Blue button to save everything */
+.save-btn {
+  padding: 12px 24px;
+  background: #2563eb;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.save-btn:hover {
+  background: #1d4ed8;
+}

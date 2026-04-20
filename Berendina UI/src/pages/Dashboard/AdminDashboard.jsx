@@ -32,6 +32,7 @@ const AdminDashboard = () => {
       setPendingUsers(pendingRes.data);
       setStats(statsRes.data);
     } catch (error) {
+      console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
     }
@@ -53,6 +54,7 @@ const AdminDashboard = () => {
       setSelectedUser(null);
       fetchData(); 
     } catch (error) {
+      console.error("Error processing registration action:", error);
       alert("Error: Failed to process the registration action. Please try again.");
     }
   };

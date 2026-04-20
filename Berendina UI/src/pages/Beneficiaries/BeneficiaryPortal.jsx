@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Beneficiaries.css';
+// Screen for the person getting help to see their own info
 const BeneficiaryPortal = () => {
+    // Get the person info from the saved place
     const [beneficiary, setBeneficiary] = useState(() => {
         const stored = sessionStorage.getItem('beneficiary');
         return stored ? JSON.parse(stored) : null;
     });
     const navigate = useNavigate();
+    // If no person is found, go back to login
     useEffect(() => {
         if (!beneficiary) {
             navigate('/beneficiary-login');
         }
     }, [beneficiary, navigate]);
     if (!beneficiary) return <div>Loading...</div>;
+    // This is what the person sees on their screen
     return (
         <div className="beneficiary-portal-container" style={{padding: '40px', maxWidth: '1200px', margin: '0 auto'}}>
             <nav style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>

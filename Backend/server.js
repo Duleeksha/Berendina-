@@ -1,4 +1,4 @@
-// we bring all the tools we need
+// This is the main engine for our backend
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -16,11 +16,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = 5000;
 
-// allow people from outside to talk to us
+// Allow people from outside to talk to us
 app.use(cors());
 app.use(express.json()); 
 
-// here we show where the photos are
+// Here we show where the photos are
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // these are the main roads for different parts of our app

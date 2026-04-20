@@ -5,14 +5,12 @@ import { DS_DIVISIONS } from '../../constants/locations';
 import PhoneInput from '../../components/Common/PhoneInput';
 import { usePhoneValidation } from '../../hooks/usePhoneValidation';
 
-// Screen to add or change person getting help
 const BeneficiaryForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = !!id;
   const { validatePhone } = usePhoneValidation();
 
-  // Get current user from the session
   const currentUser = (() => {
     const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
@@ -20,7 +18,6 @@ const BeneficiaryForm = () => {
 
   const [projectList, setProjectList] = useState([]);
   const [officerList, setOfficerList] = useState([]);
-  // All the data we need for one person
   const [formData, setFormData] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const projParam = params.get('project');
@@ -46,7 +43,6 @@ const BeneficiaryForm = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [errors, setErrors] = useState({});
 
-  // Get projects and officers list from server
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -72,7 +68,6 @@ const BeneficiaryForm = () => {
     fetchOfficers();
   }, []);
 
-  // If editing, get the person info from server
   useEffect(() => {
     if (isEditMode) {
       const fetchBen = async () => {
@@ -91,7 +86,6 @@ const BeneficiaryForm = () => {
     }
   }, [isEditMode, id]);
 
-  // Save what person types in the boxes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -114,7 +108,6 @@ const BeneficiaryForm = () => {
     }
   };
 
-  // Check if this ID number is already in our system
   const checkExistingNIC = async (nic) => {
     try {
       const response = await fetch(`http://localhost:5000/api/beneficiaries/nic/${nic}`);
@@ -128,12 +121,10 @@ const BeneficiaryForm = () => {
     }
   };
 
-  // Remember the files the user chooses
   const handleFileChange = (e) => {
     setSelectedFiles(Array.from(e.target.files));
   };
 
-  // Send all info to server to save or update
   const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData();
@@ -167,7 +158,6 @@ const BeneficiaryForm = () => {
   };
 
   return (
-    // This is the form layout on the screen
     <div className="form-page-content">
       <div className="page-header">
         <div>

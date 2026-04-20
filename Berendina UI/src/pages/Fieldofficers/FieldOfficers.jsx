@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import './FieldOfficers.css';
 import { DS_DIVISIONS } from '../../constants/locations';
+import PhoneInput from '../../components/Common/PhoneInput';
 const FieldOfficers = () => {
   const location = useLocation();
   const [analyticsData, setAnalyticsData] = useState([]);
@@ -15,6 +16,7 @@ const FieldOfficers = () => {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState({});
   const [projects, setProjects] = useState([]);
   const [beneficiaries, setBeneficiaries] = useState([]); 
   const [scheduleData, setScheduleData] = useState({
@@ -96,24 +98,18 @@ const FieldOfficers = () => {
       if (response.ok) {
         const fullData = await response.json();
         setEditFormData({
-          id: fullData.id,
+          ...fullData,
           firstName: fullData.firstName || '',
           lastName: fullData.lastName || '',
           email: fullData.email || '',
           mobileNumber: fullData.mobileNumber || '',
           ds_division: fullData.ds_division || '',
-          vehicleType: fullData.vehicleType || 'None',
-          vehicleNumber: fullData.vehicleNumber || '',
-          gender: fullData.gender || '',
           emergency_contact: fullData.emergency_contact || '',
           languages: fullData.languages ? fullData.languages.split(', ') : [],
-          organization: fullData.organization || '',
-          employee_id: fullData.employee_id || '',
-          department: fullData.department || '',
-          branch: fullData.branch || '',
-          job_title: fullData.job_title || ''
         });
+        setErrors({});
         setIsEditModalOpen(true);
+
       } else {
         alert('Could not load officer details. Please try again.');
       }
@@ -511,14 +507,26 @@ const FieldOfficers = () => {
                   <label>Email (Read-only)</label>
                   <input type="email" value={editFormData.email || ''} readOnly className="modern-input read-only-input" />
                 </div>
-                <div className="form-group">
-                  <label>Mobile Number</label>
-                  <input type="text" value={editFormData.mobileNumber || ''} onChange={e => setEditFormData({...editFormData, mobileNumber: e.target.value})} required className="modern-input" />
-                </div>
-                <div className="form-group">
-                  <label>Emergency Contact</label>
-                  <input type="text" value={editFormData.emergency_contact || ''} onChange={e => setEditFormData({...editFormData, emergency_contact: e.target.value})} className="modern-input" />
-                </div>
+                 <div className="form-group">
+                   <PhoneInput 
+                     label="Mobile Number"
+                     name="mobileNumber"
+                     value={editFormData.mobileNumber || ''}
+                     onChange={e => setEditFormData({...editFormData, mobileNumber: e.target.value})}
+                     required
+                     error={errors.mobileNumber}
+                   />
+                 </div>
+                 <div className="form-group">
+                   <PhoneInput 
+                     label="Emergency Contact"
+                     name="emergency_contact"
+                     value={editFormData.emergency_contact || ''}
+                     onChange={e => setEditFormData({...editFormData, emergency_contact: e.target.value})}
+                     error={errors.emergency_contact}
+                   />
+                 </div>
+
                 <div className="form-group">
                   <label>DS Division</label>
                   <select 

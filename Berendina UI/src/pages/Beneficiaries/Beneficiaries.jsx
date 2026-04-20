@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Beneficiaries.css';
 import { PROJECT_MILESTONES, getMilestoneFromValue } from '../../utils/progressConstants';
 
+// Screen to see everyone who get help
 const Beneficiaries = () => {  
   const navigate = useNavigate();  
   const [searchTerm, setSearchTerm] = useState('');  
@@ -16,6 +17,7 @@ const Beneficiaries = () => {
   const [deletingBen, setDeletingBen] = useState(null);  
   const [isDeleting, setIsDeleting] = useState(false);  
   
+  // Holder for info of one person when we click them
   const [selectedBen, setSelectedBen] = useState({    
     firstName: '', lastName: '', name: '', nic: '', dob: '', gender: '', contact: '',     
     dsDivision: '', address: '', maritalStatus: '',     
@@ -31,6 +33,7 @@ const Beneficiaries = () => {
   const isOfficer = currentUser?.role === 'officer';  
 
   // here we bring the list of people from the server
+  // Ask server for list of people getting help
   const fetchData = async () => {    
     setLoading(true);    
     try {      
@@ -66,6 +69,7 @@ const Beneficiaries = () => {
   };  
 
   // do this as soon as page open!
+  // Bring all names when screen first open
   useEffect(() => {    
     fetchData();  
   }, []);  
@@ -78,11 +82,13 @@ const Beneficiaries = () => {
     setIsModalOpen(true);  
   };  
 
+  // Show full details when name is clicked
   const handleRowClick = (ben) => {    
     setSelectedBen({ ...ben, documents: ben.documents || [] });    
     setIsViewModalOpen(true);  
   };  
 
+  // Show history of how person is doing
   const handleProgressClick = async (ben) => {    
     setSelectedBen(ben);    
     const currentMilestone = getMilestoneFromValue(ben.progress || 0);    
@@ -108,6 +114,7 @@ const Beneficiaries = () => {
     setSelectedFiles(Array.from(e.target.files));  
   };  
 
+  // Save any changes to person info
   const handleUpdateSubmit = async (e) => {    
     e.preventDefault();    
     setIsUpdating(true);    
@@ -145,6 +152,7 @@ const Beneficiaries = () => {
     setDeletingBen(ben);  
   };  
 
+  // Remove person from our list forever
   const confirmDelete = async () => {    
     if (!deletingBen) return;    
     setIsDeleting(true);    
@@ -172,6 +180,7 @@ const Beneficiaries = () => {
     }  
   };  
 
+  // Save new update on how person is doing
   const handleProgressSubmit = async (e) => {    
     e.preventDefault();    
     setIsUpdating(true);    
@@ -193,6 +202,7 @@ const Beneficiaries = () => {
     }  
   };  
 
+  // Find people when we type in search box
   const filteredBeneficiaries = beneficiaries.filter(ben => {    
     const matchesSearch = ben.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||                         
                          ben.contact?.includes(searchTerm);    
@@ -202,6 +212,7 @@ const Beneficiaries = () => {
     return matchesSearch;  
   });  
 
+  // This is what is shown on the screen
   return (    
     <div className="beneficiaries-page-content">      
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>        

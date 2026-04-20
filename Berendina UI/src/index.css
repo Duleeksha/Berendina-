@@ -1,3 +1,4 @@
+/* Basic colors and fonts for the whole website */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -10,6 +11,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* How links should look */
 a {
   font-weight: 500;
   color: #646cff;
@@ -18,17 +21,28 @@ a {
 a:hover {
   color: #535bf2;
 }
+
+/* Main body and root container settings */
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  width: 100%;
 }
+
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Big titles look like this */
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
+
+/* Make all buttons look the same */
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -47,6 +61,8 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+
+/* Special look for light mode */
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

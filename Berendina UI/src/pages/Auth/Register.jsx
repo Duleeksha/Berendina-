@@ -5,6 +5,8 @@ import './Register.css';
 import '../Auth/Login.css'; 
 import { DS_DIVISIONS } from '../../constants/locations';
 import logo from '../../assets/berendina-logo.png';
+import PhoneInput from '../../components/Common/PhoneInput';
+// Screen for new users to sign up
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -32,6 +34,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: 'Very Weak', color: '#ef4444' });
+  // Check if password is strong
   useEffect(() => {
     const password = formData.password;
     let score = 0;
@@ -47,6 +50,7 @@ const Register = () => {
       color: colors[score]
     });
   }, [formData.password]);
+  // Function to check if data is correct
   const validateField = (name, value) => {
     let error = '';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -74,6 +78,7 @@ const Register = () => {
     }
     return error;
   };
+  // Save data when user type things
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
@@ -81,6 +86,7 @@ const Register = () => {
     const error = validateField(name, newValue);
     setErrors(prev => ({ ...prev, [name]: error }));
   };
+  // Save languages user talk
   const handleLanguageChange = (e) => {
     const { value, checked } = e.target;
     const { languages } = formData;
@@ -90,6 +96,7 @@ const Register = () => {
       setFormData({ ...formData, languages: languages.filter(lang => lang !== value) });
     }
   };
+  // Send all info to server to make account
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
@@ -119,11 +126,13 @@ const Register = () => {
       alert("Please fix the errors before submitting.");
     }
   };
+  // Helper to color input boxes
   const getInputClass = (name) => {
     if (errors[name]) return 'input-field invalid';
     if (formData[name] && !errors[name]) return 'input-field valid';
     return 'input-field';
   };
+  // This is the registration form UI 
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -207,8 +216,13 @@ const Register = () => {
                 <h4 className="section-title">Field Operations Info</h4>
                 <div className="form-row">
                     <div className="form-group">
-                        <input type="tel" name="mobileNumber" placeholder="Mobile Number" className={getInputClass('mobileNumber')} onChange={handleChange} />
-                        {errors.mobileNumber && <span className="form-error">{errors.mobileNumber}</span>}
+                        <PhoneInput 
+                          name="mobileNumber" 
+                          placeholder="Mobile Number" 
+                          value={formData.mobileNumber}
+                          onChange={handleChange}
+                          error={errors.mobileNumber}
+                        />
                     </div>
                     <div className="form-group">
                         <select name="ds_division" className="input-field select-field" value={formData.ds_division} onChange={handleChange}>
@@ -243,7 +257,13 @@ const Register = () => {
                         </div>
                     )}
                     <div className="form-group">
-                        <input type="tel" name="emergency_contact" placeholder="Emergency Contact" className={getInputClass('emergency_contact')} onChange={handleChange} />
+                        <PhoneInput 
+                          name="emergency_contact" 
+                          placeholder="Emergency Contact" 
+                          value={formData.emergency_contact}
+                          onChange={handleChange}
+                          error={errors.emergency_contact}
+                        />
                     </div>
                 </div>
                 <div className="form-group">

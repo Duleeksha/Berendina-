@@ -2,6 +2,7 @@ import pool from '../config/db.js';
 import bcrypt from 'bcrypt';
 import transporter from '../config/mail.js';
 // this part help new person join our system
+// This help a new person to join our system
 export const register = async (req, res) => {
   const { 
     firstName, lastName, email, role, password, 
@@ -15,14 +16,17 @@ export const register = async (req, res) => {
   const emailTrimmed = email.trim().toLowerCase();
   const passwordHash = await bcrypt.hash(password, 10);
   const initialStatus = 'Pending';
+  // Connect to the database
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // Check if person is already in the book
     const userCheck = await client.query('SELECT * FROM user_table WHERE email = $1', [emailTrimmed]);
     if (userCheck.rows.length > 0) {
       await client.query('ROLLBACK');
       return res.status(400).json({ message: 'User already exists.' });
     }
+    // Put new person info in the database
     const newUserResult = await client.query(
       `INSERT INTO user_table (
         first_name, last_name, email, password_hash, role, status, 
@@ -37,6 +41,7 @@ export const register = async (req, res) => {
     const newUserId = newUserResult.rows[0].user_id;
     if (role === 'officer') {
         const languagesString = Array.isArray(languages) ? languages.join(', ') : languages;
+        // If person is officer, save their extra details
         await client.query(
             'INSERT INTO officer_details (user_id, mobile_no, ds_division, vehicle_type, vehicle_no, languages, emergency_contact) VALUES ($1, $2, $3, $4, $5, $6, $7)',
             [newUserId, mobileNumber, ds_division, vehicleType || 'None', vehicleNumber || null, languagesString, emergency_contact]
@@ -55,6 +60,7 @@ export const register = async (req, res) => {
   }
 };
 // check if person is good to come in
+// Check if person is allowed to enter
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -70,6 +76,7 @@ export const login = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// Get list of everyone waiting for admin to say YES
 export const getPendingUsers = async (req, res) => {
   try {
     const result = await pool.query(`
@@ -85,6 +92,7 @@ export const getPendingUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// Admin say YES or NO to new person
 export const approveUser = async (req, res) => {
   const { userId, action } = req.body; 
   const status = action === 'reject' ? 'Rejected' : 'Active';
@@ -96,6 +104,7 @@ export const approveUser = async (req, res) => {
   }
 };
 let otpStore = {};
+// Send secret code to email so person can change password
 export const sendOTP = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: 'Email is required' });
@@ -119,6 +128,7 @@ export const sendOTP = async (req, res) => {
     res.status(500).json({ message: 'Error processing request' });
   }
 };
+// Check if secret code from email is correct
 export const verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
   const entry = otpStore[email];
@@ -129,6 +139,7 @@ export const verifyOTP = async (req, res) => {
     res.status(400).json({ message: 'Invalid or expired OTP' });
   }
 };
+// Replace old password with new one
 export const resetPassword = async (req, res) => {
   const { email, newPassword } = req.body;
   if (!otpStore[email] || !otpStore[email].verified) {
@@ -145,6 +156,7 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// Get list of all officers working now
 export const getOfficers = async (req, res) => {
   try {
     const query = `
@@ -159,6 +171,7 @@ export const getOfficers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// Find one specific officer using their ID
 export const getOfficerById = async (req, res) => {
   const { id } = req.params;
   try {
@@ -179,6 +192,7 @@ export const getOfficerById = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// Change info for an officer
 export const updateOfficer = async (req, res) => {
   const { id } = req.params;
   const { 
@@ -240,6 +254,7 @@ export const updateOfficer = async (req, res) => {
     client.release();
   }
 };
+// Remove an officer from the system
 export const deleteOfficer = async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
@@ -258,6 +273,7 @@ export const deleteOfficer = async (req, res) => {
     client.release();
   }
 };
+// Change if officer is working or not
 export const updateOfficerAvailability = async (req, res) => {
   const { id } = req.params;
   const { isAvailable, updatedByRole } = req.body;
@@ -285,6 +301,7 @@ export const updateOfficerAvailability = async (req, res) => {
     client.release();
   }
 };
+// Get messages sent to a person
 export const getNotifications = async (req, res) => {
   const { userId } = req.query; 
   try {

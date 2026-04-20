@@ -149,8 +149,21 @@ export const addFieldVisit = async (req, res) => {
 };
 export const updateFieldVisit = async (req, res) => {
   const { id } = req.params;
-  const { notes, feedback, status, resourceUpdates, beneficiaryProgress, beneficiaryPhase } = req.body;
+  const body = req.body;
+  
+  // When using FormData, complex objects come as strings
+  let { notes, feedback, status, resourceUpdates, beneficiaryProgress, beneficiaryPhase } = body;
+  
+  try {
+    if (typeof resourceUpdates === 'string') {
+        resourceUpdates = JSON.parse(resourceUpdates);
+    }
+  } catch (e) {
+    console.warn("Could not parse resourceUpdates string, keeping as is.");
+  }
+
   const photos = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'field-visits'))) : [];
+  console.log(`[UpdateVisit] ID: ${id}, Status: ${status}, Resources: ${Array.isArray(resourceUpdates) ? resourceUpdates.length : 0}`);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -182,15 +195,19 @@ export const updateFieldVisit = async (req, res) => {
             }
         }
     }
-    if (beneficiaryProgress !== undefined && visitData.beneficiary_id) {
-        await client.query('UPDATE beneficiary SET ben_progress = $1 WHERE beneficiary_id = $2', [beneficiaryProgress, visitData.beneficiary_id]);
-        const logComment = beneficiaryPhase 
-            ? `Phase updated to: ${beneficiaryPhase} (via Visit #${id})`
-            : `Progress updated via Field Visit #${id}`;
-        await client.query(
-            'INSERT INTO progress_history (beneficiary_id, progress_value, comment, update_date) VALUES ($1, $2, $3, NOW())', 
-            [visitData.beneficiary_id, beneficiaryProgress, logComment]
-        );
+    if (beneficiaryProgress !== undefined && beneficiaryProgress !== null && beneficiaryProgress !== "" && visitData.beneficiary_id) {
+        const progressVal = parseInt(beneficiaryProgress);
+        if (!isNaN(progressVal)) {
+            await client.query('UPDATE beneficiary SET ben_progress = $1 WHERE beneficiary_id = $2', [progressVal, visitData.beneficiary_id]);
+            const logComment = beneficiaryPhase 
+                ? `Phase updated to: ${beneficiaryPhase} (via Visit #${id})`
+                : `Progress updated via Field Visit #${id}`;
+            await client.query(
+                'INSERT INTO progress_history (beneficiary_id, progress_value, comment, update_date) VALUES ($1, $2, $3, NOW())', 
+                [visitData.beneficiary_id, progressVal, logComment]
+            );
+            console.log(`[UpdateVisit] Progress updated for Beneficiary ${visitData.beneficiary_id} to ${progressVal}%`);
+        }
     }
     if (status === 'completed') {
         try {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import './Dashboard.css';
 import { PROJECT_MILESTONES, getMilestoneFromValue } from '../../utils/progressConstants';
+// Main screen for field officers to see their work
 const OfficerDashboard = () => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,10 +12,12 @@ const OfficerDashboard = () => {
   const [localResourceConditions, setLocalResourceConditions] = useState({});
   const [visitFeedback, setVisitFeedback] = useState('');
   const [selectedPhase, setSelectedPhase] = useState(null);
+  // Get the officer info from session
   const currentUser = (() => {
     const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   })();
+  // Ask server for list of visits assigned to me
   const fetchVisits = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:5000/api/visits?officerId=${currentUser.id}`);
@@ -25,16 +28,19 @@ const OfficerDashboard = () => {
         setNewVisitCount(newOnes);
       }
     } catch (error) {
+      console.error("Error fetching dashboard visits:", error);
       alert('Error fetching dashboard visits.');
     } finally {
       setLoading(false);
     }
   }, [currentUser?.id]);
+  // Bring info from server when screen first open
   useEffect(() => {
     if (currentUser?.id) {
       fetchVisits();
     }
   }, [currentUser?.id, fetchVisits]);
+  // Tell server I have seen the new visit alert
   const handleDismissNotifications = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/visits/mark-read', {
@@ -47,9 +53,11 @@ const OfficerDashboard = () => {
         fetchVisits();
       }
     } catch (error) {
+       console.error("Error dismissing notifications:", error);
        alert("Error: System failed to dismiss the notification.");
     }
   };
+  // Show full details when a visit is clicked
   const handleVisitClick = (visit) => {
     setSelectedVisit(visit);
     setVisitFeedback(visit.feedback || '');
@@ -70,6 +78,7 @@ const OfficerDashboard = () => {
       handleVisitClick(newVisits[0]);
     }
   };
+  // Tell server visit is finished and save findings
   const handleCompleteVisit = async (visitId) => {
     const resourceUpdates = Object.entries(localResourceConditions).map(([id, data]) => ({
         id: parseInt(id),
@@ -91,15 +100,16 @@ const OfficerDashboard = () => {
         body: formData
       });
       if (response.ok) {
+        alert('Visit finalized successfully!');
         setIsModalOpen(false);
         fetchVisits();
       } else {
-        alert('Failed to update visit status.');
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to update visit: ${errorData.message || 'Server error'}`);
       }
     } catch (error) {
-      alert("Registration Failed: Could not finalize the visit on the server.");
-    } finally {
-      alert('Network error. Please try again.');
+      console.error("Visit Update Error:", error);
+      alert("Error: Could not connect to the server to finalize the visit.");
     }
   };
   const upcomingVisits = visits.filter(v => v.status === 'scheduled').slice(0, 5);
@@ -109,6 +119,7 @@ const OfficerDashboard = () => {
     { name: 'Wed', visits: 1 }, { name: 'Thu', visits: 5 },
     { name: 'Fri', visits: 3 }
   ];
+  // This is the dashboard layout on the screen
   return (
     <div className="dashboard-content">
       {newVisitCount > 0 && (

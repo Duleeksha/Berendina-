@@ -1,3 +1,4 @@
+// Main file that controls where we go in app
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import './index.css';
@@ -17,12 +18,13 @@ import BeneficiaryPortal from './pages/Beneficiaries/BeneficiaryPortal';
 import Sidebar from './components/Sidebar/Sidebar';
 import Projects from './pages/Projects/Projects';
 import ProjectForm from './pages/Projects/ProjectForm';
+// This part set up the screen layout with sidebar
 const DashboardLayout = ({ handleLogout, currentUser }) => {
   if (!currentUser) {
      return <Navigate to="/login" replace />;
   }
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
       <Sidebar onLogout={handleLogout} currentUser={currentUser} />
       <main style={{ flex: 1, backgroundColor: '#f8fafc', overflowY: 'auto' }}>
         <Outlet />
@@ -31,13 +33,14 @@ const DashboardLayout = ({ handleLogout, currentUser }) => {
   );
 };
 function App() {
-  // we remember the user here so they stay login
+  // here we remember who is using the app
   const [currentUser, setCurrentUser] = useState(() => {
     const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
       try {
         return JSON.parse(storedUser);
       } catch (error) {
+        console.error("Error parsing session storage user:", error);
         sessionStorage.removeItem('user');
       }
     }
@@ -45,17 +48,19 @@ function App() {
 });
 useEffect(() => {
 }, []);
+  // Help user login and save their info
   const handleLogin = (userData) => {
     setCurrentUser(userData);
     sessionStorage.setItem('user', JSON.stringify(userData));
   };
+  // Make user info go away when they logout
   const handleLogout = () => {
     setCurrentUser(null);
     sessionStorage.removeItem('user');
   };
   return (
     <Router>
-      {/* this is the main map for all pages in our app */}
+      {/* list of all roads in our app */}
       <Routes>
         {}
         <Route path="/login" element={<Login onLogin={handleLogin} />} />

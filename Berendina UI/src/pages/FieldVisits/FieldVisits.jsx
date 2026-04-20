@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FieldVisits.css';
 import { PROJECT_MILESTONES, getMilestoneFromValue } from '../../utils/progressConstants';
+// Screen to manage and see field visits
 const FieldVisits = () => {
   const navigate = useNavigate();
   const [visits, setVisits] = useState([]);
@@ -44,6 +45,7 @@ const FieldVisits = () => {
       return isOffAvailable && fullName.includes(searchTerm.toLowerCase());
     });
   }, [officers, searchTerm]);
+  // Ask server for list of visits
   const fetchVisits = useCallback(async (officerId) => {
     setLoading(true);
     try {
@@ -83,6 +85,7 @@ const FieldVisits = () => {
     } catch (error) {
     }
   };
+  // Bring info from server when screen open
   useEffect(() => {
     if (currentUser?.role === 'admin') {
       fetchOfficers();
@@ -131,6 +134,7 @@ const FieldVisits = () => {
       state: { message: "Please check the availability of the field visitors and schedule" } 
     });
   };
+  // Send new visit info to server
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -184,6 +188,7 @@ const FieldVisits = () => {
   const handlePhotoChange = (e) => {
     setSelectedPhotos(Array.from(e.target.files));
   };
+  // Save what happened during the visit
   const handleSubmitResult = async (e) => {
     e.preventDefault();
     const resourceUpdates = Object.entries(localResourceConditions).map(([id, data]) => ({
@@ -236,6 +241,7 @@ const FieldVisits = () => {
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const handlePrevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
   const handleNextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+  // Show visits for a specific day when clicked
   const handleDayClick = (day) => {
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth() + 1;
