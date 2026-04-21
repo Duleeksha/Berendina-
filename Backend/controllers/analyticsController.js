@@ -12,6 +12,7 @@ const safeAutoTable = (doc, options) => {
   }
   console.error("autoTable resolution failed");
 };
+// this part get all big numbers for the front page
 export const getDashboardStats = async (req, res) => {
   const data = {};
   try {
@@ -44,6 +45,7 @@ export const getDashboardStats = async (req, res) => {
     res.status(500).json({ message: 'Server error retrieving dashboard stats' });
   }
 };
+// this part get the data for making reports
 export const getReportData = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
@@ -147,6 +149,7 @@ export const getReportData = async (req, res) => {
     res.status(500).json({ message: 'Server error fetching reports', details: error.message });
   }
 };
+// this function make the PDF file for user to download
 export const exportPDF = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
@@ -387,6 +390,7 @@ export const exportPDF = async (req, res) => {
     res.status(500).json({ message: 'PDF Export failed', details: error.message });
   }
 };
+// this function make the Excel file for user to download
 export const exportExcel = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
@@ -520,6 +524,7 @@ export const exportExcel = async (req, res) => {
     res.status(500).json({ message: 'Excel Export failed' });
   }
 };
+// this get info about how officers are doing
 export const getOfficerAnalytics = async (req, res) => {
   try {
     const officersRes = await pool.query(`

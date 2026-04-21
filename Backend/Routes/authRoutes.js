@@ -18,12 +18,20 @@ router.get('/pending-users', getPendingUsers);
 router.put('/approve', approveUser);
 // Send secret code to email
 router.post('/send-otp', sendOTP);
+// check if secret code is correct
 router.post('/verify-otp', verifyOTP);
+// put new password
 router.post('/reset-password', resetPassword);
+// get list of all officers
 router.get('/officers', getOfficers);
+// get info for one officer
 router.get('/officers/:id', getOfficerById);
+// change officer info
 router.put('/officers/:id', updateOfficer);
+// remove officer from system
 router.delete('/officers/:id', deleteOfficer);
+// change if officer is working or not
 router.put('/officers/:id/availability', updateOfficerAvailability);
+// get messages for person
 router.get('/notifications', getNotifications);
 export default router;

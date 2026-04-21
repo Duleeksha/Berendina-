@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { uploadToSupabase } from '../middleware/upload.js';
+// this function get all people who get help
 export const getBeneficiaries = async (req, res) => {
   const { project } = req.query;
   try {
@@ -44,6 +45,7 @@ export const getBeneficiaries = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// this help to add a new person to our system
 export const addBeneficiary = async (req, res) => {
   const { 
     firstName, lastName, nic, dob, gender, address, contact, dsDivision, 
@@ -76,6 +78,7 @@ export const addBeneficiary = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+// this part change the info for a person
 export const updateBeneficiary = async (req, res) => {
   const { id } = req.params;
   const { 
@@ -132,6 +135,7 @@ export const updateBeneficiary = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+// this say how much the person is doing now
 export const updateProgress = async (req, res) => {
   const { id } = req.params;
   const { progress, comment } = req.body;
@@ -146,6 +150,7 @@ export const updateProgress = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// this show what happen to person before
 export const getHistory = async (req, res) => {
   const { id } = req.params;
   try {
@@ -155,6 +160,7 @@ export const getHistory = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// this find person by their ID card number
 export const getBeneficiaryByNIC = async (req, res) => {
   const { nic } = req.params;
   try {
@@ -165,6 +171,7 @@ export const getBeneficiaryByNIC = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// this remove person from out system
 export const deleteBeneficiary = async (req, res) => {
     const { id } = req.params;
     try {

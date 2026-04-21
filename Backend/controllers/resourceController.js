@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { uploadToSupabase } from '../middleware/upload.js';
+// this part get all things we have in storage
 export const getInventory = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM resource_inventory ORDER BY item_name ASC');
@@ -9,6 +10,7 @@ export const getInventory = async (req, res) => {
     res.status(500).json({ message: 'Server error retrieving inventory' });
   }
 };
+// this help to add new item to storage
 export const addInventoryItem = async (req, res) => {
   const { name, category, total_stock, unit } = req.body;
   const image_url = req.file ? await uploadToSupabase(req.file, 'resources') : null;
@@ -25,6 +27,7 @@ export const addInventoryItem = async (req, res) => {
     res.status(500).json({ message: 'Server error adding inventory' });
   }
 };
+// this part change the info for item in storage
 export const updateInventoryItem = async (req, res) => {
   const { id } = req.params;
   const { name, category, total_stock, unit } = req.body;
@@ -48,6 +51,7 @@ export const updateInventoryItem = async (req, res) => {
     res.status(500).json({ message: 'Server error updating inventory' });
   }
 };
+// this remove item from storage forever
 export const deleteInventoryItem = async (req, res) => {
   const { id } = req.params;
   try {
@@ -58,6 +62,7 @@ export const deleteInventoryItem = async (req, res) => {
     res.status(500).json({ message: 'Server error deleting inventory' });
   }
 };
+// this help officer to ask for things for a person
 export const createRequest = async (req, res) => {
   const { beneficiaryId, officerId, projectName, note, items } = req.body; 
   const client = await pool.connect();
@@ -86,6 +91,7 @@ export const createRequest = async (req, res) => {
     client.release();
   }
 };
+// this show all the things people asked for
 export const getRequests = async (req, res) => {
   try {
     const query = `
@@ -117,6 +123,7 @@ export const getRequests = async (req, res) => {
     res.status(500).json({ message: 'Server error retrieving requests' });
   }
 };
+// this help admin to say YES or NO to request
 export const processRequest = async (req, res) => {
   const { id } = req.params;
   const { status, adminNotes } = req.body; 
@@ -155,6 +162,7 @@ export const processRequest = async (req, res) => {
     client.release();
   }
 };
+// this show who got what things from us
 export const getAllocations = async (req, res) => {
   try {
     const query = `
@@ -179,6 +187,7 @@ export const getAllocations = async (req, res) => {
     res.status(500).json({ message: 'Server error retrieving allocations' });
   }
 };
+// this function when person give back the item to us
 export const returnResource = async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
@@ -206,6 +215,7 @@ export const returnResource = async (req, res) => {
     client.release();
   }
 };
+// this part let admin give thing directly to person
 export const directAllocate = async (req, res) => {
   const { inventoryId, beneficiaryId, quantity, notes } = req.body;
   const client = await pool.connect();

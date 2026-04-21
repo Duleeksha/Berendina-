@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+// this function get all high level info for big boss to see
 export const getExecutiveIntelligence = async (req, res) => {
   try {
     const { district, project } = req.query;

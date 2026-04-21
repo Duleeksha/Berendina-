@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 import transporter from '../config/mail.js';
 import { uploadToSupabase } from '../middleware/upload.js';
+// this function get all the field visits scheduled
 export const getFieldVisits = async (req, res) => {
   const { officerId } = req.query;
   try {
@@ -44,6 +45,7 @@ export const getFieldVisits = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// this part help to put a new visit on the calendar
 export const addFieldVisit = async (req, res) => {
   const { beneficiary, beneficiaryId, district, address, date, time, officerId, status, notes, feedback } = req.body;
   const photos = req.files ? await Promise.all(req.files.map(f => uploadToSupabase(f, 'field-visits'))) : [];
@@ -147,6 +149,7 @@ export const addFieldVisit = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+// this part when officer finish visit and write notes
 export const updateFieldVisit = async (req, res) => {
   const { id } = req.params;
   const body = req.body;
@@ -229,6 +232,7 @@ export const updateFieldVisit = async (req, res) => {
     client.release();
   }
 };
+// this function say officer already saw the new visit notice
 export const markAsRead = async (req, res) => {
   const { visitIds, userId } = req.body;
   try {

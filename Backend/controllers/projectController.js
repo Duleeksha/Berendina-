@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { uploadToSupabase } from '../middleware/upload.js';
+// this part get all projects we are doing
 export const getProjects = async (req, res) => {
   try {
     const result = await pool.query('SELECT project_id AS id, project_name AS name, donor_agency AS donor, target_location AS location, TO_CHAR(start_date, \'YYYY-MM-DD\') AS start, TO_CHAR(end_date, \'YYYY-MM-DD\') AS "end", budget, status, description, image_url, created_at FROM project ORDER BY created_at DESC');
@@ -9,6 +10,7 @@ export const getProjects = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// this function make a new project in system
 export const addProject = async (req, res) => {
   const { name, donor, location, start, end, budget, status, description } = req.body;
   const image_url = req.file ? await uploadToSupabase(req.file, 'projects') : null;
@@ -24,6 +26,7 @@ export const addProject = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// this part change project info
 export const updateProject = async (req, res) => {
   const { id } = req.params;
   const { name, donor, location, start, end, budget, status, description } = req.body;
@@ -71,6 +74,7 @@ export const updateProject = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// this function remove project from system
 export const deleteProject = async (req, res) => {
   const { id } = req.params;
   try {
