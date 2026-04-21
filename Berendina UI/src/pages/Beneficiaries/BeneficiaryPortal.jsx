@@ -4,7 +4,7 @@ import './Beneficiaries.css';
 // Screen for the person getting help to see their own info
 const BeneficiaryPortal = () => {
     // Get the person info from the saved place
-    const [beneficiary, setBeneficiary] = useState(() => {
+    const [beneficiary] = useState(() => {
         const stored = sessionStorage.getItem('beneficiary');
         return stored ? JSON.parse(stored) : null;
     });
