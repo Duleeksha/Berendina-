@@ -1,5 +1,11 @@
 import pool from '../config/db.js';
-// this function get all high level info for big boss to see
+/**
+ * This function get all high level info for big boss to see.
+ * We calculate the project health (is it on time or slow?), 
+ * see if any visits are late, and check if resources are running out.
+ * We also give 'Suggested Actions' like telling boss to buy more items or 
+ * help out a busy officer.
+ */
 export const getExecutiveIntelligence = async (req, res) => {
   try {
     const { district, project } = req.query;

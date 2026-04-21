@@ -3,6 +3,10 @@ import { getDashboardStats, getReportData, exportPDF, exportExcel, getOfficerAna
 import { getExecutiveIntelligence } from '../controllers/decisionController.js';
 const router = express.Router();
 
+/**
+ * All the roads for making reports and seeing how system is doing.
+ * Admin use these to see big numbers on dashboard and download files.
+ */
 // get numbers for dash board
 router.get('/dashboard-stats', getDashboardStats);
 // get list of data for reports

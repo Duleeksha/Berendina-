@@ -6,7 +6,10 @@ import {
   updateOfficerAvailability, getNotifications
 } from '../controllers/authController.js';
 import { upload } from '../middleware/upload.js';
-// All the roads for login and users
+/**
+ * All the roads for login, sign up, and managing staff.
+ * We also have roads for secret codes (OTP) to change password.
+ */
 const router = express.Router();
 // Road for new person to sign up
 router.post('/register', upload.array('documents'), register);

@@ -60,7 +60,7 @@ useEffect(() => {
   };
   return (
     <Router>
-      {/* list of all roads in our app */}
+      {/* list of all roads */}
       <Routes>
         {}
         <Route path="/login" element={<Login onLogin={handleLogin} />} />

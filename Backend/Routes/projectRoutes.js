@@ -3,6 +3,10 @@ import { getProjects, addProject, updateProject, deleteProject } from '../contro
 import { upload } from '../middleware/upload.js';
 const router = express.Router();
 
+/**
+ * All the roads for managing the big projects at Berendina.
+ * Admin can create projects and see which ones are working now.
+ */
 // get list of all projects we do
 router.get('/', getProjects);
 // make a new project in the system

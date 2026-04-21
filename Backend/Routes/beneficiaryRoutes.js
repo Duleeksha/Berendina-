@@ -3,6 +3,10 @@ import { getBeneficiaries, addBeneficiary, updateBeneficiary, updateProgress, ge
 import { upload } from '../middleware/upload.js';
 const router = express.Router();
 
+/**
+ * All the roads to manage people who get help from Berendina.
+ * Admin and Officers use these to add, change, or remove beneficiaries.
+ */
 // get list of all people getting help
 router.get('/', getBeneficiaries);
 // add a new person who needs help

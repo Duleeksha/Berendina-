@@ -12,7 +12,11 @@ const safeAutoTable = (doc, options) => {
   }
   console.error("autoTable resolution failed");
 };
-// this part get all big numbers for the front page
+/**
+ * This part get all big numbers for the front page.
+ * We count how many beneficiaries, active projects, and pending requests.
+ * We also make a trend list for the last 6 months so chart looks nice.
+ */
 export const getDashboardStats = async (req, res) => {
   const data = {};
   try {
@@ -45,7 +49,12 @@ export const getDashboardStats = async (req, res) => {
     res.status(500).json({ message: 'Server error retrieving dashboard stats' });
   }
 };
-// this part get the data for making reports
+/**
+ * This part get the data for making reports.
+ * User can filter by date, project, district, or status.
+ * We check what reportType user want (progress, visits, resources) and then 
+ * get the correct info from the database.
+ */
 export const getReportData = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
@@ -149,7 +158,11 @@ export const getReportData = async (req, res) => {
     res.status(500).json({ message: 'Server error fetching reports', details: error.message });
   }
 };
-// this function make the PDF file for user to download
+/**
+ * This function make the PDF file for user to download.
+ * If reportType is 'executive', we make a very special report with risks and health scores.
+ * For other types, we just make a nice table with the data.
+ */
 export const exportPDF = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
@@ -390,7 +403,11 @@ export const exportPDF = async (req, res) => {
     res.status(500).json({ message: 'PDF Export failed', details: error.message });
   }
 };
-// this function make the Excel file for user to download
+/**
+ * This function make the Excel file for user to download.
+ * We put the data into rows and columns so user can open in Excel.
+ * We also color the first row to make it look professional.
+ */
 export const exportExcel = async (req, res) => {
   const { startDate, endDate, project, district, status, reportType } = req.query;
   try {
@@ -524,7 +541,11 @@ export const exportExcel = async (req, res) => {
     res.status(500).json({ message: 'Excel Export failed' });
   }
 };
-// this get info about how officers are doing
+/**
+ * This get info about how officers are doing.
+ * We look at how many visits they did, what projects they have, 
+ * and what visits they must do in the future.
+ */
 export const getOfficerAnalytics = async (req, res) => {
   try {
     const officersRes = await pool.query(`

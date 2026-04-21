@@ -14,6 +14,10 @@ import {
 import { upload } from '../middleware/upload.js';
 const router = express.Router();
 
+/**
+ * All the roads for managing the items in storage and giving them to people.
+ * Officers can ask for things, and Admin can approve or give directly.
+ */
 // get all items in the store
 router.get('/inventory', getInventory);
 // add new item to the store

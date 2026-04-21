@@ -3,6 +3,10 @@ import { getFieldVisits, addFieldVisit, updateFieldVisit, markAsRead } from '../
 import { upload } from '../middleware/upload.js';
 const router = express.Router();
 
+/**
+ * All the roads for managing field visits.
+ * Used to schedule new visits and update notes when officer come back.
+ */
 // get list of all visits for officers
 router.get('/', getFieldVisits);
 // put a new visit on the officer calendar

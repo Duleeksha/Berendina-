@@ -1,6 +1,9 @@
 import pool from '../config/db.js';
 import { uploadToSupabase } from '../middleware/upload.js';
-// this function get all people who get help
+/**
+ * This function get all people who get help from Berendina.
+ * We can filter by project or by the officer who is assigned to them.
+ */
 export const getBeneficiaries = async (req, res) => {
   const { project } = req.query;
   try {
@@ -45,7 +48,11 @@ export const getBeneficiaries = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// this help to add a new person to our system
+/**
+ * This help to add a new person to our system.
+ * we save their name, NIC, and other details.
+ * If they have documents, we upload them to the cloud.
+ */
 export const addBeneficiary = async (req, res) => {
   const { 
     firstName, lastName, nic, dob, gender, address, contact, dsDivision, 
@@ -78,7 +85,10 @@ export const addBeneficiary = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-// this part change the info for a person
+/**
+ * This part change the info for a person if they move house or 
+ * change their phone number. We also can add more documents later.
+ */
 export const updateBeneficiary = async (req, res) => {
   const { id } = req.params;
   const { 
@@ -135,7 +145,10 @@ export const updateBeneficiary = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-// this say how much the person is doing now
+/**
+ * This say how much the person is doing now.
+ * We update the main number and also write in the history book.
+ */
 export const updateProgress = async (req, res) => {
   const { id } = req.params;
   const { progress, comment } = req.body;
@@ -150,7 +163,10 @@ export const updateProgress = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// this show what happen to person before
+/**
+ * This show what happen to person before.
+ * We list all the times their progress was updated.
+ */
 export const getHistory = async (req, res) => {
   const { id } = req.params;
   try {
@@ -160,7 +176,10 @@ export const getHistory = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// this find person by their ID card number
+/**
+ * This find person by their ID card number (NIC).
+ * Very useful to check if person is already in our system.
+ */
 export const getBeneficiaryByNIC = async (req, res) => {
   const { nic } = req.params;
   try {
@@ -171,7 +190,10 @@ export const getBeneficiaryByNIC = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// this remove person from out system
+/**
+ * This remove person from out system.
+ * We delete them using their ID. This is serious, be careful!
+ */
 export const deleteBeneficiary = async (req, res) => {
     const { id } = req.params;
     try {

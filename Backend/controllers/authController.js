@@ -1,8 +1,12 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcrypt';
 import transporter from '../config/mail.js';
-// this part help new person join our system
-// This help a new person to join our system
+/**
+ * This part help new person join our system.
+ * We save their name, email, and password (after hiding it with hash).
+ * If they are officer, we also save their phone and bike details.
+ * Everything start with 'Pending' status until Admin say YES.
+ */
 export const register = async (req, res) => {
   const { 
     firstName, lastName, email, role, password, 
@@ -59,8 +63,11 @@ export const register = async (req, res) => {
     client.release();
   }
 };
-// check if person is good to come in
-// Check if person is allowed to enter
+/**
+ * Check if person is allowed to enter.
+ * We check if email is in the system and if password matches.
+ * If Admin not approved yet or Admin rejected, they cannot come in.
+ */
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -76,7 +83,10 @@ export const login = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// Get list of everyone waiting for admin to say YES
+/**
+ * Get list of everyone waiting for admin to say YES.
+ * We get all the info for users whose status is 'Pending'.
+ */
 export const getPendingUsers = async (req, res) => {
   try {
     const result = await pool.query(`
@@ -92,7 +102,11 @@ export const getPendingUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// Admin say YES or NO to new person
+/**
+ * Admin say YES or NO to new person.
+ * If Admin say reject, status is 'Rejected'. 
+ * If Admin say okay, status is 'Active'.
+ */
 export const approveUser = async (req, res) => {
   const { userId, action } = req.body; 
   const status = action === 'reject' ? 'Rejected' : 'Active';
@@ -104,7 +118,10 @@ export const approveUser = async (req, res) => {
   }
 };
 let otpStore = {};
-// Send secret code to email so person can change password
+/**
+ * Send secret code to email so person can change password.
+ * Code is 4 numbers and only works for 10 minutes.
+ */
 export const sendOTP = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: 'Email is required' });
@@ -128,7 +145,10 @@ export const sendOTP = async (req, res) => {
     res.status(500).json({ message: 'Error processing request' });
   }
 };
-// Check if secret code from email is correct
+/**
+ * Check if secret code from email is correct.
+ * If code matches and not expired, we let them change password.
+ */
 export const verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
   const entry = otpStore[email];
@@ -139,7 +159,10 @@ export const verifyOTP = async (req, res) => {
     res.status(400).json({ message: 'Invalid or expired OTP' });
   }
 };
-// Replace old password with new one
+/**
+ * Replace old password with new one.
+ * They must verify email code first before we allow this.
+ */
 export const resetPassword = async (req, res) => {
   const { email, newPassword } = req.body;
   if (!otpStore[email] || !otpStore[email].verified) {
@@ -156,7 +179,10 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// Get list of all officers working now
+/**
+ * Get list of all officers working now.
+ * We only get 'Active' officers and join their details too.
+ */
 export const getOfficers = async (req, res) => {
   try {
     const query = `
@@ -171,7 +197,10 @@ export const getOfficers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// Find one specific officer using their ID
+/**
+ * Find one specific officer using their ID.
+ * We get everything about them like phone, bike, and division.
+ */
 export const getOfficerById = async (req, res) => {
   const { id } = req.params;
   try {
@@ -192,7 +221,10 @@ export const getOfficerById = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-// Change info for an officer
+/**
+ * Change info for an officer.
+ * We update user info and officer specific info at the same time.
+ */
 export const updateOfficer = async (req, res) => {
   const { id } = req.params;
   const { 
@@ -254,7 +286,10 @@ export const updateOfficer = async (req, res) => {
     client.release();
   }
 };
-// Remove an officer from the system
+/**
+ * Remove an officer from the system.
+ * We delete their visits, details, and user account. No turning back!
+ */
 export const deleteOfficer = async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
@@ -273,7 +308,10 @@ export const deleteOfficer = async (req, res) => {
     client.release();
   }
 };
-// Change if officer is working or not
+/**
+ * Change if officer is working or not.
+ * If Admin makes them 'Unavailable', we send a message to the officer.
+ */
 export const updateOfficerAvailability = async (req, res) => {
   const { id } = req.params;
   const { isAvailable, updatedByRole } = req.body;
@@ -301,7 +339,10 @@ export const updateOfficerAvailability = async (req, res) => {
     client.release();
   }
 };
-// Get messages sent to a person
+/**
+ * Get messages sent to a person.
+ * We get the last 20 messages so they know what happened.
+ */
 export const getNotifications = async (req, res) => {
   const { userId } = req.query; 
   try {

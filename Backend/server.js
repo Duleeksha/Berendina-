@@ -1,4 +1,8 @@
-// This is the main engine for our backend
+/**
+ * THIS IS THE MAIN ENGINE FOR OUR BACKEND.
+ * Everything starts from here! We setup the server, add security with CORS,
+ * and define all the 'roads' (routes) where our app can talk to the database.
+ */
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -16,14 +20,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = 5000;
 
-// Allow people from outside to talk to us
+
 app.use(cors());
 app.use(express.json()); 
 
-// Here we show where the photos are
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// these are the main roads for different parts of our app
+
 app.use("/api/auth", authRoutes);
 app.use("/api/beneficiaries", beneficiaryRoutes);
 app.use("/api/visits", visitRoutes);
@@ -31,12 +35,12 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// if person go to wrong road, we tell them NO FOUND
+
 app.use((req, res) => {  
   res.status(404).json({ message: `Route ${req.method} ${req.url} not found` });
 });
 
-// if big error happen in engine, we catch it here
+
 app.use((err, req, res, next) => {  
   console.error('SERVER ERROR:', err);  
   res.status(500).json({     
@@ -46,7 +50,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// here we turn on the engine!
+
 app.listen(port, () => {  
   console.log(`Server running at http://localhost:${port}`);
 });
