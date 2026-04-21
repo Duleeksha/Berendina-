@@ -55,7 +55,9 @@ const BeneficiaryForm = () => {
           const data = await response.json();
           setProjectList(data);
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
     };
 
     const fetchOfficers = async () => {
@@ -65,7 +67,9 @@ const BeneficiaryForm = () => {
           const data = await response.json();
           setOfficerList(data);
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error('Error fetching officers:', error);
+      }
     };
 
     fetchProjects();
@@ -84,6 +88,7 @@ const BeneficiaryForm = () => {
             if (ben) setFormData(ben);
           }
         } catch (error) {
+          console.error('Error loading beneficiary:', error);
           alert("Error: Failed to load existing beneficiary data for editing.");
         }
       };
@@ -162,6 +167,7 @@ const BeneficiaryForm = () => {
         alert(`Error: ${result.message}`);
       }
     } catch (error) {
+      console.error('Form submission error:', error);
       alert("Critical Error: Failed to submit the beneficiary form. Please check your internet connection.");
     }
   };
