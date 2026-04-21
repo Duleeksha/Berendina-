@@ -24,7 +24,7 @@ const Sidebar = ({ currentUser, onLogout }) => {
       fetch(`http://localhost:5000/api/auth/officers/${userId}`)
         .then(res => res.json())
         .then(data => setIsAvailable(data.isAvailable !== false))
-        .catch(err => { });
+        .catch(error => { console.error('Error fetching officer status:', error); });
 
       fetch(`http://localhost:5000/api/auth/notifications?userId=${userId}`)
         .then(res => res.json())
@@ -32,7 +32,7 @@ const Sidebar = ({ currentUser, onLogout }) => {
           const unread = data.some(n => !n.read_status && n.message.includes('Administrator'));
           if (unread) setHasNotification(true);
         })
-        .catch(err => { });
+        .catch(error => { console.error('Error fetching notifications:', error); });
     }
   }, [userId, userRole]);
 
@@ -49,7 +49,8 @@ const Sidebar = ({ currentUser, onLogout }) => {
       if (res.ok) {
         setIsAvailable(nextStatus);
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Update status error:', error);
       alert('Error: Could not update status.');
     }
   };

@@ -1,5 +1,0 @@
-Beneficiary table: FAILED - SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string
-Project status: FAILED - SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string
-Resource sum: FAILED - SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string
-User status: FAILED - SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string
-Beneficiary created_at: MISSING
